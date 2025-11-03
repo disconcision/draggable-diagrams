@@ -1,7 +1,13 @@
 import * as d3 from "d3-shape";
 import _ from "lodash";
 import { layer, PointOnLayer, type Layer } from "./layer";
-import { addParents, allMorphs, TreeMorph, TreeNode } from "./trees";
+import {
+  addParents,
+  buildHasseDiagram,
+  layoutHasse,
+  TreeMorph,
+  TreeNode,
+} from "./trees";
 import { add, distance, length, sub, v, type Vec2 } from "./vec2";
 import { inXYWH, type XYWH } from "./xywh";
 
@@ -424,6 +430,11 @@ function draw() {
   let curX = 20;
   let curY = 20;
 
+  // Create layers in drawing order (first = bottom, last = top)
+  const edgeLyr = layer(ctx);
+  lyr.place(edgeLyr, pan);
+  const whiteBackgroundLyr = layer(ctx);
+  lyr.place(whiteBackgroundLyr, pan);
   const bgLyr = layer(ctx);
   lyr.place(bgLyr, pan);
   const fgLyr = layer(ctx);
@@ -433,6 +444,13 @@ function draw() {
     id: "root",
     children: [
       { id: "a", children: [] },
+      { id: "b", children: [] },
+    ],
+  });
+  const biggerTree = addParents({
+    id: "root",
+    children: [
+      { id: "a", children: [{ id: "a1", children: [] }] },
       { id: "b", children: [] },
     ],
   });
@@ -450,12 +468,31 @@ function draw() {
       },
     ],
   });
-  const codomainTree = simpleTree;
-  const domainTree = simpleTree;
-  const morphs = allMorphs(domainTree, codomainTree);
+  const codomainTree = biggerTree;
+  const domainTree = biggerTree;
 
-  for (const morph of morphs) {
-    let maxH = 0;
+  // Build Hasse diagram and layout
+  const diagram = buildHasseDiagram(domainTree, codomainTree);
+  const hasseLayout = layoutHasse(diagram);
+
+  // Store morphism bounding boxes and centers for edge drawing
+  const morphBoxes: Map<
+    number,
+    {
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      centerX: number;
+      centerY: number;
+    }
+  > = new Map();
+
+  // Draw each morphism at its dagre-computed position
+  for (let morphIdx = 0; morphIdx < diagram.nodes.length; morphIdx++) {
+    const morph = diagram.nodes[morphIdx];
+    const pos = hasseLayout.positions.get(morphIdx)!;
+
     const fgNodeCenters: Record<string, PointOnLayer> = {};
     const edgeTasks: ((lyr: Layer) => void)[] = [];
     const r = drawBgSubtree(
@@ -465,20 +502,57 @@ function draw() {
       fgNodeCenters,
       edgeTasks,
     );
-    bgLyr.place(r.bgLyr, v(curX, curY));
-    fgLyr.place(r.fgLyr, v(curX, curY));
-    // drawFgNodeEdges(fgLyr, domainTree, fgNodeCenters);
+
+    // Center the morphism at the dagre position
+    const morphX = curX + pos.x - r.w / 2;
+    const morphY = curY + pos.y - r.h / 2;
+
+    bgLyr.place(r.bgLyr, v(morphX, morphY));
+    fgLyr.place(r.fgLyr, v(morphX, morphY));
+
     for (const task of edgeTasks) {
       task(fgLyr);
     }
-    // curY += r.h + BG_NODE_GAP;
-    curX += r.w + BG_NODE_GAP;
-    maxH = Math.max(maxH, r.h);
-    if (curX > 500) {
-      curX = 20;
-      curY += maxH + BG_NODE_GAP;
-      maxH = 0;
+
+    // Store bounding box for edge drawing
+    morphBoxes.set(morphIdx, {
+      x: morphX,
+      y: morphY,
+      w: r.w,
+      h: r.h,
+      centerX: curX + pos.x,
+      centerY: curY + pos.y,
+    });
+  }
+
+  // Draw edges between morphisms in the Hasse diagram (on edge layer, behind everything)
+  for (const [from, to] of diagram.edges) {
+    const fromBox = morphBoxes.get(from);
+    const toBox = morphBoxes.get(to);
+
+    if (fromBox && toBox) {
+      edgeLyr.do(() => {
+        edgeLyr.strokeStyle = "black";
+        edgeLyr.lineWidth = 3;
+        edgeLyr.beginPath();
+        // Draw from center to center of morphisms
+        edgeLyr.moveTo(fromBox.centerX, fromBox.centerY);
+        edgeLyr.lineTo(toBox.centerX, toBox.centerY);
+        edgeLyr.stroke();
+      });
     }
+  }
+
+  // Draw white circles behind each morphism visualization
+  for (const [morphIdx, box] of morphBoxes.entries()) {
+    whiteBackgroundLyr.do(() => {
+      whiteBackgroundLyr.fillStyle = "white";
+      whiteBackgroundLyr.beginPath();
+      // Use the larger of width/height as diameter, add some padding
+      const radius = Math.max(box.w, box.h) / 2 + 10;
+      whiteBackgroundLyr.arc(box.centerX, box.centerY, radius, 0, Math.PI * 2);
+      whiteBackgroundLyr.fill();
+    });
   }
 
   // Clickables debug

@@ -1,5 +1,5 @@
 import { expect, it, describe } from "vitest";
-import { addParents, allMorphs, domainTree, codomainTree, testMorphs } from "./trees";
+import { addParents, allMorphs, domainTree, codomainTree, testMorphs, covers, buildHasseDiagram, toDot, layoutHasse } from "./trees";
 
 describe("allMorphs", () => {
   it("works on Elliot's example", () => {
@@ -135,5 +135,224 @@ describe("allMorphs", () => {
       b2: "b2",
     };
     expect(morphs).toContainEqual(identity);
+  });
+});
+
+describe("covers", () => {
+  const tree = addParents({
+    id: "root",
+    children: [
+      { id: "a", children: [] },
+      { id: "b", children: [] },
+    ],
+  });
+
+  it("detects covering when one node maps to parent", () => {
+    const f = { x: "root", y: "root" };
+    const g = { x: "root", y: "a" };
+    expect(covers(f, g, tree)).toBe(true);
+  });
+
+  it("returns false when morphisms differ at multiple nodes", () => {
+    const f = { x: "root", y: "root" };
+    const g = { x: "a", y: "b" };
+    expect(covers(f, g, tree)).toBe(false);
+  });
+
+  it("returns false when morphisms are identical", () => {
+    const f = { x: "root", y: "a" };
+    const g = { x: "root", y: "a" };
+    expect(covers(f, g, tree)).toBe(false);
+  });
+
+  it("returns false when difference is not parent relationship", () => {
+    const f = { x: "a", y: "a" };
+    const g = { x: "b", y: "a" };
+    // a and b are siblings, not parent-child
+    expect(covers(f, g, tree)).toBe(false);
+  });
+
+  it("returns false when mapping goes down instead of up", () => {
+    const f = { x: "root", y: "a" };
+    const g = { x: "root", y: "root" };
+    // g maps to parent of where f maps, not the other way around
+    expect(covers(f, g, tree)).toBe(false);
+  });
+
+  it("works with deeper tree", () => {
+    const deepTree = addParents({
+      id: "root",
+      children: [{
+        id: "a",
+        children: [{ id: "a1", children: [] }],
+      }],
+    });
+
+    const f = { x: "a", y: "a1" };
+    const g = { x: "a", y: "a" };
+    expect(covers(f, g, deepTree)).toBe(false); // wrong direction
+
+    const f2 = { x: "a", y: "a" };
+    const g2 = { x: "a", y: "a1" };
+    expect(covers(f2, g2, deepTree)).toBe(true); // f2 covers g2
+  });
+});
+
+describe("buildHasseDiagram", () => {
+  it("builds diagram for simple case", () => {
+    const singleNode = addParents({ id: "x", children: [] });
+    const twoNodeChain = addParents({
+      id: "p",
+      children: [{ id: "c", children: [] }],
+    });
+
+    const diagram = buildHasseDiagram(singleNode, twoNodeChain);
+
+    // Should have 2 morphisms: x->p and x->c
+    expect(diagram.nodes).toHaveLength(2);
+
+    // x->p should cover x->c (p is parent of c)
+    expect(diagram.edges).toHaveLength(1);
+
+    // Find which index is which
+    const pMorphIndex = diagram.nodes.findIndex(m => m.x === "p");
+    const cMorphIndex = diagram.nodes.findIndex(m => m.x === "c");
+
+    expect(diagram.edges[0]).toEqual([pMorphIndex, cMorphIndex]);
+  });
+
+  it("builds diagram for Elliot's example", () => {
+    const tree = addParents({
+      id: "root",
+      children: [
+        { id: "a", children: [] },
+        { id: "b", children: [] },
+      ],
+    });
+
+    const diagram = buildHasseDiagram(tree, tree);
+    expect(diagram.nodes).toHaveLength(11);
+
+    // Should have edges forming a proper poset structure
+    expect(diagram.edges.length).toBeGreaterThan(0);
+
+    // All edges should be valid covering relations
+    for (const [from, to] of diagram.edges) {
+      expect(covers(diagram.nodes[from], diagram.nodes[to], tree)).toBe(true);
+    }
+  });
+
+  it("produces valid DOT output", () => {
+    const tree = addParents({
+      id: "root",
+      children: [{ id: "a", children: [] }],
+    });
+
+    const diagram = buildHasseDiagram(tree, tree);
+    const dot = toDot(diagram);
+
+    expect(dot).toContain("digraph HasseDiagram");
+    expect(dot).toContain("rankdir=BT");
+    expect(dot).toContain("->"); // Has edges
+    expect(dot).toContain("root→"); // Has morphism labels
+  });
+
+  it("debug: inspect layout structure", () => {
+    const tree = addParents({
+      id: "r",
+      children: [
+        { id: "a", children: [] },
+        { id: "b", children: [] },
+      ],
+    });
+
+    const diagram = buildHasseDiagram(tree, tree);
+    const layout = layoutHasse(diagram);
+
+    console.log("\n=== Dagre Layout Debug ===");
+    console.log(`Layout dimensions: ${layout.width.toFixed(1)} x ${layout.height.toFixed(1)}`);
+
+    // Sort by y position to see layers
+    const byY = Array.from(layout.positions.entries()).sort((a, b) => a[1].y - b[1].y);
+
+    for (const [morphIdx, pos] of byY) {
+      const morph = diagram.nodes[morphIdx];
+      console.log(`  ${morphIdx} @ (${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}): ${JSON.stringify(morph)}`);
+    }
+  });
+
+  it("example: log DOT output for manual inspection", () => {
+    const tree = addParents({
+      id: "r",
+      children: [
+        { id: "a", children: [] },
+        { id: "b", children: [] },
+      ],
+    });
+
+    const diagram = buildHasseDiagram(tree, tree);
+    const dot = toDot(diagram);
+
+    console.log("\n=== Hasse Diagram for tree->tree morphisms ===");
+    console.log(`Morphisms: ${diagram.nodes.length}`);
+    console.log(`Edges: ${diagram.edges.length}`);
+    console.log("\n=== DOT format ===");
+    console.log(dot);
+    console.log("\nYou can visualize this with: echo '<dot>' | dot -Tpng > hasse.png");
+
+    expect(diagram.nodes.length).toBe(11);
+  });
+});
+
+describe("layoutHasse", () => {
+  it("lays out a simple chain correctly", () => {
+    const singleNode = addParents({ id: "x", children: [] });
+    const twoNodeChain = addParents({
+      id: "p",
+      children: [{ id: "c", children: [] }],
+    });
+
+    const diagram = buildHasseDiagram(singleNode, twoNodeChain);
+    const layout = layoutHasse(diagram);
+
+    // Should have positions for both morphisms
+    expect(layout.positions.size).toBe(2);
+
+    // Find which is which
+    const cMorphIdx = diagram.nodes.findIndex(m => m.x === "c");
+    const pMorphIdx = diagram.nodes.findIndex(m => m.x === "p");
+
+    // p morphism should be higher up (smaller y in TB layout with dagre)
+    const cPos = layout.positions.get(cMorphIdx)!;
+    const pPos = layout.positions.get(pMorphIdx)!;
+    expect(pPos.y).toBeLessThan(cPos.y);
+  });
+
+  it("lays out Elliot's example with proper positioning", () => {
+    const tree = addParents({
+      id: "r",
+      children: [
+        { id: "a", children: [] },
+        { id: "b", children: [] },
+      ],
+    });
+
+    const diagram = buildHasseDiagram(tree, tree);
+    const layout = layoutHasse(diagram);
+
+    // All nodes should be assigned positions
+    expect(layout.positions.size).toBe(diagram.nodes.length);
+
+    // Check that covering edges go downward (from covers to, so from has smaller y)
+    for (const [from, to] of diagram.edges) {
+      const fromPos = layout.positions.get(from)!;
+      const toPos = layout.positions.get(to)!;
+      // from covers to, so from should have smaller y (higher up in TB layout)
+      expect(fromPos.y).toBeLessThan(toPos.y);
+    }
+
+    // Layout should have reasonable dimensions
+    expect(layout.width).toBeGreaterThan(0);
+    expect(layout.height).toBeGreaterThan(0);
   });
 });

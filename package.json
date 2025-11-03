@@ -17,7 +17,9 @@
     "vitest": "^4.0.6"
   },
   "dependencies": {
+    "@types/dagre": "^0.7.53",
     "d3-shape": "^3.2.0",
+    "dagre": "^0.8.5",
     "lodash": "^4.17.21"
   }
 }
