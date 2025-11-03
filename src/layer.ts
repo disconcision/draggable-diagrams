@@ -150,3 +150,7 @@ export function layer(lyr: CanvasRenderingContext2D): Layer {
 export function getLayerCommandCount(lyr: Layer): number {
   return LayerImpl.commandCount(lyr);
 }
+
+const trashCanvas = document.createElement('canvas');
+const trashCtx = trashCanvas.getContext('2d')!;
+export const noLayer: Layer = LayerImpl.make(trashCtx, false);
