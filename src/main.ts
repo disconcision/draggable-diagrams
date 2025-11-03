@@ -156,25 +156,15 @@ function drawBgSubtree(
     fgNodesHere,
     fgNodeCentersAbove,
   );
-  bgLyr.place(bgNodeR.bgLyr);
-  fgLyr.place(bgNodeR.fgLyr);
 
   fgNodesBelow.push(...bgNodeR.fgNodesBelow);
-
-  // console.log(
-  //   "Drawing background node",
-  //   bgNode.id,
-  //   "with",
-  //   fgNodesHere.length,
-  //   "foreground nodes here and",
-  //   fgNodesBelow.length,
-  //   "below",
-  // );
 
   let x = 0;
   let y = bgNodeR.h + BG_NODE_GAP;
   let maxX = bgNodeR.w;
   let maxY = bgNodeR.h;
+
+  const childRootCenters: PointOnLayer[] = [];
 
   for (const child of bgNode.children) {
     const childR = drawBgSubtree(
@@ -191,12 +181,20 @@ function drawBgSubtree(
     maxX = Math.max(maxX, x - BG_NODE_GAP);
     maxY = Math.max(maxY, y + childR.h);
 
+    childRootCenters.push(childR.rootCenter);
+  }
+
+  const bgNodeOffset = v((maxX - bgNodeR.w) / 2, 0);
+  bgLyr.place(bgNodeR.bgLyr, bgNodeOffset);
+  fgLyr.place(bgNodeR.fgLyr, bgNodeOffset);
+
+  for (const childRootCenter of childRootCenters) {
     bgLyr.do(() => {
       bgLyr.strokeStyle = "lightgray";
       bgLyr.lineWidth = 4;
       bgLyr.beginPath();
       bgLyr.moveTo(...bgLyr.resolvePoint(bgNodeR.rootCenter));
-      bgLyr.lineTo(...bgLyr.resolvePoint(childR.rootCenter));
+      bgLyr.lineTo(...bgLyr.resolvePoint(childRootCenter));
       bgLyr.stroke();
     });
   }
