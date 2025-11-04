@@ -388,33 +388,6 @@ function drawFgSubtreeInBgNode(
   };
 }
 
-function drawFgNodeEdges(
-  fgLyr: Layer,
-  fgNode: TreeNode,
-  fgNodeCenters: Record<string, PointOnLayer>,
-) {
-  if (fgNode.parentId) {
-    const nodeCenter = fgNodeCenters[fgNode.id];
-    const parentNodeCenter = fgNodeCenters[fgNode.parentId];
-    if (!parentNodeCenter) {
-      throw new Error(
-        `No center recorded for parent node ${fgNode.parentId} of node ${fgNode.id}`,
-      );
-    }
-    fgLyr.do(() => {
-      fgLyr.strokeStyle = "black";
-      fgLyr.lineWidth = 2;
-      fgLyr.beginPath();
-      fgLyr.moveTo(...fgLyr.resolvePoint(parentNodeCenter));
-      fgLyr.lineTo(...fgLyr.resolvePoint(nodeCenter));
-      fgLyr.stroke();
-    });
-  }
-  for (const child of fgNode.children) {
-    drawFgNodeEdges(fgLyr, child, fgNodeCenters);
-  }
-}
-
 // Drawing function
 function draw() {
   // Reset clickables at the start of each frame
