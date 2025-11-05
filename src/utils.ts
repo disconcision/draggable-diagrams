@@ -4,6 +4,8 @@ export function assertNever(_never: never, message?: string): never {
   );
 }
 
-export function clamp(n: number, min: number, max: number): number {
-  return Math.min(Math.max(n, min), max);
+// it's too easy to call clamp with arguments in the wrong order, so
+// this one is symmetric
+export function clamp(a: number, b: number, c: number): number {
+  return a + b + c - Math.max(a, b, c) - Math.min(a, b, c);
 }

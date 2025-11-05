@@ -831,7 +831,7 @@ function draw() {
         sub(mouseInLyrPan, selectedNode.center),
         dragOffset!,
       );
-      let t = clamp(0, 1, dot(mouseVec, totalVec) / dot(totalVec, totalVec));
+      const t = clamp(0, 1, dot(mouseVec, totalVec) / dot(totalVec, totalVec));
 
       const targetDrawnTree = drawnTrees[bestAdjMorphIdx];
 
