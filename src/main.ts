@@ -2,8 +2,8 @@ import * as d3 from "d3-shape";
 import _ from "lodash";
 import { layer, type Layer } from "./layer";
 import {
+  biggerTree,
   buildHasseDiagram,
-  megaTree,
   nodesInTree,
   TreeMorph,
   TreeNode,
@@ -712,8 +712,8 @@ function drawFgSubtreeInBgNode(
   };
 }
 
-const codomainTree = megaTree;
-const domainTree = megaTree;
+const domainTree = biggerTree;
+const codomainTree = biggerTree;
 
 const hasseDiagram = buildHasseDiagram(domainTree, codomainTree);
 console.log("Hasse diagram contains:", hasseDiagram.nodes.length);
@@ -800,6 +800,7 @@ function draw() {
         )
         .map(([from]) => from),
     ];
+    // const adjMorphIdxes = _.range(hasseDiagram.nodes.length);
     const toMouse = normalize(sub(mouseInLyrPan, selectedNode.center));
     // which adjacent morphism maximizes the dot product with toMouse?
     const adjMorphDots = adjMorphIdxes.map((adjMorphIdx) => {
