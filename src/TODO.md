@@ -4,7 +4,10 @@
   - diagrams of functions: drag arrowheads
   - dragging things IN
   - dragging things OUT
+  - rush hour
 - when drag starts, disable snapping on origin until you move out of the snap radius
 - do "smooth snapping" (spatially)
 - do "smooth snapping" (animated)
 - do "clone draggable" thing
+- tell render function what's being dragged, so it can draw it special
+  - and animate addition/removal of this argument

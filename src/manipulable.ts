@@ -128,6 +128,7 @@ export class ManipulableDrawer<T> {
         }
 
         // check if it's time to delete
+        // TODO: make this work better lol
         if (state.tDeletion) {
           const deletionDist = projectedDestPt.dist(draggableDestPt);
           // console.log("deletionDist", deletionDist);
@@ -179,23 +180,43 @@ export class ManipulableDrawer<T> {
         const ptIdx1 = state.delaunay.triangles[3 * triIdx + 1];
         const ptIdx2 = state.delaunay.triangles[3 * triIdx + 2];
         const ptIdxSet = new Set([ptIdx0, ptIdx1, ptIdx2]);
-        assert(ptIdxSet.size === 3);
-        const bary = barycentric(
-          draggableDestPt,
-          state.tInfos[ptIdx0].offset,
-          state.tInfos[ptIdx1].offset,
-          state.tInfos[ptIdx2].offset,
-        );
-        // console.log(bary);
-        return {
-          toDraw: lerpShapes3(
-            state.tInfos[ptIdx0].interpolatableShape,
-            state.tInfos[ptIdx1].interpolatableShape,
-            state.tInfos[ptIdx2].interpolatableShape,
-            bary,
-          ),
-          newT,
-        };
+        assert(ptIdxSet.size >= 2);
+        if (ptIdxSet.size === 2) {
+          // I think this only happens when there are only two points
+          // total, like for the 15 puzzle. IDK why it happens at all.
+          const [idxA, idxB] = Array.from(ptIdxSet);
+          const a = state.tInfos[idxA];
+          const b = state.tInfos[idxB];
+          const edge = b.offset.sub(a.offset);
+          const edgeLen2 = edge.len2();
+          assert(edgeLen2 > 0);
+          const t = clamp(
+            draggableDestPt.sub(a.offset).dot(edge) / edgeLen2,
+            0,
+            1,
+          );
+          return {
+            toDraw: lerpShapes(a.interpolatableShape, b.interpolatableShape, t),
+            newT,
+          };
+        } else {
+          const bary = barycentric(
+            draggableDestPt,
+            state.tInfos[ptIdx0].offset,
+            state.tInfos[ptIdx1].offset,
+            state.tInfos[ptIdx2].offset,
+          );
+          // console.log(bary);
+          return {
+            toDraw: lerpShapes3(
+              state.tInfos[ptIdx0].interpolatableShape,
+              state.tInfos[ptIdx1].interpolatableShape,
+              state.tInfos[ptIdx2].interpolatableShape,
+              bary,
+            ),
+            newT,
+          };
+        }
       })();
       drawInterpolatable(lyr, toDraw);
       pointer.addPointerUpHandler(() => {
