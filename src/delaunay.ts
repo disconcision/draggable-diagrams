@@ -3,7 +3,7 @@ import _ from "lodash";
 import { assert } from "./utils";
 import { Vec2 } from "./vec2";
 
-function findTriangle(
+export function findTriangle(
   delaunay: Delaunay<Delaunay.Point>,
   pt: Vec2,
   {
@@ -12,6 +12,9 @@ function findTriangle(
     limit = Infinity,
   } = {},
 ): number {
+  // JAH: special case
+  if (delaunay.points.length / 2 < 3) return -1;
+
   if (isNaN(edge)) return -1;
   // coords is required for delaunator compatibility.
   const { triangles, halfedges, points } = delaunay;
@@ -134,6 +137,12 @@ export function projectOntoConvexHull(
       const t = pt.sub(pt0).dot(edge) / edgeLen2;
       assert(t >= 0 && t <= 1, () => {
         console.log("t", t);
+        console.log("pt", pt);
+        console.log("pt0", pt0);
+        console.log("pt1", pt1);
+        console.log("edge", edge);
+        console.log("edgeLen2", edgeLen2);
+        console.log("delaunay", delaunay);
       });
       return { type: "edge", ptIdx0, ptIdx1, t, projectedPt: pt, dist: 0 };
     } else {
