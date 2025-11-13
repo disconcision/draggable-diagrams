@@ -240,29 +240,17 @@ export const demos: DemoEntry[] = [
                     id: "root/1/1",
                     label: "+",
                     children: [
-                      {
-                        id: "root/1/1/1",
-                        label: "⛅",
-                        children: [],
-                      },
+                      { id: "root/1/1/1", label: "⛅", children: [] },
                       {
                         id: "root/1/1/2",
                         label: "-",
                         children: [
-                          {
-                            id: "root/1/1/2/1",
-                            label: "🍄",
-                            children: [],
-                          },
+                          { id: "root/1/1/2/1", label: "🍄", children: [] },
                         ],
                       },
                     ],
                   },
-                  {
-                    id: "root/1/2",
-                    label: "🍄",
-                    children: [],
-                  },
+                  { id: "root/1/2", label: "🍄", children: [] },
                 ],
               },
               {
@@ -273,32 +261,16 @@ export const demos: DemoEntry[] = [
                     id: "root/2/1",
                     label: "×",
                     children: [
-                      {
-                        id: "root/2/1/1",
-                        label: "🎲",
-                        children: [],
-                      },
-                      {
-                        id: "root/2/1/2",
-                        label: "🦠",
-                        children: [],
-                      },
+                      { id: "root/2/1/1", label: "🎲", children: [] },
+                      { id: "root/2/1/2", label: "🦠", children: [] },
                     ],
                   },
                   {
                     id: "root/2/2",
                     label: "×",
                     children: [
-                      {
-                        id: "root/2/2/1",
-                        label: "🎲",
-                        children: [],
-                      },
-                      {
-                        id: "root/2/2/2",
-                        label: "🐝",
-                        children: [],
-                      },
+                      { id: "root/2/2/1", label: "🎲", children: [] },
+                      { id: "root/2/2/2", label: "🐝", children: [] },
                     ],
                   },
                 ],
@@ -326,32 +298,16 @@ export const demos: DemoEntry[] = [
                 id: "+2",
                 label: "+",
                 children: [
-                  {
-                    id: "A",
-                    label: "A",
-                    children: [],
-                  },
-                  {
-                    id: "B",
-                    label: "B",
-                    children: [],
-                  },
+                  { id: "A", label: "A", children: [] },
+                  { id: "B", label: "B", children: [] },
                 ],
               },
               {
                 id: "+3",
                 label: "+",
                 children: [
-                  {
-                    id: "C",
-                    label: "C",
-                    children: [],
-                  },
-                  {
-                    id: "D",
-                    label: "D",
-                    children: [],
-                  },
+                  { id: "C", label: "C", children: [] },
+                  { id: "D", label: "D", children: [] },
                 ],
               },
             ],
