@@ -731,11 +731,10 @@ function lerpShapesImpl(a: Shape, b: Shape, t: number): Shape {
       };
     case "z-index":
       assertSameType(a, b);
-      assert(a.zIndex === b.zIndex);
       return {
         type: "z-index",
         shape: lerpShapesImpl(a.shape, b.shape, t),
-        zIndex: a.zIndex,
+        zIndex: lerp(a.zIndex, b.zIndex, t),
       };
     case "lazy":
       assertSameType(a, b);
