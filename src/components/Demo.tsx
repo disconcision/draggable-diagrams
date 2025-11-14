@@ -31,6 +31,7 @@ export function Demo({
   const { debugView } = useDemoContext();
   const [snapRadius, setSnapRadius] = useState(initialSnapRadius);
   const [transitionWhileDragging, setTransitionWhileDragging] = useState(true);
+  const [relativePointerMotion, setRelativePointerMotion] = useState(false);
   const [manipulableConfig, setManipulableConfig] = useState(
     manipulableDefaultConfig(drawer.manipulable),
   );
@@ -66,6 +67,7 @@ export function Demo({
           debugView,
           snapRadius,
           transitionWhileDragging,
+          relativePointerMotion,
           animationDuration: 300,
         },
         manipulableConfig,
@@ -79,6 +81,7 @@ export function Demo({
       debugView,
       snapRadius,
       transitionWhileDragging,
+      relativePointerMotion,
       manipulableConfig,
     ],
   );
@@ -133,6 +136,14 @@ export function Demo({
               onChange={(e) => setTransitionWhileDragging(e.target.checked)}
             />
             <span>Transition While Dragging</span>
+          </label>
+          <label className="flex items-start gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={relativePointerMotion}
+              onChange={(e) => setRelativePointerMotion(e.target.checked)}
+            />
+            <span>Relative Pointer Motion</span>
           </label>
           {hasConfig(drawer.manipulable) && (
             <>

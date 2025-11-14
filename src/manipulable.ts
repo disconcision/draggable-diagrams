@@ -135,6 +135,7 @@ export class ManipulableDrawer<T, Config = unknown> {
       snapRadius: number;
       debugView: boolean;
       transitionWhileDragging: boolean;
+      relativePointerMotion: boolean;
       animationDuration: number;
     },
     manipulableConfig: Config,
@@ -169,6 +170,12 @@ export class ManipulableDrawer<T, Config = unknown> {
           manifoldProjections,
           (proj) => proj.dist,
         )!;
+
+        if (drawerConfig.relativePointerMotion) {
+          state.pointerOffset = pointer.dragPointer!.sub(
+            bestManifoldProjection.projectedPt,
+          );
+        }
 
         const closestManifoldPt = _.minBy(
           state.manifolds.flatMap((m) => m.points),
