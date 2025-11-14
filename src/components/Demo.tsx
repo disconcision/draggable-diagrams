@@ -62,7 +62,12 @@ export function Demo({
       drawer.draw(
         lyrOffset,
         pointerManagerWithOffset(pointer, paddingVec),
-        { debugView, snapRadius, transitionWhileDragging },
+        {
+          debugView,
+          snapRadius,
+          transitionWhileDragging,
+          animationDuration: 300,
+        },
         manipulableConfig,
       );
 

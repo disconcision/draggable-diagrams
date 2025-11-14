@@ -1,4 +1,5 @@
 import { Delaunay } from "d3-delaunay";
+import { easeElastic } from "d3-ease";
 import _ from "lodash";
 import { projectOntoConvexHull } from "./delaunay";
 import { layer, Layer } from "./layer";
@@ -93,6 +94,13 @@ export class ManipulableDrawer<T, Config = unknown> {
           state: T;
           shape: InterpolatableShape;
         } | null;
+      }
+    | {
+        type: "animating";
+        startShape: InterpolatableShape;
+        targetState: T;
+        startTime: number;
+        duration: number;
       };
 
   constructor(
@@ -109,6 +117,7 @@ export class ManipulableDrawer<T, Config = unknown> {
       snapRadius: number;
       debugView: boolean;
       transitionWhileDragging: boolean;
+      animationDuration: number;
     },
     manipulableConfig: Config,
   ): void {
@@ -220,8 +229,40 @@ export class ManipulableDrawer<T, Config = unknown> {
       })();
       if (shapeToDraw) drawInterpolatable(lyr, shapeToDraw);
       pointer.addPointerUpHandler(() => {
-        this.state = { type: "idle", state: newState };
+        if (shapeToDraw) {
+          this.state = {
+            type: "animating",
+            startShape: shapeToDraw,
+            targetState: newState,
+            startTime: Date.now(),
+            duration: drawerConfig.animationDuration,
+          };
+        } else {
+          this.state = { type: "idle", state: newState };
+        }
       });
+    } else if (state.type === "animating") {
+      pointer.setCursor("default");
+
+      const now = Date.now();
+      const elapsed = now - state.startTime;
+      const progress = Math.min(elapsed / state.duration, 1);
+      const easedProgress = easeElastic(progress);
+
+      const targetShape = origToInterpolatable(
+        this.manipulable.render(state.targetState, manipulableConfig),
+      );
+      const interpolatedShape = lerpShapes(
+        state.startShape,
+        targetShape,
+        easedProgress,
+      );
+
+      drawInterpolatable(lyr, interpolatedShape);
+
+      if (progress >= 1) {
+        this.state = { type: "idle", state: state.targetState };
+      }
     } else if (state.type === "idle") {
       pointer.setCursor("default");
 
