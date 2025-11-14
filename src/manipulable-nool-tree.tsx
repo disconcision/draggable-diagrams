@@ -93,111 +93,6 @@ type NoolTreeConfig = {
 export const manipulableNoolTree: Manipulable<NoolTree, NoolTreeConfig> = {
   sourceFile: "manipulable-nool-tree.tsx",
 
-  defaultConfig: {
-    commutativity: true,
-    pullUpOp: false,
-    pullDownOp: false,
-    pullUpTail: true,
-    pullDownTail: true,
-  },
-
-  renderConfig: (config, setConfig) => {
-    const plus1 = <span className="text-red-600 font-bold">+</span>;
-    const plus2 = <span className="text-green-600 font-bold">+</span>;
-    const D = ({ children }: { children: React.ReactNode }) => (
-      <span className="bg-amber-200 rounded-sm p-0.5">{children}</span>
-    );
-
-    return (
-      <>
-        <label className="flex items-start gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={config.commutativity}
-            onChange={(e) =>
-              setConfig({ ...config, commutativity: e.target.checked })
-            }
-          />
-          <span>
-            <b>Commutativity</b>
-            <br />
-            <D>A</D> {plus1} B → B {plus1} <D>A</D>
-          </span>
-        </label>
-        <label className="flex items-start gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={config.pullUpOp}
-            onChange={(e) =>
-              setConfig({ ...config, pullUpOp: e.target.checked })
-            }
-          />
-          <span>
-            <b>Associativity</b>
-            <br />
-            Pull up op
-            <br />
-            <D>(A {plus1} B)</D> {plus2} C →{" "}
-            <D>
-              A {plus1} (B {plus2} C)
-            </D>
-          </span>
-        </label>
-        <label className="flex items-start gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={config.pullDownOp}
-            onChange={(e) =>
-              setConfig({ ...config, pullDownOp: e.target.checked })
-            }
-          />
-          <span>
-            <b>Associativity</b>
-            <br />
-            Pull down op
-            <br />
-            <D>
-              A {plus1} (B {plus2} C)
-            </D>{" "}
-            → <D>(A {plus1} B)</D> {plus2} C
-          </span>
-        </label>
-        <label className="flex items-start gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={config.pullUpTail}
-            onChange={(e) =>
-              setConfig({ ...config, pullUpTail: e.target.checked })
-            }
-          />
-          <span>
-            <b>Associativity</b>
-            <br />
-            Pull up operand
-            <br />(<D>A</D> {plus1} B) {plus2} C → <D>A</D> {plus1} (B {plus2}{" "}
-            C)
-          </span>
-        </label>
-        <label className="flex items-start gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={config.pullDownTail}
-            onChange={(e) =>
-              setConfig({ ...config, pullDownTail: e.target.checked })
-            }
-          />
-          <span>
-            <b>Associativity</b>
-            <br />
-            Pull down operand
-            <br />
-            <D>A</D> {plus1} (B {plus2} C) → (<D>A</D> {plus1} B) {plus2} C
-          </span>
-        </label>
-      </>
-    );
-  },
-
   render(state) {
     return renderNoolTree(state).shape;
   },
@@ -395,6 +290,111 @@ export const manipulableNoolTree: Manipulable<NoolTree, NoolTreeConfig> = {
       manifolds.push([state, newTree]);
     });
     return { manifolds };
+  },
+
+  defaultConfig: {
+    commutativity: true,
+    pullUpOp: false,
+    pullDownOp: false,
+    pullUpTail: true,
+    pullDownTail: true,
+  },
+
+  renderConfig: (config, setConfig) => {
+    const plus1 = <span className="text-red-600 font-bold">+</span>;
+    const plus2 = <span className="text-green-600 font-bold">+</span>;
+    const D = ({ children }: { children: React.ReactNode }) => (
+      <span className="bg-amber-200 rounded-sm p-0.5">{children}</span>
+    );
+
+    return (
+      <>
+        <label className="flex items-start gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={config.commutativity}
+            onChange={(e) =>
+              setConfig({ ...config, commutativity: e.target.checked })
+            }
+          />
+          <span>
+            <b>Commutativity</b>
+            <br />
+            <D>A</D> {plus1} B → B {plus1} <D>A</D>
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={config.pullUpOp}
+            onChange={(e) =>
+              setConfig({ ...config, pullUpOp: e.target.checked })
+            }
+          />
+          <span>
+            <b>Associativity</b>
+            <br />
+            Pull up op
+            <br />
+            <D>(A {plus1} B)</D> {plus2} C →{" "}
+            <D>
+              A {plus1} (B {plus2} C)
+            </D>
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={config.pullDownOp}
+            onChange={(e) =>
+              setConfig({ ...config, pullDownOp: e.target.checked })
+            }
+          />
+          <span>
+            <b>Associativity</b>
+            <br />
+            Pull down op
+            <br />
+            <D>
+              A {plus1} (B {plus2} C)
+            </D>{" "}
+            → <D>(A {plus1} B)</D> {plus2} C
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={config.pullUpTail}
+            onChange={(e) =>
+              setConfig({ ...config, pullUpTail: e.target.checked })
+            }
+          />
+          <span>
+            <b>Associativity</b>
+            <br />
+            Pull up operand
+            <br />(<D>A</D> {plus1} B) {plus2} C → <D>A</D> {plus1} (B {plus2}{" "}
+            C)
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={config.pullDownTail}
+            onChange={(e) =>
+              setConfig({ ...config, pullDownTail: e.target.checked })
+            }
+          />
+          <span>
+            <b>Associativity</b>
+            <br />
+            Pull down operand
+            <br />
+            <D>A</D> {plus1} (B {plus2} C) → (<D>A</D> {plus1} B) {plus2} C
+          </span>
+        </label>
+      </>
+    );
   },
 };
 
