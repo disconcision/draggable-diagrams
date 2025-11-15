@@ -143,11 +143,11 @@ export const demos: DemoEntry[] = [
     ),
   },
   {
-    id: "inserting-removing-items-wip",
+    id: "inserting-removing-items",
     node: (
       <Demo
-        id="inserting-removing-items-wip"
-        title="Inserting & removing items (WIP)"
+        id="inserting-removing-items"
+        title="Inserting & removing items"
         drawer={
           new ManipulableDrawer(
             manipulableInsertAndRemove,
@@ -188,11 +188,11 @@ export const demos: DemoEntry[] = [
     ),
   },
   {
-    id: "sokoban-wip",
+    id: "sokoban",
     node: (
       <Demo
-        id="sokoban-wip"
-        title="Sokoban (WIP)"
+        id="sokoban"
+        title="Sokoban"
         drawer={new ManipulableDrawer(manipulableSokoban, stateSokoban1)}
         height={500}
         padding={20}
