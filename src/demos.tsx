@@ -102,7 +102,7 @@ export const demos: DemoEntry[] = [
             stateOrderPreserving2,
           )
         }
-        height={550}
+        height={650}
         padding={20}
       />
     ),

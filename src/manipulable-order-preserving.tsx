@@ -15,6 +15,7 @@ type OrderPreservingState = {
   codomainTree: TreeNode;
   hasseDiagram: HasseDiagram;
   curMorphIdx: number;
+  yForTradRep: number;
 };
 
 type OrderPreservingConfig = {
@@ -33,7 +34,6 @@ export const manipulableOrderPreserving: Manipulable<
     const r = drawBgTree(state.codomainTree, state.domainTree, morph);
     g.shapes.push(r.shape);
     if (config.showTradRep) {
-      const y = 300;
       const domNodeCenters: Record<string, PointInShape> = {};
       const domR = drawSubtree(
         state.domainTree,
@@ -41,7 +41,7 @@ export const manipulableOrderPreserving: Manipulable<
         "fg",
         domNodeCenters,
       );
-      g.shapes.push(transform([0, y], domR.shape));
+      g.shapes.push(transform([0, state.yForTradRep], domR.shape));
       const codNodeCenters: Record<string, PointInShape> = {};
       const codR = drawSubtree(
         state.codomainTree,
@@ -49,7 +49,7 @@ export const manipulableOrderPreserving: Manipulable<
         "bg",
         codNodeCenters,
       );
-      g.shapes.push(transform([domR.w + 40, y], codR.shape));
+      g.shapes.push(transform([domR.w + 40, state.yForTradRep], codR.shape));
       for (const [domElem, codElem] of Object.entries(morph)) {
         g.shapes.push(
           transform(
@@ -127,6 +127,7 @@ export const stateOrderPreserving1: OrderPreservingState = {
   codomainTree: tree3,
   hasseDiagram: buildHasseDiagram(tree3, tree3),
   curMorphIdx: 0,
+  yForTradRep: 300,
 };
 
 export const stateOrderPreserving2: OrderPreservingState = {
@@ -134,4 +135,5 @@ export const stateOrderPreserving2: OrderPreservingState = {
   codomainTree: tree7,
   hasseDiagram: buildHasseDiagram(tree7, tree7),
   curMorphIdx: 0,
+  yForTradRep: 500,
 };
