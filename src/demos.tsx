@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Demo } from "./components/Demo";
 import { ManipulableDrawer } from "./manipulable";
+import { manipulableAngle, stateAngle } from "./manipulable-angle";
 import { manipulableFifteen, stateFifteen } from "./manipulable-fifteen";
 import { manipulableGraph, stateGraph } from "./manipulable-graph";
 import { manipulableGridPoly, stateGridPoly1 } from "./manipulable-grid-poly";
@@ -18,6 +19,7 @@ import {
   stateOrderPreserving1,
   stateOrderPreserving2,
 } from "./manipulable-order-preserving";
+import { manipulableOutline, stateOutline1 } from "./manipulable-outline";
 import { manipulablePerm, statePerm1 } from "./manipulable-perm";
 import {
   manipulablePermDouble,
@@ -100,7 +102,7 @@ export const demos: DemoEntry[] = [
       <Demo
         id="lonely-tile-on-a-grid"
         title="Lonely tile on a grid"
-        notes="I'm trying to make dragging feel right here. Goal is for the tile to only drag orthogonally, AND to not jump discontinuously. This seems to require 'Relative Pointer Motion' mode."
+        notes="I'm trying to make dragging feel right here. Goal is for the tile to only drag orthogonally, AND to not jump discontinuously. This seems to require 'Relative Pointer Motion' mode (or divergent approaches)."
         drawer={new ManipulableDrawer(manipulableTiles, stateTilesLonely)}
         height={300}
         padding={20}
@@ -189,6 +191,19 @@ export const demos: DemoEntry[] = [
     ),
   },
   {
+    id: "outline",
+    node: (
+      <Demo
+        id="outline"
+        title="Outline"
+        drawer={new ManipulableDrawer(manipulableOutline, stateOutline1)}
+        height={400}
+        padding={20}
+        initialSnapRadius={5}
+      />
+    ),
+  },
+  {
     id: "sokoban",
     node: (
       <Demo
@@ -208,6 +223,18 @@ export const demos: DemoEntry[] = [
         id="graph"
         title="Graph"
         drawer={new ManipulableDrawer(manipulableGraph, stateGraph)}
+        height={200}
+        padding={20}
+      />
+    ),
+  },
+  {
+    id: "angle",
+    node: (
+      <Demo
+        id="angle"
+        title="Angle"
+        drawer={new ManipulableDrawer(manipulableAngle, stateAngle)}
         height={200}
         padding={20}
       />
