@@ -35,6 +35,40 @@ export interface DemoEntry {
 
 export const demos: DemoEntry[] = [
   {
+    id: "order-preserving-map",
+    node: (
+      <Demo
+        id="order-preserving-map"
+        title="Order preserving map"
+        drawer={
+          new ManipulableDrawer(
+            manipulableOrderPreserving,
+            stateOrderPreserving1,
+          )
+        }
+        height={400}
+        padding={20}
+      />
+    ),
+  },
+  {
+    id: "order-preserving-map-big",
+    node: (
+      <Demo
+        id="order-preserving-map-big"
+        title="Order preserving map (big)"
+        drawer={
+          new ManipulableDrawer(
+            manipulableOrderPreserving,
+            stateOrderPreserving2,
+          )
+        }
+        height={650}
+        padding={20}
+      />
+    ),
+  },
+  {
     id: "rush-hour",
     node: (
       <Demo
@@ -71,40 +105,6 @@ export const demos: DemoEntry[] = [
         height={300}
         padding={20}
         initialRelativePointerMotion={true}
-      />
-    ),
-  },
-  {
-    id: "order-preserving-map",
-    node: (
-      <Demo
-        id="order-preserving-map"
-        title="Order preserving map"
-        drawer={
-          new ManipulableDrawer(
-            manipulableOrderPreserving,
-            stateOrderPreserving1,
-          )
-        }
-        height={400}
-        padding={20}
-      />
-    ),
-  },
-  {
-    id: "order-preserving-map-big",
-    node: (
-      <Demo
-        id="order-preserving-map-big"
-        title="Order preserving map (big)"
-        drawer={
-          new ManipulableDrawer(
-            manipulableOrderPreserving,
-            stateOrderPreserving2,
-          )
-        }
-        height={650}
-        padding={20}
       />
     ),
   },
