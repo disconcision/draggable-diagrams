@@ -85,3 +85,20 @@ export function pipe<T1, T2, T3, T4, T5>(
 export function pipe(arg: unknown, ...fns: Array<(arg: unknown) => unknown>) {
   return fns.reduce((acc, fn) => fn(acc), arg);
 }
+
+export type FlattenTo<T> = T | FlattenTo<T>[] | undefined | null | false;
+
+export function flatten<T>(arr: FlattenTo<T>): T[] {
+  const result: T[] = [];
+  function helper(a: FlattenTo<T>) {
+    if (!a) {
+      return;
+    } else if (Array.isArray(a)) {
+      a.forEach(helper);
+    } else {
+      result.push(a);
+    }
+  }
+  helper(arr);
+  return result;
+}

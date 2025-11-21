@@ -3,6 +3,7 @@ import { Demo } from "./components/Demo";
 import { ManipulableDrawer } from "./manipulable";
 import { manipulableAngle, stateAngle } from "./manipulable-angle";
 import { manipulableFifteen, stateFifteen } from "./manipulable-fifteen";
+import { manipulableFlippy, stateFlippy1 } from "./manipulable-flippy";
 import { manipulableGraph, stateGraph } from "./manipulable-graph";
 import { manipulableGridPoly, stateGridPoly1 } from "./manipulable-grid-poly";
 import {
@@ -28,6 +29,7 @@ import {
 import { manipulableRushHour, stateRushHour1 } from "./manipulable-rush-hour";
 import { manipulableSimplest, stateSimplest1 } from "./manipulable-simplest";
 import { manipulableSokoban, stateSokoban1 } from "./manipulable-sokoban";
+import { manipulableSpinny, stateSpinny1 } from "./manipulable-spinny";
 import { manipulableTiles, stateTilesLonely } from "./manipulable-tiles";
 
 export interface DemoEntry {
@@ -142,6 +144,32 @@ export const demos: DemoEntry[] = [
         title="Permutation of permutations"
         drawer={new ManipulableDrawer(manipulablePermDouble, statePermDouble1)}
         height={200}
+      />
+    ),
+  },
+  {
+    id: "spinny",
+    node: (
+      <Demo
+        id="spinny"
+        title="Spinny"
+        drawer={new ManipulableDrawer(manipulableSpinny, stateSpinny1)}
+        height={200}
+        padding={30}
+        initialRelativePointerMotion={false}
+      />
+    ),
+  },
+  {
+    id: "flippy",
+    node: (
+      <Demo
+        id="flippy"
+        title="Flippy"
+        drawer={new ManipulableDrawer(manipulableFlippy, stateFlippy1)}
+        height={200}
+        padding={30}
+        initialRelativePointerMotion={false}
       />
     ),
   },

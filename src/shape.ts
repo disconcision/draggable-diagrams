@@ -2,7 +2,7 @@ import * as d3 from "d3-shape";
 import _ from "lodash";
 import { Layer } from "./layer";
 import { IPointerManager } from "./pointer";
-import { assert, assertNever } from "./utils";
+import { assert, assertNever, flatten, FlattenTo } from "./utils";
 import { lerp, Vec2, Vec2able } from "./vec2";
 import { fromCenter, inXYWH, mergeMany, mm, translateXYWH, XYWH } from "./xywh";
 
@@ -16,7 +16,9 @@ export type Shape =
       type: "circle";
       center: Vec2;
       radius: number;
-      fillStyle: string;
+      fillStyle?: string;
+      strokeStyle?: string;
+      lineWidth?: number;
       nodeId?: string;
     }
   | {
@@ -80,17 +82,24 @@ export type Shape =
     };
 
 export type Group = Extract<Shape, { type: "group" }>;
-export function group(debugName?: string, shapes?: Shape[]): Group;
-export function group(shapes: Shape[]): Group;
 export function group(
-  debugNameOrShapes?: string | Shape[],
-  maybeShapes: Shape[] = [],
+  debugName?: string,
+  ...flattenToShapes: FlattenTo<Shape>[]
+): Group;
+export function group(...flattenToShapes: FlattenTo<Shape>[]): Group;
+export function group(
+  debugNameOrFlattenToShapes?: string | FlattenTo<Shape>,
+  ...flattenToShapes: FlattenTo<Shape>[]
 ): Group {
   const debugName =
-    typeof debugNameOrShapes === "string" ? debugNameOrShapes : undefined;
-  const shapes = Array.isArray(debugNameOrShapes)
-    ? debugNameOrShapes
-    : maybeShapes;
+    typeof debugNameOrFlattenToShapes === "string"
+      ? debugNameOrFlattenToShapes
+      : undefined;
+  const shapes = flatten(
+    typeof debugNameOrFlattenToShapes === "string"
+      ? flattenToShapes
+      : [debugNameOrFlattenToShapes, ...flattenToShapes],
+  );
   return { ...(debugName && { debugName }), type: "group", shapes };
 }
 
@@ -309,6 +318,8 @@ export function flattenShape(
               center: shape.center.add(offset),
               radius: shape.radius,
               fillStyle: shape.fillStyle,
+              strokeStyle: shape.strokeStyle,
+              lineWidth: shape.lineWidth,
               nodeId: shape.nodeId,
               zIndex,
             },
@@ -443,10 +454,17 @@ export function drawFlatShapes(
     switch (shape.type) {
       case "circle": {
         lyr.do(() => {
-          lyr.fillStyle = shape.fillStyle;
           lyr.beginPath();
           lyr.arc(...shape.center.arr(), shape.radius, 0, Math.PI * 2);
-          lyr.fill();
+          if (shape.fillStyle) {
+            lyr.fillStyle = shape.fillStyle;
+            lyr.fill();
+          }
+          if (shape.strokeStyle) {
+            lyr.strokeStyle = shape.strokeStyle;
+            lyr.lineWidth = shape.lineWidth || 1;
+            lyr.stroke();
+          }
         });
         break;
       }
@@ -683,11 +701,17 @@ function lerpShapesImpl(a: Shape, b: Shape, t: number): Shape {
     case "circle":
       assertSameType(a, b);
       assert(a.fillStyle === b.fillStyle);
+      assert(a.strokeStyle === b.strokeStyle);
       return {
         type: "circle",
         center: a.center.lerp(b.center, t),
         radius: lerp(a.radius, b.radius, t),
         fillStyle: a.fillStyle,
+        strokeStyle: a.strokeStyle,
+        lineWidth:
+          a.lineWidth === undefined || b.lineWidth === undefined
+            ? undefined
+            : lerp(a.lineWidth, b.lineWidth, t),
         nodeId: a.nodeId,
       };
     case "line":
