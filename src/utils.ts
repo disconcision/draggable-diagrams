@@ -86,11 +86,11 @@ export function pipe(arg: unknown, ...fns: Array<(arg: unknown) => unknown>) {
   return fns.reduce((acc, fn) => fn(acc), arg);
 }
 
-export type FlattenTo<T> = T | FlattenTo<T>[] | undefined | null | false;
+export type Many<T> = T | Many<T>[] | undefined | null | false;
 
-export function flatten<T>(arr: FlattenTo<T>): T[] {
+export function manyToArray<T>(arr: Many<T>): T[] {
   const result: T[] = [];
-  function helper(a: FlattenTo<T>) {
+  function helper(a: Many<T>) {
     if (!a) {
       return;
     } else if (Array.isArray(a)) {

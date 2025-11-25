@@ -2,7 +2,7 @@ import * as d3 from "d3-shape";
 import _ from "lodash";
 import { Layer } from "./layer";
 import { IPointerManager } from "./pointer";
-import { assert, assertNever, flatten, FlattenTo } from "./utils";
+import { assert, assertNever, Many, manyToArray } from "./utils";
 import { lerp, Vec2, Vec2able } from "./vec2";
 import { fromCenter, inXYWH, mergeMany, mm, translateXYWH, XYWH } from "./xywh";
 
@@ -792,23 +792,23 @@ export const rectangle = makeConstructorForShapeType("rectangle");
 
 export function group(
   debugName?: string,
-  ...flattenToShapes: FlattenTo<Shape>[]
+  ...manyShapes: Many<Shape>[]
 ): ShapeOfType<"group"> & ShapeWithMethods;
 export function group(
-  ...flattenToShapes: FlattenTo<Shape>[]
+  ...manyShapes: Many<Shape>[]
 ): ShapeOfType<"group"> & ShapeWithMethods;
 export function group(
-  debugNameOrFlattenToShapes?: string | FlattenTo<Shape>,
-  ...flattenToShapes: FlattenTo<Shape>[]
+  debugNameOrManyShapes?: string | Many<Shape>,
+  ...manyShapes: Many<Shape>[]
 ): ShapeOfType<"group"> & ShapeWithMethods {
   const debugName =
-    typeof debugNameOrFlattenToShapes === "string"
-      ? debugNameOrFlattenToShapes
+    typeof debugNameOrManyShapes === "string"
+      ? debugNameOrManyShapes
       : undefined;
-  const shapes = flatten(
-    typeof debugNameOrFlattenToShapes === "string"
-      ? flattenToShapes
-      : [debugNameOrFlattenToShapes, ...flattenToShapes],
+  const shapes = manyToArray(
+    typeof debugNameOrManyShapes === "string"
+      ? manyShapes
+      : [debugNameOrManyShapes, ...manyShapes],
   );
   return addMethods({
     ...(debugName && { debugName }),
