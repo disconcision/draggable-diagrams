@@ -19,6 +19,7 @@ interface DemoProps {
   height: number;
   padding?: number;
   initialSnapRadius?: number;
+  initialTransitionWhileDragging?: boolean;
   initialRelativePointerMotion?: boolean;
 }
 
@@ -30,11 +31,14 @@ export function Demo({
   height,
   padding = 0,
   initialSnapRadius = 10,
+  initialTransitionWhileDragging = true,
   initialRelativePointerMotion = false,
 }: DemoProps) {
   const { debugView } = useDemoContext();
   const [snapRadius, setSnapRadius] = useState(initialSnapRadius);
-  const [transitionWhileDragging, setTransitionWhileDragging] = useState(true);
+  const [transitionWhileDragging, setTransitionWhileDragging] = useState(
+    initialTransitionWhileDragging,
+  );
   const [relativePointerMotion, setRelativePointerMotion] = useState(
     initialRelativePointerMotion,
   );

@@ -170,6 +170,7 @@ export const demos: DemoEntry[] = [
         drawer={new ManipulableDrawer(manipulableFlippy, stateFlippy1)}
         height={200}
         padding={30}
+        initialTransitionWhileDragging={false}
         initialRelativePointerMotion={false}
       />
     ),
