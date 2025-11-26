@@ -3,6 +3,7 @@ import { HashRouter, Link, Route, Routes, useParams } from "react-router-dom";
 import { DemoProvider } from "./DemoContext";
 import { demos } from "./demos";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { PrettyPrintDemo } from "./pretty-print-demo";
 
 function DemoList() {
   const [debugView, setDebugView] = useState(false);
@@ -100,6 +101,7 @@ export function App() {
     <HashRouter>
       <Routes>
         <Route path="/" element={<DemoList />} />
+        <Route path="/pretty-print" element={<PrettyPrintDemo />} />
         <Route path="/:id" element={<SingleDemo />} />
       </Routes>
     </HashRouter>
