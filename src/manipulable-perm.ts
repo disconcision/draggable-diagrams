@@ -1,7 +1,7 @@
+import { produce } from "immer";
 import _ from "lodash";
-import { Manipulable } from "./manipulable";
+import { Manipulable, span } from "./manipulable";
 import { group, rectangle } from "./shape";
-import { insertImm, removeImm } from "./utils";
 import { Vec2 } from "./vec2";
 import { XYWH } from "./xywh";
 
@@ -34,11 +34,15 @@ export const manipulablePerm: Manipulable<PermState> = {
 
   accessibleFrom(state, draggableKey) {
     const draggedIdx = state.perm.indexOf(draggableKey);
-    const permWithoutDragged = removeImm(state.perm, draggedIdx);
 
-    return _.range(permWithoutDragged.length + 1).map((idx) => ({
-      perm: insertImm(permWithoutDragged, idx, draggableKey),
-    }));
+    return span(
+      _.range(state.perm.length).map((idx) =>
+        produce(state, (draft) => {
+          draft.perm.splice(draggedIdx, 1);
+          draft.perm.splice(idx, 0, draggableKey);
+        }),
+      ),
+    );
   },
 };
 

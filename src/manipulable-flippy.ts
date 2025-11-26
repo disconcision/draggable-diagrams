@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { Manipulable } from "./manipulable";
+import { Manipulable, straightTo } from "./manipulable";
 import { circle, group, line, rectangle } from "./shape";
 import { Vec2 } from "./vec2";
 import { XYWH } from "./xywh";
@@ -68,13 +68,11 @@ export const manipulableFlippy: Manipulable<PermState> = {
     // the dragged key in place; it will be ignored cuz the identity
     // is always included.
     const reversed = [...state.perm].reverse();
-    return {
-      manifolds: _.range(state.perm.length).map((idx) => [
-        {
-          perm: [...reversed.slice(idx), ...reversed.slice(0, idx)],
-        },
-      ]),
-    };
+    return _.range(state.perm.length).map((idx) =>
+      straightTo({
+        perm: [...reversed.slice(idx), ...reversed.slice(0, idx)],
+      }),
+    );
   },
 };
 

@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { Manipulable } from "./manipulable";
+import { Manipulable, straightTo } from "./manipulable";
 import { group, rectangle } from "./shape";
 import { defined } from "./utils";
 import { Vec2 } from "./vec2";
@@ -44,34 +44,30 @@ export const manipulableFifteen: Manipulable<FifteenState> = {
     // if we're not blank, we can only swap with blank
     // if we are blank, we can swap with any neighbor
     const dragLoc = Vec2(state.tiles[draggableKey]);
-    return {
-      manifolds: (
-        [
-          [-1, 0],
-          [1, 0],
-          [0, -1],
-          [0, 1],
-        ] as const
-      )
-        .map((d) => {
-          const adjLoc = dragLoc.add(d);
-          if (!inXYWH(adjLoc, XYWH(0, 0, state.w - 1, state.h - 1))) return;
-          const adjTileKey = _.findKey(state.tiles, (t) => adjLoc.eq(t));
-          if (!adjTileKey) return;
-          if (!(draggableKey === " " || adjTileKey === " ")) return;
-          return [
-            {
-              ...state,
-              tiles: {
-                ...state.tiles,
-                [draggableKey]: adjLoc.xy(),
-                [adjTileKey]: dragLoc.xy(),
-              },
-            },
-          ];
-        })
-        .filter(defined),
-    };
+    return (
+      [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
+      ] as const
+    )
+      .map((d) => {
+        const adjLoc = dragLoc.add(d);
+        if (!inXYWH(adjLoc, XYWH(0, 0, state.w - 1, state.h - 1))) return;
+        const adjTileKey = _.findKey(state.tiles, (t) => adjLoc.eq(t));
+        if (!adjTileKey) return;
+        if (!(draggableKey === " " || adjTileKey === " ")) return;
+        return straightTo({
+          ...state,
+          tiles: {
+            ...state.tiles,
+            [draggableKey]: adjLoc.xy(),
+            [adjTileKey]: dragLoc.xy(),
+          },
+        });
+      })
+      .filter(defined);
   },
 };
 

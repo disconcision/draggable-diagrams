@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { Manipulable } from "./manipulable";
+import { Manipulable, straightTo } from "./manipulable";
 import { group, rectangle } from "./shape";
 import { defined } from "./utils";
 import { Vec2 } from "./vec2";
@@ -41,28 +41,24 @@ export const manipulableTiles: Manipulable<TilesState> = {
 
   accessibleFrom(state, draggableKey) {
     const dragLoc = Vec2(state.tiles[draggableKey]);
-    return {
-      manifolds: (
-        [
-          [-1, 0],
-          [1, 0],
-          [0, -1],
-          [0, 1],
-        ] as const
-      )
-        .map((d) => {
-          const adjLoc = dragLoc.add(d);
-          if (!inXYWH(adjLoc, XYWH(0, 0, state.w - 1, state.h - 1))) return;
-          if (Object.values(state.tiles).some((t) => adjLoc.eq(t))) return;
-          return [
-            {
-              ...state,
-              tiles: { ...state.tiles, [draggableKey]: adjLoc.xy() },
-            },
-          ];
-        })
-        .filter(defined),
-    };
+    return (
+      [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
+      ] as const
+    )
+      .map((d) => {
+        const adjLoc = dragLoc.add(d);
+        if (!inXYWH(adjLoc, XYWH(0, 0, state.w - 1, state.h - 1))) return;
+        if (Object.values(state.tiles).some((t) => adjLoc.eq(t))) return;
+        return straightTo({
+          ...state,
+          tiles: { ...state.tiles, [draggableKey]: adjLoc.xy() },
+        });
+      })
+      .filter(defined);
   },
 };
 

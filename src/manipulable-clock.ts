@@ -1,4 +1,4 @@
-import { Manipulable } from "./manipulable";
+import { Manipulable, numAtPath } from "./manipulable";
 import { circle, Diagram, group, line } from "./shape";
 import { Vec2 } from "./vec2";
 
@@ -44,9 +44,7 @@ export const manipulableClock: Manipulable<ClockState> = {
   },
 
   accessibleFrom(_state, _draggableKey) {
-    return {
-      paramPaths: [["hours"]],
-    };
+    return numAtPath(["hours"]);
   },
 };
 

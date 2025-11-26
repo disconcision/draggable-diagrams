@@ -1,7 +1,8 @@
+import { produce } from "immer";
 import _ from "lodash";
-import { Manipulable } from "./manipulable";
+import { Manipulable, span } from "./manipulable";
 import { group, rectangle } from "./shape";
-import { assert, insertImm, removeImm } from "./utils";
+import { assert } from "./utils";
 import { Vec2 } from "./vec2";
 import { XYWH } from "./xywh";
 
@@ -52,15 +53,21 @@ export const manipulablePermDouble: Manipulable<PermDoubleState> = {
     const draggedColIdx = draggedRow.indexOf(draggableKey);
     assert(draggedColIdx !== -1);
 
-    const rowsWithoutDraggedRow = removeImm(state.rows, draggedRowIdx);
-    const rowWithoutDraggedItem = removeImm(draggedRow, draggedColIdx);
-
-    return _.range(rowWithoutDraggedItem.length + 1).flatMap((colIdx) => {
-      const newRow = insertImm(rowWithoutDraggedItem, colIdx, draggableKey);
-      return _.range(rowsWithoutDraggedRow.length + 1).map((rowIdx) => ({
-        rows: insertImm(rowsWithoutDraggedRow, rowIdx, newRow),
-      }));
-    });
+    const states = [];
+    for (const colIdx of _.range(draggedRow.length + 1)) {
+      for (const rowIdx of _.range(state.rows.length + 1)) {
+        states.push(
+          produce(state, (draft) => {
+            const row = draft.rows[draggedRowIdx];
+            row.splice(draggedColIdx, 1);
+            row.splice(colIdx, 0, draggableKey);
+            draft.rows.splice(draggedRowIdx, 1);
+            draft.rows.splice(rowIdx, 0, row);
+          }),
+        );
+      }
+    }
+    return span(states);
   },
 };
 

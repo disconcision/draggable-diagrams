@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { ConfigCheckbox } from "./config-controls";
-import { Manipulable } from "./manipulable";
+import { Manipulable, straightTo } from "./manipulable";
 import { group, rectangle } from "./shape";
 import { defined } from "./utils";
 import { Vec2 } from "./vec2";
@@ -88,77 +88,67 @@ export const manipulableSokoban: Manipulable<SokobanState, SokobanConfig> = {
 
     if (draggableKey === "player") {
       const curLoc = Vec2(state.player);
-      return {
-        manifolds: (
-          [
-            [-1, 0],
-            [1, 0],
-            [0, -1],
-            [0, 1],
-          ] as const
-        )
-          .map((d) => {
-            const newLoc = curLoc.add(d);
-            console.log("trying move to", newLoc);
-            if (!isFloor(newLoc)) return;
-            console.log("is floor");
-            // check for box
-            const boxId = idOfBoxAt(newLoc);
-            if (boxId === undefined) {
-              // no box, just move player
-              return [state, { ...state, player: newLoc }];
-            }
-            // box present, try to push
-            const boxNewLoc = newLoc.add(d);
-            if (!isFloor(boxNewLoc)) return;
-            if (idOfBoxAt(boxNewLoc) !== undefined) return;
-            // can push box
-            return [
-              {
-                ...state,
-                player: newLoc,
-                objects: {
-                  ...state.objects,
-                  [boxId]: { ...state.objects[boxId], pos: boxNewLoc },
-                },
-              },
-            ];
-          })
-          .filter(defined),
-      };
+      return (
+        [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ] as const
+      )
+        .map((d) => {
+          const newLoc = curLoc.add(d);
+          console.log("trying move to", newLoc);
+          if (!isFloor(newLoc)) return;
+          console.log("is floor");
+          // check for box
+          const boxId = idOfBoxAt(newLoc);
+          if (boxId === undefined) {
+            // no box, just move player
+            return straightTo({ ...state, player: newLoc });
+          }
+          // box present, try to push
+          const boxNewLoc = newLoc.add(d);
+          if (!isFloor(boxNewLoc)) return;
+          if (idOfBoxAt(boxNewLoc) !== undefined) return;
+          // can push box
+          return straightTo({
+            ...state,
+            player: newLoc,
+            objects: {
+              ...state.objects,
+              [boxId]: { ...state.objects[boxId], pos: boxNewLoc },
+            },
+          });
+        })
+        .filter(defined);
     } else {
       const curLoc = state.objects[draggableKey].pos;
-      return {
-        manifolds: (
-          [
-            [-1, 0],
-            [1, 0],
-            [0, -1],
-            [0, 1],
-          ] as const
-        )
-          .map((d) => {
-            const newLoc = curLoc.add(d);
-            if (isInBounds(newLoc)) {
-              return [
-                {
-                  ...state,
-                  objects: {
-                    ...state.objects,
-                    [draggableKey]: {
-                      ...state.objects[draggableKey],
-                      pos: newLoc,
-                    },
-                  },
+      return (
+        [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ] as const
+      )
+        .map((d) => {
+          const newLoc = curLoc.add(d);
+          if (isInBounds(newLoc)) {
+            return straightTo({
+              ...state,
+              objects: {
+                ...state.objects,
+                [draggableKey]: {
+                  ...state.objects[draggableKey],
+                  pos: newLoc,
                 },
-              ];
-            }
-          })
-          .filter(defined),
-      };
+              },
+            });
+          }
+        })
+        .filter(defined);
     }
-
-    return [];
   },
 
   defaultConfig: {

@@ -1,7 +1,8 @@
+import { produce } from "immer";
 import _ from "lodash";
-import { Manipulable } from "./manipulable";
+import { Manipulable, span } from "./manipulable";
 import { circle, group, line } from "./shape";
-import { setImm } from "./utils";
+import { assert } from "./utils";
 import { Vec2 } from "./vec2";
 
 type GridPolyState = {
@@ -52,19 +53,20 @@ export const manipulableGridPoly: Manipulable<GridPolyState> = {
 
   accessibleFrom(state, draggableKey) {
     const idx = parseInt(draggableKey, 10);
-    if (!isNaN(idx)) {
-      const availablePositions = _.range(state.w)
-        .flatMap((x) => _.range(state.h).map((y) => ({ x, y })))
-        .filter(
-          (pos) => !state.points.some((pt) => pt.x === pos.x && pt.y === pos.y),
-        );
-      return availablePositions.map((newPos) => ({
-        ...state,
-        points: setImm(state.points, idx, { x: newPos.x, y: newPos.y }),
-      }));
-    } else {
-      return [];
+    assert(!isNaN(idx));
+    const states = [];
+    for (const x of _.range(state.w)) {
+      for (const y of _.range(state.h)) {
+        if (!state.points.some((pt) => pt.x === x && pt.y === y)) {
+          states.push(
+            produce(state, (draft) => {
+              draft.points[idx] = { x, y };
+            }),
+          );
+        }
+      }
     }
+    return span(states);
   },
 };
 

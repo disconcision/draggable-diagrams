@@ -11,7 +11,7 @@ import {
   lerpDiagrams,
   lerpDiagrams3,
 } from "./shape";
-import { assert, assertNever, pipe } from "./utils";
+import { assert, assertNever, hasKey, Many, manyToArray, pipe } from "./utils";
 import { Vec2 } from "./vec2";
 // @ts-ignore
 import { minimize } from "./minimize";
@@ -41,7 +41,7 @@ export type ManipulableBase<T, ManipulableConfig> = {
     state: T,
     draggableKey: string,
     config: ManipulableConfig,
-  ): AccessibleFromReturn<T>;
+  ): DragSpec<T>;
   sourceFile?: string;
 };
 
@@ -81,11 +81,40 @@ export function manipulableDefaultConfig<T, ManipulableConfig>(
  * single manifold, or a bunch of manifolds each going to a single
  * new state. Hmm.
  */
-export type AccessibleFromReturn<T> =
-  | T[]
-  | { manifolds: T[][] }
-  | { initParams: number[]; stateFromParams: (...params: number[]) => T }
-  | { paramPaths: PathIn<T, number>[] };
+
+// TODO: more sophisticated combos
+export type DragSpec<T> = Many<DragSpecManifold<T>> | DragSpecParams<T>;
+
+export type DragSpecManifold<T> = { type: "manifold"; states: T[] };
+
+export type DragSpecParams<T> =
+  | { type: "param-paths"; paramPaths: PathIn<T, number>[] }
+  | {
+      type: "params";
+      initParams: number[];
+      stateFromParams: (...params: number[]) => T;
+    };
+
+export function span<T>(states: T[]): DragSpecManifold<T> {
+  return { type: "manifold", states };
+}
+export function straightTo<T>(state: T): DragSpecManifold<T> {
+  return { type: "manifold", states: [state] };
+}
+export function params<T>(
+  initParams: number[],
+  stateFromParams: (...params: number[]) => T,
+): DragSpecParams<T> {
+  return { type: "params", initParams, stateFromParams };
+}
+export function numsAtPaths<T>(
+  paramPaths: PathIn<T, number>[],
+): DragSpecParams<T> {
+  return { type: "param-paths", paramPaths };
+}
+export function numAtPath<T>(paramPath: PathIn<T, number>): DragSpecParams<T> {
+  return { type: "param-paths", paramPaths: [paramPath] };
+}
 
 export type Path = (string | number)[];
 
@@ -371,32 +400,32 @@ export class ManipulableDrawer<T, Config = unknown> {
     pointerOffset: Vec2,
     manipulableConfig: Config,
   ) {
-    const r = this.manipulable.accessibleFrom(
+    const dragSpec = this.manipulable.accessibleFrom(
       state,
       draggableKey,
       manipulableConfig,
     );
 
-    if (typeof r === "object" && "initParams" in r) {
+    if (hasKey(dragSpec, "initParams")) {
       this.state = {
         type: "dragging-params",
         draggableKey,
         pointerOffset,
-        curParams: r.initParams,
-        stateFromParams: r.stateFromParams,
+        curParams: dragSpec.initParams,
+        stateFromParams: dragSpec.stateFromParams,
       };
       return;
     }
 
-    if (typeof r === "object" && "paramPaths" in r) {
+    if (hasKey(dragSpec, "paramPaths")) {
       this.state = {
         type: "dragging-params",
         draggableKey,
         pointerOffset,
-        curParams: r.paramPaths.map((path) => getAtPath(state, path)),
+        curParams: dragSpec.paramPaths.map((path) => getAtPath(state, path)),
         stateFromParams: (...params: number[]) => {
           let newState = state;
-          r.paramPaths.forEach((path, idx) => {
+          dragSpec.paramPaths.forEach((path, idx) => {
             newState = setAtPath(newState, path, params[idx]);
           });
           return newState;
@@ -405,11 +434,7 @@ export class ManipulableDrawer<T, Config = unknown> {
       return;
     }
 
-    const statesForManifolds = Array.isArray(r)
-      ? [r]
-      : r.manifolds.length > 0 // things go wrong if there are zero manifolds
-        ? r.manifolds
-        : [[]];
+    const manifoldSpecs = manyToArray(dragSpec);
 
     const makeManifoldPoint = (state: T): ManifoldPoint<T> => {
       const diagram = this.manipulable.render(
@@ -424,10 +449,10 @@ export class ManipulableDrawer<T, Config = unknown> {
 
     const startingPoint = makeManifoldPoint(state);
 
-    const manifolds = statesForManifolds.map((statesForManifold) => {
+    const manifolds = manifoldSpecs.map(({ states }) => {
       const points = [
         startingPoint,
-        ...statesForManifold
+        ...states
           .filter((s) => !_.isEqual(s, state))
           .map((state) => makeManifoldPoint(state)),
       ];

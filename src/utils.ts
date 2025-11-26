@@ -102,3 +102,14 @@ export function manyToArray<T>(arr: Many<T>): T[] {
   helper(arr);
   return result;
 }
+
+export function isObject(x: unknown): x is Record<string, unknown> {
+  return typeof x === "object" && x !== null && !Array.isArray(x);
+}
+
+export function hasKey<K extends string | number | symbol>(
+  x: unknown,
+  key: K,
+): x is Record<K, unknown> {
+  return isObject(x) && key in x;
+}

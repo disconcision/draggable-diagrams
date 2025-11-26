@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { Manipulable } from "./manipulable";
+import { Manipulable, numsAtPaths, span } from "./manipulable";
 import { circle, group, line, polygon } from "./shape";
 import { Vec2 } from "./vec2";
 
@@ -123,14 +123,12 @@ export const manipulableGraph: Manipulable<GraphState> = {
       }
     } else if (draggableKey.startsWith("node-")) {
       const nodeKey = draggableKey.slice("node-".length);
-      return {
-        paramPaths: [
-          ["nodes", nodeKey, "x"],
-          ["nodes", nodeKey, "y"],
-        ],
-      };
+      return numsAtPaths([
+        ["nodes", nodeKey, "x"],
+        ["nodes", nodeKey, "y"],
+      ]);
     }
-    return newStates;
+    return span(newStates);
   },
 };
 

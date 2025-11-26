@@ -1,7 +1,7 @@
+import { produce } from "immer";
 import _ from "lodash";
-import { Manipulable } from "./manipulable";
+import { Manipulable, span } from "./manipulable";
 import { group, rectangle } from "./shape";
-import { insertImm, removeImm } from "./utils";
 import { Vec2 } from "./vec2";
 import { XYWH } from "./xywh";
 
@@ -54,28 +54,28 @@ export const manipulableInsertAndRemove: Manipulable<PermState> = {
     const itemIdx = state.items.findIndex((item) => item.key === draggableKey);
     if (itemIdx !== -1) {
       const draggedItem = state.items[itemIdx];
-      const itemsWithoutDragged = removeImm(state.items, itemIdx);
-
-      return [
-        ..._.range(itemsWithoutDragged.length + 1).map((idx) => ({
-          ...state,
-          items: insertImm(itemsWithoutDragged, idx, draggedItem),
-        })),
-        // TODO: handle deletion
-        // {
-        //   ...state,
-        //   items: itemsWithoutDragged,
-        // },
-      ];
+      return span(
+        _.range(state.items.length).map((idx) =>
+          produce(state, (draft) => {
+            draft.items.splice(itemIdx, 1);
+            draft.items.splice(idx, 0, draggedItem);
+          }),
+        ),
+      );
     } else {
       // item is from store, can be inserted anywhere
-      const storeItem = state.store.find((item) => item.key === draggableKey)!;
-      return _.range(state.items.length + 1).map((idx) => ({
-        store: state.store.map((item) =>
-          item.key === draggableKey ? { ...item, key: item.key + "-1" } : item,
+      const storeItemIdx = state.store.findIndex(
+        (item) => item.key === draggableKey,
+      );
+      const storeItem = state.store[storeItemIdx];
+      return span(
+        _.range(state.items.length + 1).map((idx) =>
+          produce(state, (draft) => {
+            draft.items.splice(idx, 0, storeItem);
+            draft.store[storeItemIdx].key += "-1";
+          }),
         ),
-        items: insertImm(state.items, idx, storeItem),
-      }));
+      );
     }
   },
 };

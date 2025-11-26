@@ -1,4 +1,4 @@
-import { Manipulable } from "./manipulable";
+import { Manipulable, span } from "./manipulable";
 import { rectangle } from "./shape";
 import { XYWH } from "./xywh";
 
@@ -14,7 +14,7 @@ export const manipulableSimplest: Manipulable<boolean> = {
   },
 
   accessibleFrom(_state, _draggableKey) {
-    return [false, true];
+    return span([false, true]);
   },
 };
 

@@ -1,4 +1,4 @@
-import { Manipulable } from "./manipulable";
+import { Manipulable, span } from "./manipulable";
 import { Diagram, group, rectangle } from "./shape";
 
 type Outline = {
@@ -108,7 +108,7 @@ export const manipulableOutline: Manipulable<Outline> = {
       return [];
     }
 
-    return insertAtAllPositions(newState, foundNode);
+    return span(insertAtAllPositions(newState, foundNode));
   },
 };
 

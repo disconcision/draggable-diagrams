@@ -1,4 +1,4 @@
-import { Manipulable } from "./manipulable";
+import { Manipulable, numAtPath } from "./manipulable";
 import { circle, group, line } from "./shape";
 import { Vec2 } from "./vec2";
 
@@ -32,9 +32,7 @@ export const manipulableAngle: Manipulable<AngleState> = {
   },
 
   accessibleFrom(_state, _draggableKey) {
-    return {
-      paramPaths: [["angle"]],
-    };
+    return numAtPath(["angle"]);
   },
 };
 

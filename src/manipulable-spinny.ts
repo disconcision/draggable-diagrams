@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { Manipulable } from "./manipulable";
+import { Manipulable, straightTo } from "./manipulable";
 import { circle, group, line, rectangle } from "./shape";
 import { Vec2 } from "./vec2";
 import { XYWH } from "./xywh";
@@ -58,13 +58,11 @@ export const manipulableSpinny: Manipulable<PermState> = {
   accessibleFrom(state, _draggableKey) {
     // interesting bit: this doesn't depend on which key is being
     // dragged!
-    return {
-      manifolds: [1, state.perm.length - 1].map((idx) => [
-        {
-          perm: [...state.perm.slice(idx), ...state.perm.slice(0, idx)],
-        },
-      ]),
-    };
+    return [1, state.perm.length - 1].map((idx) =>
+      straightTo({
+        perm: [...state.perm.slice(idx), ...state.perm.slice(0, idx)],
+      }),
+    );
   },
 };
 

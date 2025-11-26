@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { Manipulable } from "./manipulable";
+import { Manipulable, span } from "./manipulable";
 import { group, line, rectangle } from "./shape";
 import { Vec2 } from "./vec2";
 import { XYWH } from "./xywh";
@@ -118,7 +118,7 @@ export const manipulableRushHour: Manipulable<RushHourState> = {
       tryMove(0, -1);
       tryMove(0, 1);
     }
-    return nextStates;
+    return span(nextStates);
   },
 };
 

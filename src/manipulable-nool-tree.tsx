@@ -1,7 +1,7 @@
 import _ from "lodash";
 import React from "react";
 import { ConfigCheckbox } from "./config-controls";
-import { Manipulable } from "./manipulable";
+import { Manipulable, straightTo } from "./manipulable";
 import { Diagram, group, rectangle } from "./shape";
 import { insertImm, removeImm, setImm } from "./utils";
 
@@ -36,7 +36,6 @@ export const manipulableNoolTree: Manipulable<NoolTree, NoolTreeConfig> = {
 
   accessibleFrom(state, draggableKey, configParam) {
     const config = configParam || this.defaultConfig!;
-    const manifolds: NoolTree[][] = [[state]];
     // walk the tree
     function walk(tree: NoolTree, replaceNode: (newNode: NoolTree) => void) {
       // commutativity
@@ -223,10 +222,11 @@ export const manipulableNoolTree: Manipulable<NoolTree, NoolTreeConfig> = {
         ),
       );
     }
+    const nextStates: NoolTree[] = [];
     walk(state, (newTree) => {
-      manifolds.push([newTree]);
+      nextStates.push(newTree);
     });
-    return { manifolds };
+    return nextStates.map(straightTo);
   },
 
   defaultConfig: {

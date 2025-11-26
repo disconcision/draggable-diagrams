@@ -2,7 +2,7 @@ import _ from "lodash";
 import { ConfigCheckbox } from "./config-controls";
 import { Finalizers } from "./finalizers";
 import { overlapIntervals } from "./layout";
-import { Manipulable } from "./manipulable";
+import { Manipulable, span } from "./manipulable";
 import {
   circle,
   curve,
@@ -92,10 +92,12 @@ export const manipulableOrderPreserving: Manipulable<
         );
       },
     );
-    return adjMorphIdxes.map((idx) => ({
-      ...state,
-      curMorphIdx: idx,
-    }));
+    return span(
+      adjMorphIdxes.map((idx) => ({
+        ...state,
+        curMorphIdx: idx,
+      })),
+    );
   },
 
   defaultConfig: {
