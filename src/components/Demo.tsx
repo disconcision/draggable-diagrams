@@ -13,7 +13,7 @@ import { PointerManager, pointerManagerWithOffset } from "../pointer";
 import { Vec2 } from "../vec2";
 import { Canvas } from "./Canvas";
 
-interface DemoProps<T, Config> {
+interface DemoProps<T extends object, Config> {
   id: string;
   title: string;
   notes?: ReactNode;
@@ -26,7 +26,7 @@ interface DemoProps<T, Config> {
   initialRelativePointerMotion?: boolean;
 }
 
-export function Demo<T, Config>({
+export function Demo<T extends object, Config>({
   id,
   title,
   notes,

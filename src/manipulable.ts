@@ -26,13 +26,13 @@ import { getAtPath, PathIn, setAtPath } from "./paths";
  * shenanigans for config-dependence that should get cleverly
  * simplified someday.
  */
-export type Manipulable<T, ManipulableConfig = undefined> = [
+export type Manipulable<T extends object, ManipulableConfig = undefined> = [
   ManipulableConfig,
 ] extends [undefined]
   ? ManipulableBase<T, ManipulableConfig>
   : ManipulableWithConfig<T, ManipulableConfig>;
 
-export type ManipulableBase<T, ManipulableConfig> = {
+export type ManipulableBase<T extends object, ManipulableConfig> = {
   render(
     state: T,
     draggableKey: string | null,
@@ -47,10 +47,10 @@ export type ManipulableBase<T, ManipulableConfig> = {
   sourceFile?: string;
 };
 
-export type ManipulableWithConfig<T, ManipulableConfig> = ManipulableBase<
-  T,
-  ManipulableConfig
-> & {
+export type ManipulableWithConfig<
+  T extends object,
+  ManipulableConfig,
+> = ManipulableBase<T, ManipulableConfig> & {
   defaultConfig: ManipulableConfig;
   renderConfig: (
     config: ManipulableConfig,
@@ -58,13 +58,13 @@ export type ManipulableWithConfig<T, ManipulableConfig> = ManipulableBase<
   ) => React.ReactNode;
 };
 
-export function hasConfig<T, ManipulableConfig>(
+export function hasConfig<T extends object, ManipulableConfig>(
   manipulable: Manipulable<T, ManipulableConfig>,
 ): manipulable is ManipulableWithConfig<T, ManipulableConfig> {
   return (manipulable as any).defaultConfig !== undefined;
 }
 
-export function manipulableDefaultConfig<T, ManipulableConfig>(
+export function manipulableDefaultConfig<T extends object, ManipulableConfig>(
   manipulable: Manipulable<T, ManipulableConfig>,
 ): ManipulableConfig {
   // this is totally well-typed I swear
@@ -120,7 +120,7 @@ export type Manifold<T> = {
   delaunay: Delaunay<Delaunay.Point>;
 };
 
-export class ManipulableDrawer<T, Config = unknown> {
+export class ManipulableDrawer<T extends object, Config = unknown> {
   private dragState:
     | {
         type: "idle";
