@@ -455,7 +455,10 @@ export class ManipulableDrawer<T extends object, Config = unknown> {
       return;
     }
 
-    const manifoldSpecs = manyToArray(dragSpec);
+    const manifoldSpecs = pipe(
+      manyToArray(dragSpec),
+      (arr) => (arr.length === 0 ? [span([])] : arr), // things go wrong if no manifolds
+    );
 
     const makeManifoldPoint = (state: T): ManifoldPoint<T> => {
       const diagram = this.manipulable.render(
