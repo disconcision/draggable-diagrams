@@ -1,4 +1,3 @@
-import _ from "lodash";
 import { Manipulable, straightTo } from "./manipulable";
 import { circle, group, rectangle } from "./shape";
 import { Vec2 } from "./vec2";
@@ -14,12 +13,6 @@ export const manipulableSpinny: Manipulable<PermState> = {
   render(state, draggableKey) {
     const TILE_SIZE = 50;
     const RADIUS = 100;
-    const positions = _.fromPairs(
-      state.perm.map((p, idx) => [
-        p,
-        Vec2(-RADIUS, 0).rotate((idx / state.perm.length) * 2 * Math.PI),
-      ]),
-    );
     return group(
       state.perm.map((p) => {
         const angle =

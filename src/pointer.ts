@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { Layer } from "./layer";
 import { Vec2 } from "./vec2";
-import { pointInPoly, polyArea } from "./xywh";
+import { debugPoly, pointInPoly, polyArea } from "./xywh";
 
 // Coordinates statement: In PointerManager, all coordinates are in
 // canvas space. Using withOffset produces a PointerManager where
