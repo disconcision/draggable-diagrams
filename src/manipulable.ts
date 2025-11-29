@@ -12,11 +12,14 @@ import {
   lerpDiagrams3,
   transformVec2,
 } from "./shape";
-import { assert, assertNever, hasKey, Many, manyToArray, pipe } from "./utils";
+import { assert, assertNever, hasKey, manyToArray, pipe } from "./utils";
 import { Vec2 } from "./vec2";
 // @ts-ignore
+import { DragSpec, span } from "./DragSpec";
 import { minimize } from "./minimize";
-import { getAtPath, PathIn, setAtPath } from "./paths";
+import { getAtPath, setAtPath } from "./paths";
+
+export { numAtPath, numsAtPaths, params, span, straightTo } from "./DragSpec";
 
 /** A manipulable is a way of visualizing and interacting with
  * "state" (of some type T).
@@ -69,40 +72,6 @@ export function manipulableDefaultConfig<T extends object, ManipulableConfig>(
 ): ManipulableConfig {
   // this is totally well-typed I swear
   return (manipulable as any).defaultConfig;
-}
-
-// TODO: more sophisticated combos
-export type DragSpec<T> = Many<DragSpecManifold<T>> | DragSpecParams<T>;
-
-export type DragSpecManifold<T> = { type: "manifold"; states: T[] };
-
-export type DragSpecParams<T> =
-  | { type: "param-paths"; paramPaths: PathIn<T, number>[] }
-  | {
-      type: "params";
-      initParams: number[];
-      stateFromParams: (...params: number[]) => T;
-    };
-
-export function span<T>(...manyStates: Many<T>[]): DragSpecManifold<T> {
-  return { type: "manifold", states: manyToArray(manyStates) };
-}
-export function straightTo<T>(state: T): DragSpecManifold<T> {
-  return { type: "manifold", states: [state] };
-}
-export function params<T>(
-  initParams: number[],
-  stateFromParams: (...params: number[]) => T,
-): DragSpecParams<T> {
-  return { type: "params", initParams, stateFromParams };
-}
-export function numsAtPaths<T>(
-  paramPaths: PathIn<T, number>[],
-): DragSpecParams<T> {
-  return { type: "param-paths", paramPaths };
-}
-export function numAtPath<T>(paramPath: PathIn<T, number>): DragSpecParams<T> {
-  return { type: "param-paths", paramPaths: [paramPath] };
 }
 
 export type ManifoldPoint<T> = {
