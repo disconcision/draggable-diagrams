@@ -28,6 +28,10 @@ import {
   statePermDouble1,
 } from "./manipulable-perm-double";
 import { manipulableRushHour, stateRushHour1 } from "./manipulable-rush-hour";
+import {
+  manipulableSecondSimplest,
+  stateSecondSimplest1,
+} from "./manipulable-second-simplest";
 import { manipulableSimplest, stateSimplest1 } from "./manipulable-simplest";
 import { manipulableSokoban, stateSokoban1 } from "./manipulable-sokoban";
 import { manipulableSpinny } from "./manipulable-spinny";
@@ -49,6 +53,19 @@ export const demos: DemoEntry[] = [
         manipulable={manipulableSimplest}
         initialState={stateSimplest1}
         height={100}
+        padding={20}
+      />
+    ),
+  },
+  {
+    id: "second-simplest",
+    node: (
+      <Demo
+        id="second-simplest"
+        title="Second simplest"
+        manipulable={manipulableSecondSimplest}
+        initialState={stateSecondSimplest1}
+        height={120}
         padding={20}
       />
     ),
