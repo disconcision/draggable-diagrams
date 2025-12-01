@@ -1036,7 +1036,7 @@ export function ManipulableDrawer<T extends object, Config>({
       width={width}
       height={height}
       xmlns="http://www.w3.org/2000/svg"
-      className="overflow-visible select-none"
+      className="overflow-visible select-none touch-none"
     >
       {sortedEntries.map(([key, element]) => (
         <Fragment key={key}>{stripDraggables(element)}</Fragment>
