@@ -1,9 +1,9 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { ManipulableCanvas, span } from "./manipulable";
-import { circle, group, line } from "./shape";
 import { assert } from "../utils";
 import { Vec2 } from "../vec2";
+import { ManipulableCanvas, span } from "./manipulable-canvas";
+import { circle, group, line } from "./shape";
 
 type GridPolyState = {
   w: number;
@@ -27,8 +27,8 @@ export const manipulableGridPoly: ManipulableCanvas<GridPolyState> = {
             center: Vec2(x * TILE_SIZE, y * TILE_SIZE),
             radius: 5,
             fillStyle: "gray",
-          }),
-        ),
+          })
+        )
       ),
       state.points.map((pt, idx) =>
         circle({
@@ -37,7 +37,7 @@ export const manipulableGridPoly: ManipulableCanvas<GridPolyState> = {
           fillStyle: "black",
         })
           .draggable(`${idx}`)
-          .translate(Vec2(pt.x * TILE_SIZE, pt.y * TILE_SIZE)),
+          .translate(Vec2(pt.x * TILE_SIZE, pt.y * TILE_SIZE))
       ),
       state.points.map((pt, idx) => {
         const nextPt = state.points[(idx + 1) % state.points.length];
@@ -47,7 +47,7 @@ export const manipulableGridPoly: ManipulableCanvas<GridPolyState> = {
           strokeStyle: "black",
           lineWidth: 2,
         });
-      }),
+      })
     );
   },
 
@@ -61,7 +61,7 @@ export const manipulableGridPoly: ManipulableCanvas<GridPolyState> = {
           states.push(
             produce(state, (draft) => {
               draft.points[idx] = { x, y };
-            }),
+            })
           );
         }
       }

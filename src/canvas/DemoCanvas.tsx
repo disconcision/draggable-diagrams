@@ -10,7 +10,7 @@ import {
   ManipulableCanvas,
   ManipulableCanvasDrawer,
   manipulableDefaultConfig,
-} from "./manipulable";
+} from "./manipulable-canvas";
 import { PointerManager, pointerManagerWithOffset } from "./pointer";
 
 interface DemoCanvasProps<T extends object, Config> {
@@ -42,15 +42,15 @@ export function DemoCanvas<T extends object, Config>({
   const drawer = useMemo(
     () =>
       new ManipulableCanvasDrawer(manipulable, initialState, onDragStateChange),
-    [manipulable, initialState, onDragStateChange],
+    [manipulable, initialState, onDragStateChange]
   );
   const [snapRadius, setSnapRadius] = useState(initialSnapRadius);
   const [chainDrags, setChainDrags] = useState(initialChainDrags);
   const [relativePointerMotion, setRelativePointerMotion] = useState(
-    initialRelativePointerMotion,
+    initialRelativePointerMotion
   );
   const [manipulableConfig, setManipulableConfig] = useState(
-    manipulableDefaultConfig(manipulable),
+    manipulableDefaultConfig(manipulable)
   );
   const pointerRef = useRef<PointerManager | null>(null);
 
@@ -87,7 +87,7 @@ export function DemoCanvas<T extends object, Config>({
           relativePointerMotion,
           animationDuration: 300,
         },
-        manipulableConfig,
+        manipulableConfig
       );
 
       lyr.draw();
@@ -100,11 +100,14 @@ export function DemoCanvas<T extends object, Config>({
       chainDrags,
       relativePointerMotion,
       manipulableConfig,
-    ],
+    ]
   );
 
   return (
-    <div className="bg-white rounded-lg p-5 shadow-sm border-2 border-orange-400" id={id}>
+    <div
+      className="bg-white rounded-lg p-5 shadow-sm border-2 border-orange-400"
+      id={id}
+    >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900 m-0">
           <Link
@@ -131,7 +134,9 @@ export function DemoCanvas<T extends object, Config>({
           <Canvas height={height + padding * 2} draw={draw} />
         </div>
         <div
-          className={`${hasConfig(drawer.manipulable) ? "w-64 md:w-52" : "w-48 md:w-32"} bg-gray-50 rounded p-3 flex flex-col gap-2`}
+          className={`${
+            hasConfig(drawer.manipulable) ? "w-64 md:w-52" : "w-48 md:w-32"
+          } bg-gray-50 rounded p-3 flex flex-col gap-2`}
         >
           <label className="flex flex-col gap-1 text-xs">
             <span className="font-medium text-gray-700">Snap radius</span>
@@ -162,7 +167,7 @@ export function DemoCanvas<T extends object, Config>({
               <div className="border-t border-gray-300 my-1" />
               {drawer.manipulable.renderConfig(
                 manipulableConfig,
-                setManipulableConfig,
+                setManipulableConfig
               )}
             </>
           )}

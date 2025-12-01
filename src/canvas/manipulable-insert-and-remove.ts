@@ -1,9 +1,9 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { ManipulableCanvas, span, straightTo } from "./manipulable";
-import { group, rectangle } from "./shape";
 import { Vec2 } from "../vec2";
 import { XYWH } from "../xywh";
+import { ManipulableCanvas, span, straightTo } from "./manipulable-canvas";
+import { group, rectangle } from "./shape";
 
 type Tile = { key: string; label: string };
 
@@ -36,7 +36,7 @@ export const manipulableInsertAndRemove: ManipulableCanvas<PermState> = {
     return group(
       // Items
       state.items.map((tile, idx) =>
-        drawTile(tile).translate(Vec2(idx * TILE_SIZE, TILE_SIZE * 1.5)),
+        drawTile(tile).translate(Vec2(idx * TILE_SIZE, TILE_SIZE * 1.5))
       ),
 
       // Store
@@ -45,7 +45,7 @@ export const manipulableInsertAndRemove: ManipulableCanvas<PermState> = {
         label: "Store:",
       }),
       state.store.map((tile, idx) =>
-        drawTile(tile).translate(Vec2(80 + idx * TILE_SIZE, 0)),
+        drawTile(tile).translate(Vec2(80 + idx * TILE_SIZE, 0))
       ),
 
       // Deleted
@@ -54,8 +54,8 @@ export const manipulableInsertAndRemove: ManipulableCanvas<PermState> = {
           xywh: XYWH(0, 0, TILE_SIZE, TILE_SIZE),
           label: "🗑",
         }),
-        state.deleted && drawTile(state.deleted),
-      ).translate(Vec2(300, 0)),
+        state.deleted && drawTile(state.deleted)
+      ).translate(Vec2(300, 0))
     );
   },
 
@@ -70,8 +70,8 @@ export const manipulableInsertAndRemove: ManipulableCanvas<PermState> = {
             produce(state, (draft) => {
               draft.items.splice(itemIdx, 1);
               draft.items.splice(idx, 0, draggedItem);
-            }),
-          ),
+            })
+          )
         ),
 
         // deleting
@@ -79,12 +79,12 @@ export const manipulableInsertAndRemove: ManipulableCanvas<PermState> = {
           produce(state, (draft) => {
             draft.items.splice(itemIdx, 1);
             draft.deleted = draggedItem;
-          }),
+          })
         ),
       ];
     } else {
       const storeItemIdx = state.store.findIndex(
-        (item) => item.key === draggableKey,
+        (item) => item.key === draggableKey
       );
       if (storeItemIdx !== -1) {
         // item is from store, can be inserted anywhere
@@ -94,8 +94,8 @@ export const manipulableInsertAndRemove: ManipulableCanvas<PermState> = {
             produce(state, (draft) => {
               draft.items.splice(idx, 0, storeItem);
               draft.store[storeItemIdx].key += "-1";
-            }),
-          ),
+            })
+          )
         );
       }
     }

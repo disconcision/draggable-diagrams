@@ -1,6 +1,6 @@
-import { ManipulableCanvas, numAtPath } from "./manipulable";
-import { circle, Diagram, group, line } from "./shape";
 import { Vec2 } from "../vec2";
+import { ManipulableCanvas, numAtPath } from "./manipulable-canvas";
+import { circle, Diagram, group, line } from "./shape";
 
 type ClockState = {
   hours: number;
@@ -16,7 +16,7 @@ export const manipulableClock: ManipulableCanvas<ClockState> = {
       name: string,
       angle: number,
       length: number,
-      lineWidth_: number,
+      lineWidth_: number
     ): Diagram {
       const handEnd = Vec2(length, 0).rotate(angle).add(center);
       return group(
@@ -32,14 +32,14 @@ export const manipulableClock: ManipulableCanvas<ClockState> = {
           to: handEnd,
           strokeStyle: "black",
           lineWidth: lineWidth_,
-        }),
+        })
       );
     }
 
     return group(
       hand("hour", (state.hours * (2 * Math.PI)) / 12 - Math.PI / 2, 60, 6),
       hand("minute", (state.hours * (2 * Math.PI)) / 1 - Math.PI / 2, 80, 4),
-      hand("second", 60 * (state.hours * (2 * Math.PI)) - Math.PI / 2, 90, 2),
+      hand("second", 60 * (state.hours * (2 * Math.PI)) - Math.PI / 2, 90, 2)
     );
   },
 

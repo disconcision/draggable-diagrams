@@ -1,9 +1,9 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { ManipulableCanvas, span } from "./manipulable";
-import { group, rectangle } from "./shape";
 import { Vec2 } from "../vec2";
 import { XYWH } from "../xywh";
+import { ManipulableCanvas, span } from "./manipulable-canvas";
+import { group, rectangle } from "./shape";
 
 type PermState = {
   perm: string[];
@@ -27,8 +27,8 @@ export const manipulablePerm: ManipulableCanvas<PermState> = {
           .draggable(p)
           .zIndex(p === draggableKey ? 1 : 0)
           .translate(Vec2(idx * TILE_SIZE, p === draggableKey ? -10 : 0))
-          .absoluteKey(p),
-      ),
+          .absoluteKey(p)
+      )
     );
   },
 
@@ -40,8 +40,8 @@ export const manipulablePerm: ManipulableCanvas<PermState> = {
         produce(state, (draft) => {
           draft.perm.splice(draggedIdx, 1);
           draft.perm.splice(idx, 0, draggableKey);
-        }),
-      ),
+        })
+      )
     );
   },
 };

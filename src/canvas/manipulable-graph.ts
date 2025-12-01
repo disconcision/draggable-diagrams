@@ -1,7 +1,7 @@
 import _ from "lodash";
-import { ManipulableCanvas, numsAtPaths, span } from "./manipulable";
-import { circle, group, line, polygon } from "./shape";
 import { Vec2 } from "../vec2";
+import { ManipulableCanvas, numsAtPaths, span } from "./manipulable-canvas";
+import { circle, group, line, polygon } from "./shape";
 
 type GraphState = {
   nodes: { [key: string]: { x: number; y: number } };
@@ -21,7 +21,7 @@ export const manipulableGraph: ManipulableCanvas<GraphState> = {
           fillStyle: "black",
         })
           .draggable(`node-${key}`)
-          .translate(Vec2(node.x, node.y)),
+          .translate(Vec2(node.x, node.y))
       ),
       Object.entries(state.edges).map(([key, edge]) => {
         const fromCenter = Vec2(state.nodes[edge.from]);
@@ -36,7 +36,7 @@ export const manipulableGraph: ManipulableCanvas<GraphState> = {
         // is the opposite edge present?
         const oppositeEdgeKey = _.findKey(
           state.edges,
-          (e) => e.from === edge.to && e.to === edge.from,
+          (e) => e.from === edge.to && e.to === edge.from
         );
         let offset = Vec2(0);
         if (oppositeEdgeKey) {
@@ -70,9 +70,9 @@ export const manipulableGraph: ManipulableCanvas<GraphState> = {
             fillStyle: "black",
           })
             .draggable(`tail-${key}`)
-            .translate(fromArrow.towards(toArrow, 5)),
+            .translate(fromArrow.towards(toArrow, 5))
         ).translate(offset);
-      }),
+      })
     );
   },
 
@@ -87,7 +87,7 @@ export const manipulableGraph: ManipulableCanvas<GraphState> = {
         if (
           _.findKey(
             state.edges,
-            (e) => e.from === edge.from && e.to === newToNodeKey,
+            (e) => e.from === edge.from && e.to === newToNodeKey
           )
         )
           continue;
@@ -111,7 +111,7 @@ export const manipulableGraph: ManipulableCanvas<GraphState> = {
         if (
           _.findKey(
             state.edges,
-            (e) => e.from === newFromNodeKey && e.to === edge.to,
+            (e) => e.from === newFromNodeKey && e.to === edge.to
           )
         )
           continue;

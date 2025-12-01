@@ -1,5 +1,5 @@
 import { ReactElement } from "react";
-import { DemoCanvas } from "./Demo";
+import { DemoCanvas } from "./DemoCanvas";
 import { manipulableAngle, stateAngle } from "./manipulable-angle";
 import { manipulableAngleViaTransform } from "./manipulable-angle-via-transform";
 import { manipulableClock, stateClock } from "./manipulable-clock";

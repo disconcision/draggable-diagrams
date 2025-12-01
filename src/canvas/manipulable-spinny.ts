@@ -1,7 +1,7 @@
-import { ManipulableCanvas, straightTo } from "./manipulable";
-import { circle, group, rectangle } from "./shape";
 import { Vec2 } from "../vec2";
 import { XYWH } from "../xywh";
+import { ManipulableCanvas, straightTo } from "./manipulable-canvas";
+import { circle, group, rectangle } from "./shape";
 
 type PermState = {
   perm: string[];
@@ -30,16 +30,16 @@ export const manipulableSpinny: ManipulableCanvas<PermState> = {
               xywh: XYWH(-TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE),
               lineWidth: 2,
               label: p,
-            }),
+            })
           )
             .absoluteKey(`node-${p}`)
             .rotate(Vec2(0, 0), -angle)
-            .translate([RADIUS, 0]),
+            .translate([RADIUS, 0])
           // TODO: lines
         )
           .rotate(Vec2(0, 0), angle)
           .zIndex(p === draggableKey ? 1 : 0);
-      }),
+      })
     ).translate([100, 100]);
   },
 
@@ -52,7 +52,7 @@ export const manipulableSpinny: ManipulableCanvas<PermState> = {
     return [1, state.perm.length - 1].map((idx) =>
       straightTo({
         perm: [...state.perm.slice(idx), ...state.perm.slice(0, idx)],
-      }),
+      })
     );
   },
 };

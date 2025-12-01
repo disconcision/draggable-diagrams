@@ -1,6 +1,6 @@
-import { ManipulableCanvas, numAtPath } from "./manipulable";
-import { circle, group, line } from "./shape";
 import { Vec2 } from "../vec2";
+import { ManipulableCanvas, numAtPath } from "./manipulable-canvas";
+import { circle, group, line } from "./shape";
 
 type AngleState = {
   angle: number;
@@ -27,7 +27,7 @@ export const manipulableAngle: ManipulableCanvas<AngleState> = {
         to: knobPos,
         strokeStyle: "black",
         lineWidth: 4,
-      }),
+      })
     );
   },
 

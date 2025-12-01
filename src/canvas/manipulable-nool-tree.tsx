@@ -1,9 +1,9 @@
 import _ from "lodash";
 import React from "react";
 import { ConfigCheckbox } from "../config-controls";
-import { ManipulableCanvas, straightTo } from "./manipulable";
-import { Diagram, group, rectangle } from "./shape";
 import { insertImm, removeImm, setImm } from "../utils";
+import { ManipulableCanvas, straightTo } from "./manipulable-canvas";
+import { Diagram, group, rectangle } from "./shape";
 
 type NoolTree = {
   id: string;
@@ -27,121 +27,94 @@ type NoolTreeConfig = {
   pullDownTail: boolean;
 };
 
-export const manipulableNoolTree: ManipulableCanvas<NoolTree, NoolTreeConfig> = {
-  sourceFile: "manipulable-nool-tree.tsx",
+export const manipulableNoolTree: ManipulableCanvas<NoolTree, NoolTreeConfig> =
+  {
+    sourceFile: "manipulable-nool-tree.tsx",
 
-  render(state) {
-    return renderNoolTree(state).diagram;
-  },
+    render(state) {
+      return renderNoolTree(state).diagram;
+    },
 
-  onDrag(state, draggableKey, configParam) {
-    const config = configParam || this.defaultConfig!;
-    // walk the tree
-    function walk(tree: NoolTree, replaceNode: (newNode: NoolTree) => void) {
-      // commutativity
-      if (config.commutativity && isOp(tree)) {
-        const childIdx = tree.children.findIndex((c) => c.id === draggableKey);
-        if (childIdx !== -1) {
-          const dragged = tree.children[childIdx];
-          const childrenWithoutDragged = removeImm(tree.children, childIdx);
-          // try inserting the dragged child at every position
-          _.range(0, childrenWithoutDragged.length + 1).forEach((insertIdx) => {
-            if (insertIdx === childIdx) return;
-            replaceNode({
-              ...tree,
-              children: insertImm(childrenWithoutDragged, insertIdx, dragged),
-            });
-          });
+    onDrag(state, draggableKey, configParam) {
+      const config = configParam || this.defaultConfig!;
+      // walk the tree
+      function walk(tree: NoolTree, replaceNode: (newNode: NoolTree) => void) {
+        // commutativity
+        if (config.commutativity && isOp(tree)) {
+          const childIdx = tree.children.findIndex(
+            (c) => c.id === draggableKey
+          );
+          if (childIdx !== -1) {
+            const dragged = tree.children[childIdx];
+            const childrenWithoutDragged = removeImm(tree.children, childIdx);
+            // try inserting the dragged child at every position
+            _.range(0, childrenWithoutDragged.length + 1).forEach(
+              (insertIdx) => {
+                if (insertIdx === childIdx) return;
+                replaceNode({
+                  ...tree,
+                  children: insertImm(
+                    childrenWithoutDragged,
+                    insertIdx,
+                    dragged
+                  ),
+                });
+              }
+            );
+          }
         }
-      }
 
-      // pull up op to associate
-      if (config.pullUpOp && isBinaryOp(tree)) {
-        const childIdx = tree.children.findIndex((c) => c.id === draggableKey);
-        if (childIdx !== -1) {
-          const dragged = tree.children[childIdx];
-          if (dragged.label === tree.label && isBinaryOp(dragged)) {
-            if (childIdx === 0) {
-              // left child was dragged up
-              // before: ⟦⟪dragged[0], dragged[1]⟫, tree[1]⟧
-              // after:  ⟪dragged[0], ⟦dragged[1], tree[1]⟧⟫
-              replaceNode({
-                ...dragged,
-                children: [
-                  dragged.children[0],
-                  {
-                    ...tree,
-                    children: [dragged.children[1], tree.children[1]],
-                  },
-                ],
-              });
-            } else {
-              // right child was dragged up
-              // before: ⟦tree[0], ⟪dragged[0], dragged[1]⟫⟧
-              // after:  ⟪⟦tree[0], dragged[0]⟧, dragged[1]⟫
-              replaceNode({
-                ...dragged,
-                children: [
-                  {
-                    ...tree,
-                    children: [tree.children[0], dragged.children[0]],
-                  },
-                  dragged.children[1],
-                ],
-              });
+        // pull up op to associate
+        if (config.pullUpOp && isBinaryOp(tree)) {
+          const childIdx = tree.children.findIndex(
+            (c) => c.id === draggableKey
+          );
+          if (childIdx !== -1) {
+            const dragged = tree.children[childIdx];
+            if (dragged.label === tree.label && isBinaryOp(dragged)) {
+              if (childIdx === 0) {
+                // left child was dragged up
+                // before: ⟦⟪dragged[0], dragged[1]⟫, tree[1]⟧
+                // after:  ⟪dragged[0], ⟦dragged[1], tree[1]⟧⟫
+                replaceNode({
+                  ...dragged,
+                  children: [
+                    dragged.children[0],
+                    {
+                      ...tree,
+                      children: [dragged.children[1], tree.children[1]],
+                    },
+                  ],
+                });
+              } else {
+                // right child was dragged up
+                // before: ⟦tree[0], ⟪dragged[0], dragged[1]⟫⟧
+                // after:  ⟪⟦tree[0], dragged[0]⟧, dragged[1]⟫
+                replaceNode({
+                  ...dragged,
+                  children: [
+                    {
+                      ...tree,
+                      children: [tree.children[0], dragged.children[0]],
+                    },
+                    dragged.children[1],
+                  ],
+                });
+              }
             }
           }
         }
-      }
 
-      // pull down op to associate; we really need a DSL here huh?
-      if (config.pullDownOp && tree.id === draggableKey && isBinaryOp(tree)) {
-        const child0 = tree.children[0];
-        if (isBinaryOp(child0) && child0.label === tree.label) {
-          // before: ⟦⟪child[0], child[1]⟫, other⟧
-          // after:  ⟪child[0], ⟦child[1], other⟧⟫
-          replaceNode({
-            ...child0,
-            children: [
-              child0.children[0],
-              {
-                ...tree,
-                children: [child0.children[1], tree.children[1]],
-              },
-            ],
-          });
-        }
-        const child1 = tree.children[1];
-        if (isBinaryOp(child1) && child1.label === tree.label) {
-          // before: ⟦other, ⟪child[0], child[1]⟫⟧
-          // after:  ⟪⟦other, child[0]⟧, child[1]⟫
-          replaceNode({
-            ...child1,
-            children: [
-              {
-                ...tree,
-                children: [tree.children[0], child1.children[0]],
-              },
-              child1.children[1],
-            ],
-          });
-        }
-      }
-
-      // pull up "tail" to associate
-      // ⟦⟪*A, B⟫, C⟧ → ⟪A, ⟦B, C⟧⟫
-      // ⟦A, ⟪B, *C⟫⟧ → ⟪⟦A, B⟧, C⟫
-      if (config.pullUpTail && isBinaryOp(tree)) {
-        const child0 = tree.children[0];
-        if (isBinaryOp(child0) && child0.label === tree.label) {
-          const grandchild0 = child0.children[0];
-          if (grandchild0.id === draggableKey) {
-            // before: ⟦⟪dragged, child0[1]⟫, tree[1]⟧
-            // after:  ⟪dragged, ⟦child0[1], tree[1]⟧⟫
+        // pull down op to associate; we really need a DSL here huh?
+        if (config.pullDownOp && tree.id === draggableKey && isBinaryOp(tree)) {
+          const child0 = tree.children[0];
+          if (isBinaryOp(child0) && child0.label === tree.label) {
+            // before: ⟦⟪child[0], child[1]⟫, other⟧
+            // after:  ⟪child[0], ⟦child[1], other⟧⟫
             replaceNode({
               ...child0,
               children: [
-                grandchild0,
+                child0.children[0],
                 {
                   ...tree,
                   children: [child0.children[1], tree.children[1]],
@@ -149,13 +122,10 @@ export const manipulableNoolTree: ManipulableCanvas<NoolTree, NoolTreeConfig> = 
               ],
             });
           }
-        }
-        const child1 = tree.children[1];
-        if (isBinaryOp(child1) && child1.label === tree.label) {
-          const grandchild1 = child1.children[1];
-          if (grandchild1.id === draggableKey) {
-            // before: ⟦tree[0], ⟪child1[0], dragged⟫⟧
-            // after:  ⟪⟦tree[0], child1[0]⟧, dragged⟫
+          const child1 = tree.children[1];
+          if (isBinaryOp(child1) && child1.label === tree.label) {
+            // before: ⟦other, ⟪child[0], child[1]⟫⟧
+            // after:  ⟪⟦other, child[0]⟧, child[1]⟫
             replaceNode({
               ...child1,
               children: [
@@ -163,158 +133,202 @@ export const manipulableNoolTree: ManipulableCanvas<NoolTree, NoolTreeConfig> = 
                   ...tree,
                   children: [tree.children[0], child1.children[0]],
                 },
-                grandchild1,
+                child1.children[1],
               ],
             });
           }
         }
-      }
 
-      // pull down "tail" to associate
-      // ⟦⟪A, B⟫, *C⟧ → ⟪A, ⟦B, C⟧⟫
-      if (config.pullDownTail && isBinaryOp(tree)) {
-        const [child0, child1] = tree.children;
-        if (
-          isBinaryOp(child0) &&
-          child0.label === tree.label &&
-          child1.id === draggableKey
-        ) {
-          // before: ⟦⟪child0[0], child0[1]⟫, dragged⟧
-          // after:  ⟪child0[0], ⟦child0[1], dragged⟧⟫
-          replaceNode({
-            ...child0,
-            children: [
-              child0.children[0],
-              {
-                ...tree,
-                children: [child0.children[1], child1],
-              },
-            ],
-          });
+        // pull up "tail" to associate
+        // ⟦⟪*A, B⟫, C⟧ → ⟪A, ⟦B, C⟧⟫
+        // ⟦A, ⟪B, *C⟫⟧ → ⟪⟦A, B⟧, C⟫
+        if (config.pullUpTail && isBinaryOp(tree)) {
+          const child0 = tree.children[0];
+          if (isBinaryOp(child0) && child0.label === tree.label) {
+            const grandchild0 = child0.children[0];
+            if (grandchild0.id === draggableKey) {
+              // before: ⟦⟪dragged, child0[1]⟫, tree[1]⟧
+              // after:  ⟪dragged, ⟦child0[1], tree[1]⟧⟫
+              replaceNode({
+                ...child0,
+                children: [
+                  grandchild0,
+                  {
+                    ...tree,
+                    children: [child0.children[1], tree.children[1]],
+                  },
+                ],
+              });
+            }
+          }
+          const child1 = tree.children[1];
+          if (isBinaryOp(child1) && child1.label === tree.label) {
+            const grandchild1 = child1.children[1];
+            if (grandchild1.id === draggableKey) {
+              // before: ⟦tree[0], ⟪child1[0], dragged⟫⟧
+              // after:  ⟪⟦tree[0], child1[0]⟧, dragged⟫
+              replaceNode({
+                ...child1,
+                children: [
+                  {
+                    ...tree,
+                    children: [tree.children[0], child1.children[0]],
+                  },
+                  grandchild1,
+                ],
+              });
+            }
+          }
         }
-        if (
-          isBinaryOp(child1) &&
-          child1.label === tree.label &&
-          child0.id === draggableKey
-        ) {
-          // before: ⟦dragged, ⟪child1[0], child1[1]⟫⟧
-          // after:  ⟪⟦dragged, child1[0]⟧, child1[1]⟫
-          replaceNode({
-            ...child1,
-            children: [
-              {
-                ...tree,
-                children: [child0, child1.children[0]],
-              },
-              child1.children[1],
-            ],
-          });
-        }
-      }
 
-      // recurse
-      tree.children.forEach((child, childIdx) =>
-        walk(child, (newChild) =>
-          replaceNode({
-            ...tree,
-            children: setImm(tree.children, childIdx, newChild),
-          }),
-        ),
+        // pull down "tail" to associate
+        // ⟦⟪A, B⟫, *C⟧ → ⟪A, ⟦B, C⟧⟫
+        if (config.pullDownTail && isBinaryOp(tree)) {
+          const [child0, child1] = tree.children;
+          if (
+            isBinaryOp(child0) &&
+            child0.label === tree.label &&
+            child1.id === draggableKey
+          ) {
+            // before: ⟦⟪child0[0], child0[1]⟫, dragged⟧
+            // after:  ⟪child0[0], ⟦child0[1], dragged⟧⟫
+            replaceNode({
+              ...child0,
+              children: [
+                child0.children[0],
+                {
+                  ...tree,
+                  children: [child0.children[1], child1],
+                },
+              ],
+            });
+          }
+          if (
+            isBinaryOp(child1) &&
+            child1.label === tree.label &&
+            child0.id === draggableKey
+          ) {
+            // before: ⟦dragged, ⟪child1[0], child1[1]⟫⟧
+            // after:  ⟪⟦dragged, child1[0]⟧, child1[1]⟫
+            replaceNode({
+              ...child1,
+              children: [
+                {
+                  ...tree,
+                  children: [child0, child1.children[0]],
+                },
+                child1.children[1],
+              ],
+            });
+          }
+        }
+
+        // recurse
+        tree.children.forEach((child, childIdx) =>
+          walk(child, (newChild) =>
+            replaceNode({
+              ...tree,
+              children: setImm(tree.children, childIdx, newChild),
+            })
+          )
+        );
+      }
+      const nextStates: NoolTree[] = [];
+      walk(state, (newTree) => {
+        nextStates.push(newTree);
+      });
+      return nextStates.map(straightTo);
+    },
+
+    defaultConfig: {
+      commutativity: true,
+      pullUpOp: false,
+      pullDownOp: false,
+      pullUpTail: true,
+      pullDownTail: true,
+    },
+
+    renderConfig: (config, setConfig) => {
+      const plus1 = <span className="text-red-600 font-bold">+</span>;
+      const plus2 = <span className="text-green-600 font-bold">+</span>;
+      const D = ({ children }: { children: React.ReactNode }) => (
+        <span className="bg-amber-200 rounded-sm p-0.5">{children}</span>
       );
-    }
-    const nextStates: NoolTree[] = [];
-    walk(state, (newTree) => {
-      nextStates.push(newTree);
-    });
-    return nextStates.map(straightTo);
-  },
 
-  defaultConfig: {
-    commutativity: true,
-    pullUpOp: false,
-    pullDownOp: false,
-    pullUpTail: true,
-    pullDownTail: true,
-  },
+      return (
+        <>
+          <ConfigCheckbox
+            value={config.commutativity}
+            onChange={(newValue) =>
+              setConfig({ ...config, commutativity: newValue })
+            }
+          >
+            <b>Commutativity</b>
+            <br />
+            <D>A</D> {plus1} B → B {plus1} <D>A</D>
+          </ConfigCheckbox>
 
-  renderConfig: (config, setConfig) => {
-    const plus1 = <span className="text-red-600 font-bold">+</span>;
-    const plus2 = <span className="text-green-600 font-bold">+</span>;
-    const D = ({ children }: { children: React.ReactNode }) => (
-      <span className="bg-amber-200 rounded-sm p-0.5">{children}</span>
-    );
+          <ConfigCheckbox
+            value={config.pullUpOp}
+            onChange={(newValue) =>
+              setConfig({ ...config, pullUpOp: newValue })
+            }
+          >
+            <b>Associativity</b>
+            <br />
+            Pull up op
+            <br />
+            <D>(A {plus1} B)</D> {plus2} C →{" "}
+            <D>
+              A {plus1} (B {plus2} C)
+            </D>
+          </ConfigCheckbox>
 
-    return (
-      <>
-        <ConfigCheckbox
-          value={config.commutativity}
-          onChange={(newValue) =>
-            setConfig({ ...config, commutativity: newValue })
-          }
-        >
-          <b>Commutativity</b>
-          <br />
-          <D>A</D> {plus1} B → B {plus1} <D>A</D>
-        </ConfigCheckbox>
+          <ConfigCheckbox
+            value={config.pullDownOp}
+            onChange={(newValue) =>
+              setConfig({ ...config, pullDownOp: newValue })
+            }
+          >
+            <b>Associativity</b>
+            <br />
+            Pull down op
+            <br />
+            <D>
+              A {plus1} (B {plus2} C)
+            </D>{" "}
+            → <D>(A {plus1} B)</D> {plus2} C
+          </ConfigCheckbox>
 
-        <ConfigCheckbox
-          value={config.pullUpOp}
-          onChange={(newValue) => setConfig({ ...config, pullUpOp: newValue })}
-        >
-          <b>Associativity</b>
-          <br />
-          Pull up op
-          <br />
-          <D>(A {plus1} B)</D> {plus2} C →{" "}
-          <D>
-            A {plus1} (B {plus2} C)
-          </D>
-        </ConfigCheckbox>
+          <ConfigCheckbox
+            value={config.pullUpTail}
+            onChange={(newValue) =>
+              setConfig({ ...config, pullUpTail: newValue })
+            }
+          >
+            <b>Associativity</b>
+            <br />
+            Pull up operand
+            <br />(<D>A</D> {plus1} B) {plus2} C → <D>A</D> {plus1} (B {plus2}{" "}
+            C)
+          </ConfigCheckbox>
 
-        <ConfigCheckbox
-          value={config.pullDownOp}
-          onChange={(newValue) =>
-            setConfig({ ...config, pullDownOp: newValue })
-          }
-        >
-          <b>Associativity</b>
-          <br />
-          Pull down op
-          <br />
-          <D>
-            A {plus1} (B {plus2} C)
-          </D>{" "}
-          → <D>(A {plus1} B)</D> {plus2} C
-        </ConfigCheckbox>
-
-        <ConfigCheckbox
-          value={config.pullUpTail}
-          onChange={(newValue) =>
-            setConfig({ ...config, pullUpTail: newValue })
-          }
-        >
-          <b>Associativity</b>
-          <br />
-          Pull up operand
-          <br />(<D>A</D> {plus1} B) {plus2} C → <D>A</D> {plus1} (B {plus2} C)
-        </ConfigCheckbox>
-
-        <ConfigCheckbox
-          value={config.pullDownTail}
-          onChange={(newValue) =>
-            setConfig({ ...config, pullDownTail: newValue })
-          }
-        >
-          <b>Associativity</b>
-          <br />
-          Pull down operand
-          <br />
-          <D>A</D> {plus1} (B {plus2} C) → (<D>A</D> {plus1} B) {plus2} C
-        </ConfigCheckbox>
-      </>
-    );
-  },
-};
+          <ConfigCheckbox
+            value={config.pullDownTail}
+            onChange={(newValue) =>
+              setConfig({ ...config, pullDownTail: newValue })
+            }
+          >
+            <b>Associativity</b>
+            <br />
+            Pull down operand
+            <br />
+            <D>A</D> {plus1} (B {plus2} C) → (<D>A</D> {plus1} B) {plus2} C
+          </ConfigCheckbox>
+        </>
+      );
+    },
+  };
 
 export const stateNoolTree1: NoolTree = {
   id: "root",
@@ -434,7 +448,7 @@ function renderNoolTree(tree: NoolTree): {
               PADDING,
             ]),
           ]
-        : []),
+        : [])
     ).absoluteKey(tree.id),
     w: innerW + PADDING * 2,
     h: innerH + PADDING * 2,

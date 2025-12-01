@@ -1,9 +1,9 @@
 import _ from "lodash";
 import { ConfigCheckbox } from "../config-controls";
-import { ManipulableCanvas, span } from "./manipulable";
-import { group, line, rectangle } from "./shape";
 import { Vec2 } from "../vec2";
 import { XYWH } from "../xywh";
+import { ManipulableCanvas, span } from "./manipulable-canvas";
+import { group, line, rectangle } from "./shape";
 
 type RushHourState = {
   w: number;
@@ -24,7 +24,10 @@ type RushHourConfig = {
   oneSquareAtATime: boolean;
 };
 
-export const manipulableRushHour: ManipulableCanvas<RushHourState, RushHourConfig> = {
+export const manipulableRushHour: ManipulableCanvas<
+  RushHourState,
+  RushHourConfig
+> = {
   sourceFile: "manipulable-rush-hour.tsx",
 
   render(state) {
@@ -38,8 +41,8 @@ export const manipulableRushHour: ManipulableCanvas<RushHourState, RushHourConfi
             xywh: XYWH(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE),
             strokeStyle: "gray",
             lineWidth: 1,
-          }),
-        ),
+          })
+        )
       ),
       Object.entries(state.cars).map(([key, tile]) =>
         rectangle({
@@ -49,14 +52,14 @@ export const manipulableRushHour: ManipulableCanvas<RushHourState, RushHourConfi
           lineWidth: 2,
         })
           .draggable(`${key}`)
-          .translate(Vec2(tile.x * TILE_SIZE, tile.y * TILE_SIZE)),
+          .translate(Vec2(tile.x * TILE_SIZE, tile.y * TILE_SIZE))
       ),
       rectangle({
         xywh: XYWH(
           -BORDER_WIDTH / 2,
           -BORDER_WIDTH / 2,
           state.w * TILE_SIZE + BORDER_WIDTH,
-          state.h * TILE_SIZE + BORDER_WIDTH,
+          state.h * TILE_SIZE + BORDER_WIDTH
         ),
         strokeStyle: "gray",
         lineWidth: BORDER_WIDTH,
@@ -65,15 +68,15 @@ export const manipulableRushHour: ManipulableCanvas<RushHourState, RushHourConfi
         line({
           from: Vec2(
             state.w * TILE_SIZE + BORDER_WIDTH / 2,
-            redCarY * TILE_SIZE,
+            redCarY * TILE_SIZE
           ),
           to: Vec2(
             state.w * TILE_SIZE + BORDER_WIDTH / 2,
-            (redCarY + 1) * TILE_SIZE,
+            (redCarY + 1) * TILE_SIZE
           ),
           strokeStyle: "white",
           lineWidth: BORDER_WIDTH,
-        }),
+        })
     );
   },
 

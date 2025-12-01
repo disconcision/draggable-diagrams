@@ -1,10 +1,10 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { ManipulableCanvas, span } from "./manipulable";
-import { group, rectangle } from "./shape";
 import { assert } from "../utils";
 import { Vec2 } from "../vec2";
 import { XYWH } from "../xywh";
+import { ManipulableCanvas, span } from "./manipulable-canvas";
+import { group, rectangle } from "./shape";
 
 type PermDoubleState = {
   rows: string[][];
@@ -32,20 +32,20 @@ export const manipulablePermDouble: ManipulableCanvas<PermDoubleState> = {
                 p === draggableKey
                   ? 2
                   : draggableKey && row.includes(draggableKey)
-                    ? 1
-                    : 0,
+                  ? 1
+                  : 0
               )
               .translate(Vec2(idx * TILE_SIZE + ROW_PADDING, ROW_PADDING))
-              .absoluteKey(`node-${p}`),
-          ),
-        ).translate(Vec2(0, rowIdx * (TILE_SIZE + ROW_PADDING * 2))),
-      ),
+              .absoluteKey(`node-${p}`)
+          )
+        ).translate(Vec2(0, rowIdx * (TILE_SIZE + ROW_PADDING * 2)))
+      )
     );
   },
 
   onDrag(state, draggableKey) {
     const draggedRowIdx = state.rows.findIndex((row) =>
-      row.includes(draggableKey),
+      row.includes(draggableKey)
     );
     assert(draggedRowIdx !== -1);
     const draggedRow = state.rows[draggedRowIdx];
@@ -63,7 +63,7 @@ export const manipulablePermDouble: ManipulableCanvas<PermDoubleState> = {
             row.splice(colIdx, 0, draggableKey);
             draft.rows.splice(draggedRowIdx, 1);
             draft.rows.splice(rowIdx, 0, row);
-          }),
+          })
         );
       }
     }

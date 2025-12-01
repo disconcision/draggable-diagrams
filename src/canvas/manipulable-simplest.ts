@@ -1,6 +1,6 @@
-import { ManipulableCanvas, span } from "./manipulable";
-import { rectangle } from "./shape";
 import { XYWH } from "../xywh";
+import { ManipulableCanvas, span } from "./manipulable-canvas";
+import { rectangle } from "./shape";
 
 type State = {
   value: boolean;

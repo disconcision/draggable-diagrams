@@ -1,6 +1,6 @@
-import { ManipulableCanvas, numAtPath } from "./manipulable";
-import { circle, group, line } from "./shape";
 import { Vec2 } from "../vec2";
+import { ManipulableCanvas, numAtPath } from "./manipulable-canvas";
+import { circle, group, line } from "./shape";
 
 type AngleState = {
   angle: number;
@@ -25,7 +25,7 @@ export const manipulableAngleViaTransform: ManipulableCanvas<AngleState> = {
         to: Vec2(radius, 0),
         strokeStyle: "black",
         lineWidth: 4,
-      }),
+      })
     )
       .rotate(Vec2(0), state.angle)
       .translate(Vec2(100, 100));

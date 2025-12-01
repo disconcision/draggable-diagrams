@@ -1,9 +1,9 @@
 import _ from "lodash";
-import { ManipulableCanvas, straightTo } from "./manipulable";
-import { group, rectangle } from "./shape";
 import { defined } from "../utils";
 import { Vec2 } from "../vec2";
 import { inXYWH, XYWH } from "../xywh";
+import { ManipulableCanvas, straightTo } from "./manipulable-canvas";
+import { group, rectangle } from "./shape";
 
 type TilesState = {
   w: number;
@@ -23,8 +23,8 @@ export const manipulableTiles: ManipulableCanvas<TilesState> = {
             xywh: XYWH(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE),
             strokeStyle: "gray",
             lineWidth: 1,
-          }),
-        ),
+          })
+        )
       ),
       Object.entries(state.tiles).map(([key, tile]) =>
         rectangle({
@@ -35,8 +35,8 @@ export const manipulableTiles: ManipulableCanvas<TilesState> = {
           label: key,
         })
           .draggable(key)
-          .translate(Vec2(tile.x * TILE_SIZE, tile.y * TILE_SIZE)),
-      ),
+          .translate(Vec2(tile.x * TILE_SIZE, tile.y * TILE_SIZE))
+      )
     );
   },
 

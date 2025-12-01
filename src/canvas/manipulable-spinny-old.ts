@@ -1,8 +1,8 @@
 import _ from "lodash";
-import { ManipulableCanvas, straightTo } from "./manipulable";
-import { circle, group, line, rectangle } from "./shape";
 import { Vec2 } from "../vec2";
 import { XYWH } from "../xywh";
+import { ManipulableCanvas, straightTo } from "./manipulable-canvas";
+import { circle, group, line, rectangle } from "./shape";
 
 type PermState = {
   perm: string[];
@@ -20,7 +20,7 @@ export const manipulableSpinnyOld: ManipulableCanvas<PermState> = {
         Vec2(-RADIUS, 0)
           .rotate((idx / state.perm.length) * 2 * Math.PI)
           .add([RADIUS, RADIUS]),
-      ]),
+      ])
     );
     return group(
       state.perm.map((p) =>
@@ -36,11 +36,11 @@ export const manipulableSpinnyOld: ManipulableCanvas<PermState> = {
             xywh: XYWH(-TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE),
             lineWidth: 2,
             label: p,
-          }),
+          })
         )
           .zIndex(p === draggableKey ? 1 : 0)
           .translate(positions[p])
-          .absoluteKey(`node-${p}`),
+          .absoluteKey(`node-${p}`)
       ),
       state.perm.map((p, idx) => {
         return line({
@@ -51,7 +51,7 @@ export const manipulableSpinnyOld: ManipulableCanvas<PermState> = {
         })
           .zIndex(-1)
           .absoluteKey(`edge-${p}`);
-      }),
+      })
     );
   },
 
@@ -61,7 +61,7 @@ export const manipulableSpinnyOld: ManipulableCanvas<PermState> = {
     return [1, state.perm.length - 1].map((idx) =>
       straightTo({
         perm: [...state.perm.slice(idx), ...state.perm.slice(0, idx)],
-      }),
+      })
     );
   },
 };

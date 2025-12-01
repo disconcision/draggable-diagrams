@@ -1,6 +1,6 @@
-import { ManipulableCanvas, straightTo } from "./manipulable";
-import { rectangle } from "./shape";
 import { XYWH } from "../xywh";
+import { ManipulableCanvas, straightTo } from "./manipulable-canvas";
+import { rectangle } from "./shape";
 
 type State = {
   value: number;

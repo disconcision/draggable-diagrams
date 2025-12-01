@@ -1,10 +1,10 @@
 import _ from "lodash";
 import { ConfigCheckbox } from "../config-controls";
-import { ManipulableCanvas, straightTo } from "./manipulable";
-import { group, rectangle } from "./shape";
 import { defined } from "../utils";
 import { Vec2 } from "../vec2";
 import { inXYWH, XYWH } from "../xywh";
+import { ManipulableCanvas, straightTo } from "./manipulable-canvas";
+import { group, rectangle } from "./shape";
 
 type SokobanState = {
   w: number;
@@ -17,7 +17,10 @@ type SokobanConfig = {
   levelEditable: boolean;
 };
 
-export const manipulableSokoban: ManipulableCanvas<SokobanState, SokobanConfig> = {
+export const manipulableSokoban: ManipulableCanvas<
+  SokobanState,
+  SokobanConfig
+> = {
   sourceFile: "manipulable-sokoban.ts",
   render(state, _draggableKey, config) {
     const TILE_SIZE = 50;
@@ -28,8 +31,8 @@ export const manipulableSokoban: ManipulableCanvas<SokobanState, SokobanConfig> 
             xywh: XYWH(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE),
             strokeStyle: "gray",
             lineWidth: 1,
-          }),
-        ),
+          })
+        )
       ),
       Object.entries(state.objects).map(([id, object]) =>
         rectangle(
@@ -39,25 +42,25 @@ export const manipulableSokoban: ManipulableCanvas<SokobanState, SokobanConfig> 
                 fillStyle: "black",
               }
             : object.type === "box"
-              ? {
-                  xywh: XYWH(0, 0, TILE_SIZE, TILE_SIZE),
-                  fillStyle: "brown",
-                  strokeStyle: "black",
-                  lineWidth: 2,
-                }
-              : {
-                  xywh: XYWH(
-                    TILE_SIZE / 4,
-                    TILE_SIZE / 4,
-                    TILE_SIZE / 2,
-                    TILE_SIZE / 2,
-                  ),
-                  fillStyle: "orange",
-                },
+            ? {
+                xywh: XYWH(0, 0, TILE_SIZE, TILE_SIZE),
+                fillStyle: "brown",
+                strokeStyle: "black",
+                lineWidth: 2,
+              }
+            : {
+                xywh: XYWH(
+                  TILE_SIZE / 4,
+                  TILE_SIZE / 4,
+                  TILE_SIZE / 2,
+                  TILE_SIZE / 2
+                ),
+                fillStyle: "orange",
+              }
         )
           .draggable(id, config.levelEditable)
           .zIndex(object.type === "goal" ? 1 : 0)
-          .translate(object.pos.mul(TILE_SIZE)),
+          .translate(object.pos.mul(TILE_SIZE))
       ),
 
       rectangle({
@@ -66,7 +69,7 @@ export const manipulableSokoban: ManipulableCanvas<SokobanState, SokobanConfig> 
       })
         .draggable(`player`)
         .zIndex(2)
-        .translate(Vec2(state.player).mul(TILE_SIZE)),
+        .translate(Vec2(state.player).mul(TILE_SIZE))
     );
   },
 
@@ -78,7 +81,7 @@ export const manipulableSokoban: ManipulableCanvas<SokobanState, SokobanConfig> 
       return (
         isInBounds(pos) &&
         !Object.values(state.objects).some(
-          (w) => w.type === "wall" && pos.eq(w.pos),
+          (w) => w.type === "wall" && pos.eq(w.pos)
         )
       );
     }

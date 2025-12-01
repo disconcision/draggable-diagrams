@@ -1,8 +1,8 @@
 import _ from "lodash";
-import { ManipulableCanvas, straightTo } from "./manipulable";
-import { circle, group, line, rectangle } from "./shape";
 import { Vec2 } from "../vec2";
 import { XYWH } from "../xywh";
+import { ManipulableCanvas, straightTo } from "./manipulable-canvas";
+import { circle, group, line, rectangle } from "./shape";
 
 type PermState = {
   perm: string[];
@@ -20,7 +20,7 @@ export const manipulableFlippy: ManipulableCanvas<PermState> = {
         Vec2(-RADIUS, 0)
           .rotate((idx / state.perm.length) * 2 * Math.PI)
           .add([RADIUS, RADIUS]),
-      ]),
+      ])
     );
     return group(
       state.perm.map((p) =>
@@ -36,11 +36,11 @@ export const manipulableFlippy: ManipulableCanvas<PermState> = {
             xywh: XYWH(-TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE),
             lineWidth: 2,
             label: p,
-          }),
+          })
         )
           .zIndex(p === draggableKey ? 1 : 0)
           .translate(positions[p])
-          .absoluteKey(`node-${p}`),
+          .absoluteKey(`node-${p}`)
       ),
       state.perm.map((p, idx) => {
         // there's a bit of complexity to draw the edges in such a
@@ -58,7 +58,7 @@ export const manipulableFlippy: ManipulableCanvas<PermState> = {
         })
           .zIndex(-1)
           .absoluteKey(`edge-${p1}-${p2}`);
-      }),
+      })
     );
   },
 
@@ -71,7 +71,7 @@ export const manipulableFlippy: ManipulableCanvas<PermState> = {
     return _.range(state.perm.length).map((idx) =>
       straightTo({
         perm: [...reversed.slice(idx), ...reversed.slice(0, idx)],
-      }),
+      })
     );
   },
 };

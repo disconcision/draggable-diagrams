@@ -1,4 +1,4 @@
-import { ManipulableCanvas, span } from "./manipulable";
+import { ManipulableCanvas, span } from "./manipulable-canvas";
 import { Diagram, group, rectangle } from "./shape";
 
 type Outline = {
@@ -23,7 +23,7 @@ function renderOutline(tree: Outline): {
       label: tree.label,
     })
       .draggable(tree.id)
-      .absoluteKey(tree.id),
+      .absoluteKey(tree.id)
   );
   let y = HEIGHT;
   tree.children.forEach((child) => {

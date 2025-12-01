@@ -10,8 +10,8 @@ import {
   TreeNode,
 } from "../trees";
 import { Vec2 } from "../vec2";
-import { Finalizers } from "./finalizers";
-import { ManipulableCanvas, span } from "./manipulable";
+import { Finalizers } from "./finalizers-canvas";
+import { ManipulableCanvas, span } from "./manipulable-canvas";
 import {
   circle,
   curve,
@@ -55,7 +55,7 @@ export const manipulableOrderPreserving: ManipulableCanvas<
         state.codomainTree,
         "codomain",
         "bg",
-        codNodeCenters,
+        codNodeCenters
       );
       g.push(codR.diagram.translate([domR.w + 40, state.yForTradRep]));
       for (const [domElem, codElem] of Object.entries(morph)) {
@@ -70,7 +70,7 @@ export const manipulableOrderPreserving: ManipulableCanvas<
             ],
             strokeStyle: "#4287f5",
             lineWidth: 2,
-          }).absoluteKey(`morphism-${domElem}`),
+          }).absoluteKey(`morphism-${domElem}`)
         );
       }
     }
@@ -87,16 +87,15 @@ export const manipulableOrderPreserving: ManipulableCanvas<
         // except for the one with id draggableKey
         return Object.entries(morph).every(
           ([domainElem, codomainElem]) =>
-            domainElem === draggableKey ||
-            curMorph[domainElem] === codomainElem,
+            domainElem === draggableKey || curMorph[domainElem] === codomainElem
         );
-      },
+      }
     );
     return span(
       adjMorphIdxes.map((idx) => ({
         ...state,
         curMorphIdx: idx,
-      })),
+      }))
     );
   },
 
@@ -143,7 +142,7 @@ function drawBgTree(
   bgNode: TreeNode,
   /** The foreground (domain) node to draw */
   fgNode: TreeNode,
-  morph: TreeMorph,
+  morph: TreeMorph
 ): { diagram: Diagram; w: number; h: number } {
   const finalizers = new Finalizers();
   const result = drawBgSubtree(bgNode, [fgNode], morph, {}, finalizers);
@@ -162,7 +161,7 @@ function drawBgSubtree(
   morph: TreeMorph,
   /** An mutable record of where foreground nodes centers */
   fgNodeCenters: Record<string, PointInDiagram>,
-  finalizers: Finalizers,
+  finalizers: Finalizers
 ): {
   diagram: Diagram;
   w: number;
@@ -173,7 +172,7 @@ function drawBgSubtree(
 
   let [fgNodesHere, fgNodesBelow] = _.partition(
     fgNodes,
-    (n) => morph[n.id] === bgNode.id,
+    (n) => morph[n.id] === bgNode.id
   );
 
   const bgNodeR = drawBgNodeWithFgNodesInside(
@@ -181,7 +180,7 @@ function drawBgSubtree(
     bgNode,
     fgNodesHere,
     fgNodeCenters,
-    finalizers,
+    finalizers
   );
 
   fgNodesBelow.push(...bgNodeR.fgNodesBelow);
@@ -196,7 +195,7 @@ function drawBgSubtree(
   }
 
   const childRs = bgNode.children.map((child) =>
-    drawBgSubtree(child, fgNodesBelow, morph, fgNodeCenters, finalizers),
+    drawBgSubtree(child, fgNodesBelow, morph, fgNodeCenters, finalizers)
   );
 
   const childrenWidth =
@@ -235,7 +234,7 @@ function drawBgSubtree(
         to: resolve(childR.rootCenter),
         strokeStyle: "lightgray",
         lineWidth: 12,
-      }).zIndex(-1),
+      }).zIndex(-1)
     );
   }
 
@@ -257,7 +256,7 @@ function drawBgNodeWithFgNodesInside(
   fgNodesHere: TreeNode[],
   /** An mutable record of where foreground nodes centers */
   fgNodeCenters: Record<string, PointInDiagram>,
-  finalizers: Finalizers,
+  finalizers: Finalizers
 ): {
   diagram: Diagram;
   w: number;
@@ -283,7 +282,7 @@ function drawBgNodeWithFgNodesInside(
       bgNode.id,
       morph,
       fgNodeCenters,
-      finalizers,
+      finalizers
     );
     diagramInRect.push(r.diagram.translate(Vec2(x, y)));
 
@@ -309,7 +308,7 @@ function drawBgNodeWithFgNodesInside(
       center: nodeCenterInCircle,
       radius: circleRadius,
       fillStyle: "lightgray",
-    }).zIndex(-1),
+    }).zIndex(-1)
   );
 
   return {
@@ -327,7 +326,7 @@ function drawFgSubtreeInBgNode(
   morph: TreeMorph,
   /** An mutable record of where foreground nodes centers */
   fgNodeCenters: Record<string, PointInDiagram>,
-  finalizers: Finalizers,
+  finalizers: Finalizers
 ): {
   diagram: Diagram;
   fgNodesBelow: TreeNode[];
@@ -349,7 +348,7 @@ function drawFgSubtreeInBgNode(
         bgNodeId,
         morph,
         fgNodeCenters,
-        finalizers,
+        finalizers
       );
       childrenDiagram.push(r.diagram.translate(Vec2(childrenX, 0)));
       fgNodesBelow.push(...r.fgNodesBelow);
@@ -373,7 +372,7 @@ function drawFgSubtreeInBgNode(
         const myCenter = fgNodeCenters[fgNode.id];
         const intermediate = pointInDiagram(
           childrenDiagram,
-          Vec2(childrenXBefore, 0),
+          Vec2(childrenXBefore, 0)
         );
         const childCenter = fgNodeCenters[child.id];
         return curve({
@@ -395,13 +394,13 @@ function drawFgSubtreeInBgNode(
     nodeX = FG_NODE_SIZE / 2;
     diagram.push(
       childrenDiagram.translate(
-        Vec2((FG_NODE_SIZE - childrenX) / 2, FG_NODE_SIZE + FG_NODE_GAP),
-      ),
+        Vec2((FG_NODE_SIZE - childrenX) / 2, FG_NODE_SIZE + FG_NODE_GAP)
+      )
     );
   } else {
     nodeX = childrenX / 2;
     diagram.push(
-      childrenDiagram.translate(Vec2(0, FG_NODE_SIZE + FG_NODE_GAP)),
+      childrenDiagram.translate(Vec2(0, FG_NODE_SIZE + FG_NODE_GAP))
     );
   }
 
@@ -415,7 +414,7 @@ function drawFgSubtreeInBgNode(
     })
       .draggable(fgNode.id)
       .absoluteKey(fgNode.id)
-      .translate(nodeCenter),
+      .translate(nodeCenter)
   );
 
   return {
@@ -430,7 +429,7 @@ function drawTree(
   node: TreeNode,
   keyPrefix: string,
   style: "fg" | "bg",
-  nodeCenters: Record<string, PointInDiagram>,
+  nodeCenters: Record<string, PointInDiagram>
 ): {
   diagram: Diagram;
   w: number;
@@ -451,7 +450,7 @@ function drawSubtree(
   style: "fg" | "bg",
   /** An mutable record of where nodes are centered */
   nodeCenters: Record<string, PointInDiagram>,
-  finalizers: Finalizers,
+  finalizers: Finalizers
 ): {
   diagram: Diagram;
   w: number;
@@ -486,13 +485,13 @@ function drawSubtree(
     nodeX = FG_NODE_SIZE / 2;
     diagram.push(
       childrenDiagram.translate(
-        Vec2((FG_NODE_SIZE - childrenX) / 2, FG_NODE_SIZE + FG_NODE_GAP),
-      ),
+        Vec2((FG_NODE_SIZE - childrenX) / 2, FG_NODE_SIZE + FG_NODE_GAP)
+      )
     );
   } else {
     nodeX = childrenX / 2;
     diagram.push(
-      childrenDiagram.translate(Vec2(0, FG_NODE_SIZE + FG_NODE_GAP)),
+      childrenDiagram.translate(Vec2(0, FG_NODE_SIZE + FG_NODE_GAP))
     );
   }
 
@@ -503,7 +502,7 @@ function drawSubtree(
       center: nodeCenter,
       radius: FG_NODE_SIZE / 2,
       fillStyle: { fg: "black", bg: "lightgray" }[style],
-    }).absoluteKey(`${keyPrefix}-${node.id}`),
+    }).absoluteKey(`${keyPrefix}-${node.id}`)
   );
 
   return {
