@@ -17,6 +17,7 @@ type DemoPropsBase<T extends object, Config> = {
   initialSnapRadius?: number;
   initialChainDrags?: boolean;
   initialRelativePointerMotion?: boolean;
+  sourceFile?: string;
 };
 
 type DemoPropsWithConfig<T extends object, Config> = DemoPropsBase<
@@ -60,6 +61,7 @@ export function Demo<T extends object, Config>(props: DemoProps<T, Config>) {
     initialSnapRadius = 10,
     initialChainDrags = true,
     initialRelativePointerMotion = false,
+    sourceFile,
   } = props;
 
   const { baseUrl } = useDemoContext();
@@ -89,6 +91,16 @@ export function Demo<T extends object, Config>(props: DemoProps<T, Config>) {
             title
           )}
         </h2>
+        {sourceFile && (
+          <a
+            href={`https://github.com/joshuahhh/draggable-diagrams/blob/main/src/${sourceFile}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-gray-500 hover:text-gray-700 no-underline"
+          >
+            source
+          </a>
+        )}
       </div>
       {notes && <div className="mt-2 mb-4 text-sm text-gray-600">{notes}</div>}
       <div className="flex flex-col md:flex-row gap-4">
