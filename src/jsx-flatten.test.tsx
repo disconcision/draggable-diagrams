@@ -426,4 +426,49 @@ describe("flattenSvg", () => {
 
     expect(() => flattenSvg(accumulateTransforms(tree))).not.toThrow();
   });
+
+  it("throws error if duplicate IDs are found at same level", () => {
+    const tree = (
+      <g>
+        <rect id="duplicate" x={10} y={10} />
+        <circle id="duplicate" cx={50} cy={50} r={20} />
+      </g>
+    );
+
+    expect(() => flattenSvg(accumulateTransforms(tree))).toThrow(
+      /Duplicate id "duplicate" found in SVG tree/,
+    );
+  });
+
+  it("throws error if duplicate IDs are found at different levels", () => {
+    const tree = (
+      <g>
+        <rect id="duplicate" x={10} y={10} />
+        <g transform="translate(100, 100)">
+          <circle id="duplicate" cx={50} cy={50} r={20} />
+        </g>
+      </g>
+    );
+
+    expect(() => flattenSvg(accumulateTransforms(tree))).toThrow(
+      /Duplicate id "duplicate" found in SVG tree/,
+    );
+  });
+
+  it("throws error if duplicate IDs are found in nested groups", () => {
+    const tree = (
+      <g>
+        <g id="outer">
+          <rect id="inner" x={10} y={10} />
+        </g>
+        <g transform="translate(100, 100)">
+          <circle id="inner" cx={50} cy={50} r={20} />
+        </g>
+      </g>
+    );
+
+    expect(() => flattenSvg(accumulateTransforms(tree))).toThrow(
+      /Duplicate id "inner" found in SVG tree/,
+    );
+  });
 });

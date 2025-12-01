@@ -131,6 +131,13 @@ function extractIdNodes(element: SvgElem, flatNodes: FlattenedSvg): SvgElem {
 
   // If this element has an ID, extract it and set transform from data-accumulated-transform
   if (props.id) {
+    // Check for duplicate IDs
+    if (flatNodes.has(props.id)) {
+      throw new Error(
+        `Duplicate id "${props.id}" found in SVG tree. Each element must have a unique id.`,
+      );
+    }
+
     const accumulatedTransform = props[accumulatedTransformProp];
     const flattenedElement = cloneElement(element, {
       children: emptyToUndefined(newChildren),
