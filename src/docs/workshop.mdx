@@ -4,7 +4,7 @@ import { normalizeIndent } from './components';
 
 Hey thanks for joining the workshop and trying out Draggable Diagrams! My hope is that this will be a fun and interesting and creative experience. I'm also hoping to learn some things from you, like...
 
-- What kind of diagrams are you dreaming of making? (And how could this system grow to help you with them?)
+- What kind of diagrams are you dreaming of making? (And how could this system grow to help you make them?)
 - What kind of new diagrammy ideas arise from working with this system?
 - What is it like to work with this system, and how could I make it better?
 
@@ -32,9 +32,9 @@ Let's build up some examples. First, a diagram that doesn't do anything.
   `}
 />
 
-A manipulable is a function that returns React SVG elements using JSX. It looks an awful lot like a React component function – but it isn't one, sorry; no using hooks or anything like that.
+This defines a "manipulable" – a particular kind of function that returns React SVG elements using JSX. It looks an awful lot like a React component function, but it isn't one; sorry; no using hooks or anything like that.
 
-But this manipulable doesn't actually do anything. Let's fix that For a diagram to be interactive, it must have multiple states it can be in, so we will define a state type and an initial state too.
+But this manipulable doesn't actually do anything. Let's fix that. For a diagram to be interactive, it must have multiple states it can be in. So we will define a state type and an initial state to start at.
 
 (Note: This text-editor gadget doesn't have real TypeScript support so we will only provide types when we feel like it. You'll want to use TypeScript while editing! Copy an existing project from the repo for that.)
 
@@ -63,7 +63,7 @@ There are a lot of new bits here. First a speed-run through some smaller bits:
 
 - Our diagram's state is very simple: a `status` that can be `"off"` or `"on"`. State should always be an object of some sort. We could've used a boolean but I'm feeling fancy.
 
-- We switched from `cx` and `cy` to `transform`. For something to be draggable in DD, it needs to be positioned using transforms. (This makes a lot of logic more uniform for us, and we're lazy.) To make using transforms easier, we have helpers `translate`, `rotate`, and `scale`.
+- We switched from `cx` and `cy` to `transform`. For something to be draggable in DD, it needs to be positioned using transforms. (This makes a lot of infrastructural logic more uniform, and the system authors are lazy.) To make using transforms easier, we have helpers `translate`, `rotate`, and `scale`.
 
     In short: anywhere you might ordinarily position a shape with an x & y, you should use `transform={translate(...)}`.
 
@@ -166,5 +166,7 @@ From here, it's choose-your-own-adventure. There's a lot you can do with just th
 ## Other topics
 
 ### Continuous state
+
+The newest, most exciting part of Draggable Diagrams is presumably the "drag between discrete states" thing. But I also added in pretty nice "drag between continuous states" mechanism, inspired by [Apparatus](https://aprt.us/) and [g9](https://omrelli.ug/g9/). They go together pretty well!
 
 ### setState
