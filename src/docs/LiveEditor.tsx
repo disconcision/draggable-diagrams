@@ -90,6 +90,8 @@ export function LiveEditor({
     }
   }, [code, secretCode]);
 
+  const [debugMode, setDebugMode] = useState(false);
+
   return (
     <div
       className="my-6"
@@ -115,8 +117,17 @@ export function LiveEditor({
                 minHeight: `${minHeight}px`,
                 height: height ? `${height}px` : undefined,
               }}
-              className="flex select-text items-start bg-white md:sticky md:top-0"
+              className="flex select-text items-start bg-white md:sticky md:top-0 relative"
             >
+              <label className="absolute top-2 right-2 text-xs text-gray-600 flex items-center gap-1 cursor-pointer z-20">
+                <input
+                  type="checkbox"
+                  className="cursor-pointer"
+                  checked={debugMode}
+                  onChange={(e) => setDebugMode(e.target.checked)}
+                />
+                <span>Debug mode</span>
+              </label>
               {error ? (
                 <div className="p-4 m-4 text-red-700 text-sm border border-red-300 bg-red-50 rounded">
                   <div className="font-semibold mb-1">Error:</div>
@@ -126,7 +137,7 @@ export function LiveEditor({
                 </div>
               ) : result ? (
                 <ErrorBoundary key={code}>
-                  <DemoContext.Provider value={{ debugView: false }}>
+                  <DemoContext.Provider value={{ debugView: debugMode }}>
                     <ManipulableDrawer
                       manipulable={result.manipulable as Manipulable<any>}
                       initialState={result.initialState}
