@@ -2,11 +2,11 @@ import { rgb } from "d3-color";
 import { interpolateHcl } from "d3-interpolate";
 import { interpolatePath } from "d3-interpolate-path";
 import React from "react";
+import { ErrorWithJSX } from "./ErrorBoundary";
 import { shouldRecurseIntoChildren, SvgElem } from "./jsx-flatten";
 import { prettyLog, PrettyPrint } from "./pretty-print";
 import { lerpTransformString } from "./svg-transform";
 import { emptyToUndefined } from "./utils";
-import { ErrorWithJSX } from "./ErrorBoundary";
 
 // SVG properties that should be interpolated as colors
 const COLOR_PROPS = new Set([
@@ -56,7 +56,7 @@ function lerpPoints(pointsA: string, pointsB: string, t: number): string {
 
   if (parsedA.length !== parsedB.length) {
     throw new Error(
-      `Cannot lerp points: different point counts (${parsedA.length} vs ${parsedB.length})`,
+      `Cannot lerp points: different point counts (${parsedA.length} vs ${parsedB.length})`
     );
   }
 
@@ -112,7 +112,7 @@ function lerpValue(key: string, valA: any, valB: any, t: number): any {
       if (colorRgb === null) {
         // If color parsing failed, fall through to error
         throw new Error(
-          `Cannot lerp prop "${key}": invalid color value (${actualColor})`,
+          `Cannot lerp prop "${key}": invalid color value (${actualColor})`
         );
       }
 
@@ -134,7 +134,7 @@ function lerpValue(key: string, valA: any, valB: any, t: number): any {
   } else {
     // Different non-numeric values
     throw new Error(
-      `Cannot lerp prop "${key}": different non-numeric values (${valA} vs ${valB})`,
+      `Cannot lerp prop "${key}": different non-numeric values (${valA} vs ${valB})`
     );
   }
 }
@@ -149,7 +149,9 @@ export function lerpSvgNode(a: SvgElem, b: SvgElem, t: number): SvgElem {
   // Elements should be the same type
   if (a.type !== b.type) {
     throw new Error(
-      `Cannot lerp between different element types: ${String(a.type)} and ${String(b.type)}`,
+      `Cannot lerp between different element types: ${String(
+        a.type
+      )} and ${String(b.type)}`
     );
   }
 
@@ -167,7 +169,8 @@ export function lerpSvgNode(a: SvgElem, b: SvgElem, t: number): SvgElem {
 
   for (const key of allPropKeys) {
     if (key === "children" || key === "transform") continue;
-    if (key.startsWith("data-")) continue;
+    // TODO: audit handling of data- props
+    if (key.startsWith("data-") && key !== "data-z-index") continue;
     if (/^on[A-Z]/.test(key)) continue;
 
     const valA = propsA[key];
@@ -192,7 +195,7 @@ export function lerpSvgNode(a: SvgElem, b: SvgElem, t: number): SvgElem {
           styleKey,
           styleA[styleKey],
           styleB[styleKey],
-          t,
+          t
         );
       }
 
@@ -226,11 +229,13 @@ export function lerpSvgNode(a: SvgElem, b: SvgElem, t: number): SvgElem {
     prettyLog(childrenB, { label: "Children B" });
     throw new ErrorWithJSX(
       `Cannot lerp children: different child counts (${childrenA.length} vs ${childrenB.length})`,
-      <div>
-        <PrettyPrint value={a} />
-        <div className="my-4">vs</div>
-        <PrettyPrint value={b} />
-      </div>
+      (
+        <div>
+          <PrettyPrint value={a} />
+          <div className="my-4">vs</div>
+          <PrettyPrint value={b} />
+        </div>
+      )
     );
   }
 

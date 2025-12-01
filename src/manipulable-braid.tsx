@@ -7,13 +7,18 @@ export namespace Braid {
   export type State = {
     n: number;
     seq: [number, number][];
-    buds: boolean;
   };
 
-  export const manipulable: Manipulable<State> = ({ state, draggable }) => {
+  export const state1: State = {
+    n: 3,
+    seq: [],
+  };
+
+  export const manipulable: Manipulable<State> = ({ state, drag }) => {
     const TILE_SIZE = 50;
 
     let perm = _.range(state.n);
+
     return (
       <g>
         <g>
@@ -24,6 +29,7 @@ export namespace Braid {
               x2={i * TILE_SIZE}
               y2={TILE_SIZE}
               stroke="black"
+              strokeWidth={2}
             />
           ))}
         </g>
@@ -31,7 +37,10 @@ export namespace Braid {
           perm = perm.slice();
           [perm[i], perm[j]] = [perm[j], perm[i]];
           return (
-            <g transform={translate(0, (idx + 1) * TILE_SIZE)}>
+            <g
+              id={`swap-${idx}`}
+              transform={translate(0, (idx + 1) * TILE_SIZE)}
+            >
               {/* swap lines */}
               <line
                 id={`line-${perm[i]}-${idx}`}
@@ -40,16 +49,17 @@ export namespace Braid {
                 x2={i * TILE_SIZE}
                 y2={TILE_SIZE}
                 stroke="black"
+                strokeWidth={2}
                 data-z-index={-1}
               />
-              <line
+              <circle
                 id={`line-bkgrnd-${perm[i]}-${idx}`}
-                x1={i * TILE_SIZE}
-                y1={0}
-                x2={j * TILE_SIZE}
+                cx={((i + j) * TILE_SIZE) / 2}
+                cy={TILE_SIZE / 2}
+                r={TILE_SIZE / 7}
                 y2={TILE_SIZE}
-                stroke="white"
-                strokeWidth={20}
+                fill="white"
+                data-z-index={0}
               />
               <line
                 id={`line-${perm[j]}-${idx}`}
@@ -58,6 +68,7 @@ export namespace Braid {
                 x2={j * TILE_SIZE}
                 y2={TILE_SIZE}
                 stroke="black"
+                strokeWidth={2}
                 data-z-index={1}
               />
               {/* the rest */}
@@ -70,64 +81,60 @@ export namespace Braid {
                     x2={k * TILE_SIZE}
                     y2={TILE_SIZE}
                     stroke="black"
+                    strokeWidth={2}
                   />
-                ) : null,
+                ) : null
               )}
             </g>
           );
         })}
-        {state.buds && (
-          <g transform={translate(0, (state.seq.length + 1) * TILE_SIZE)}>
-            {perm.map((p, i) => (
-              <line
-                id={`line-${p}-${state.seq.length}`}
-                x1={i * TILE_SIZE}
-                y1={0}
-                x2={i * TILE_SIZE}
-                y2={0}
-                stroke="black"
-              />
-            ))}
-          </g>
-        )}
-        {perm.map((p, i) =>
-          draggable(
-            <circle
-              id={`strand-end-${p}`}
-              transform={translate(
-                i * TILE_SIZE,
-                (state.seq.length + 1) * TILE_SIZE,
-              )}
-              cx={0}
-              cy={0}
-              r={4}
-              fill="black"
-              data-z-index={1}
-            >
-              <title>{p}</title>
-            </circle>,
-            () => {
-              const states = [];
-              if (i > 0) {
-                states.push(
+        <g transform={translate(0, (state.seq.length + 1) * TILE_SIZE)}>
+          {perm.map((p, i) => (
+            <line
+              id={`line-${p}-${state.seq.length}`}
+              x1={i * TILE_SIZE}
+              y1={0}
+              x2={i * TILE_SIZE}
+              y2={0}
+              stroke="black"
+              strokeWidth={2}
+            />
+          ))}
+        </g>
+        {perm.map((p, i) => (
+          <circle
+            id={`strand-end-${p}`}
+            transform={translate(
+              i * TILE_SIZE,
+              (state.seq.length + 1) * TILE_SIZE
+            )}
+            cx={0}
+            cy={0}
+            r={4}
+            fill="black"
+            data-z-index={1}
+            data-on-drag={drag(() => [
+              span(
+                i > 0 &&
                   produce(state, (s) => {
-                    s.seq.push([perm[i], perm[i - 1]]);
-                    s.buds = false;
+                    s.seq.push([i, i - 1]);
                   }),
-                );
-              }
-              if (i < state.n - 1) {
-                states.push(
+                i < state.n - 1 &&
                   produce(state, (s) => {
-                    s.seq.push([perm[i], perm[i + 1]]);
-                    s.buds = false;
-                  }),
-                );
-              }
-              return span(states);
-            },
-          ),
-        )}
+                    s.seq.push([i, i + 1]);
+                  })
+              ),
+              span(
+                state.seq.length > 0 &&
+                  produce(state, (s) => {
+                    s.seq.pop();
+                  })
+              ),
+            ])}
+          >
+            <title>{p}</title>
+          </circle>
+        ))}
       </g>
     );
   };

@@ -238,8 +238,8 @@ export const demos: ReactElement[] = [
     id="braids"
     title="Braids"
     manipulable={Braid.manipulable}
-    initialState={{ n: 2, seq: [] as const, buds: true }}
-    height={200}
+    initialState={Braid.state1}
+    height={400}
     padding={20}
     sourceFile="manipulable-braid.tsx"
   />,
