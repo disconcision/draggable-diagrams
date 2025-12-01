@@ -1,10 +1,12 @@
 import { rgb } from "d3-color";
 import { interpolateHcl } from "d3-interpolate";
+import { interpolatePath } from "d3-interpolate-path";
 import React from "react";
 import { shouldRecurseIntoChildren, SvgElem } from "./jsx-flatten";
-import { prettyLog } from "./pretty-print";
+import { prettyLog, PrettyPrint } from "./pretty-print";
 import { lerpTransformString } from "./svg-transform";
 import { emptyToUndefined } from "./utils";
+import { ErrorWithJSX } from "./ErrorBoundary";
 
 // SVG properties that should be interpolated as colors
 const COLOR_PROPS = new Set([
@@ -85,6 +87,14 @@ function lerpValue(key: string, valA: any, valB: any, t: number): any {
     typeof valB === "string"
   ) {
     return lerpPoints(valA, valB, t);
+  } else if (
+    key === "d" &&
+    typeof valA === "string" &&
+    typeof valB === "string"
+  ) {
+    // Interpolate SVG path data using d3-interpolate-path
+    const pathInterpolator = interpolatePath(valA, valB);
+    return pathInterpolator(t);
   } else if (
     COLOR_PROPS.has(key) &&
     typeof valA === "string" &&
@@ -214,8 +224,13 @@ export function lerpSvgNode(a: SvgElem, b: SvgElem, t: number): SvgElem {
     // Children counts differ
     prettyLog(childrenA, { label: "Children A" });
     prettyLog(childrenB, { label: "Children B" });
-    throw new Error(
+    throw new ErrorWithJSX(
       `Cannot lerp children: different child counts (${childrenA.length} vs ${childrenB.length})`,
+      <div>
+        <PrettyPrint value={a} />
+        <div className="my-4">vs</div>
+        <PrettyPrint value={b} />
+      </div>
     );
   }
 

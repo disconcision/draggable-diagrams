@@ -9,6 +9,7 @@ import { Clock } from "./manipulable-clock";
 import { Graph } from "./manipulable-graph";
 import { GridPoly } from "./manipulable-grid-poly";
 import { NoolTree } from "./manipulable-nool-tree";
+import { OrderPreserving } from "./manipulable-order-preserving";
 import { Outline } from "./manipulable-outline";
 import { Perm } from "./manipulable-perm";
 import { PermDouble } from "./manipulable-perm-double";
@@ -88,6 +89,7 @@ export const demos: ReactElement[] = [
   <Demo
     id="spinny"
     title="Spinny"
+    notes="Tests interpolation of rotations."
     manipulable={Spinny.manipulable}
     initialState={Spinny.state1}
     height={200}
@@ -117,15 +119,6 @@ export const demos: ReactElement[] = [
     initialRelativePointerMotion={true}
     defaultConfig={NoolTree.defaultConfig}
     ConfigPanel={NoolTree.ConfigPanel}
-  />,
-  <Demo
-    id="outline"
-    title="Outline"
-    manipulable={Outline.manipulable}
-    initialState={Outline.state1}
-    height={400}
-    padding={20}
-    initialSnapRadius={5}
   />,
   <Demo
     id="tree-of-life"
@@ -226,5 +219,25 @@ export const demos: ReactElement[] = [
     initialState={{ n: 2, seq: [] as const, buds: true }}
     height={200}
     padding={20}
+  />,
+  <Demo
+    id="order-preserving"
+    title="Order-preserving maps (tree3 → tree3)"
+    manipulable={OrderPreserving.manipulable}
+    initialState={OrderPreserving.state1}
+    height={400}
+    padding={20}
+    defaultConfig={OrderPreserving.defaultConfig}
+    ConfigPanel={OrderPreserving.ConfigPanel}
+  />,
+  <Demo
+    id="order-preserving-large"
+    title="Order-preserving maps (tree7 → tree7)"
+    manipulable={OrderPreserving.manipulable}
+    initialState={OrderPreserving.state2}
+    height={600}
+    padding={20}
+    defaultConfig={OrderPreserving.defaultConfig}
+    ConfigPanel={OrderPreserving.ConfigPanel}
   />,
 ];

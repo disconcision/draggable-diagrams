@@ -329,4 +329,55 @@ describe("lerpSvgNode", () => {
       "Cannot lerp points: different point counts",
     );
   });
+
+  it("lerps path d attribute", () => {
+    const a = <path d="M 0 0 L 10 10" />;
+    const b = <path d="M 20 20 L 30 30" />;
+
+    const result = lerpSvgNode(a, b, 0.5);
+
+    expect(result.props.d).toBe("M10,10L20,20");
+  });
+
+  it("lerps path d attribute at t=0", () => {
+    const a = <path d="M 0 0 L 10 10" />;
+    const b = <path d="M 20 20 L 30 30" />;
+
+    const result = lerpSvgNode(a, b, 0);
+
+    expect(result.props.d).toBe("M0,0L10,10");
+  });
+
+  it("lerps path d attribute at t=1", () => {
+    const a = <path d="M 0 0 L 10 10" />;
+    const b = <path d="M 20 20 L 30 30" />;
+
+    const result = lerpSvgNode(a, b, 1);
+
+    // At t=1, d3-interpolate-path returns the original format of b
+    expect(result.props.d).toBe("M 20 20 L 30 30");
+  });
+
+  it("lerps curved paths", () => {
+    const a = <path d="M 0 0 Q 5 10 10 0" />;
+    const b = <path d="M 20 20 Q 25 30 30 20" />;
+
+    const result = lerpSvgNode(a, b, 0.5);
+
+    // d3-interpolate-path handles curved paths
+    expect(result.props.d).toBeTruthy();
+    expect(typeof result.props.d).toBe("string");
+  });
+
+  it("lerps paths with different command types", () => {
+    // d3-interpolate-path can handle paths with different commands
+    const a = <path d="M 0 0 L 10 10" />;
+    const b = <path d="M 20 20 C 25 25 25 25 30 30" />;
+
+    const result = lerpSvgNode(a, b, 0.5);
+
+    // Should produce a valid path
+    expect(result.props.d).toBeTruthy();
+    expect(typeof result.props.d).toBe("string");
+  });
 });

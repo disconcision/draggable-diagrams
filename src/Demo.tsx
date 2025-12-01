@@ -85,7 +85,7 @@ export function Demo<T extends object, Config>(props: DemoProps<T, Config>) {
       </div>
       {notes && <div className="mt-2 text-sm text-gray-600">{notes}</div>}
       <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1" style={{ padding }}>
+        <div className="flex-1 min-w-0" style={{ padding }}>
           <ErrorBoundary>
             <ManipulableDrawer
               manipulable={manipulable}
