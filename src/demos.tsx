@@ -1,6 +1,6 @@
 import { ReactElement } from "react";
 import { Demo } from "./Demo";
-import { numsAtPaths, straightTo } from "./DragSpec";
+import { numsAtPaths } from "./DragSpec";
 import { rotate, scale, translate } from "./manipulable";
 import { Angle } from "./manipulable-angle";
 import { AngleViaTransform } from "./manipulable-angle-via-transform";
@@ -13,6 +13,7 @@ import { Outline } from "./manipulable-outline";
 import { Perm } from "./manipulable-perm";
 import { PermDouble } from "./manipulable-perm-double";
 import { SecondSimplest } from "./manipulable-second-simplest";
+import { Simplest } from "./manipulable-simplest";
 import { SimplestClicker } from "./manipulable-simplest-clicker";
 import { Spinny } from "./manipulable-spinny";
 import { Tiles } from "./manipulable-tiles";
@@ -20,31 +21,18 @@ import { Todo } from "./manipulable-todo";
 
 export const demos: ReactElement[] = [
   <Demo
+    id="simplest"
+    title="Simplest"
+    manipulable={Simplest.manipulable}
+    initialState={Simplest.state1}
+    height={100}
+    padding={20}
+  />,
+  <Demo
     id="second-simplest"
     title="Second simplest"
     manipulable={SecondSimplest.manipulable}
     initialState={SecondSimplest.state1}
-    height={200}
-    padding={20}
-  />,
-  <Demo
-    id="second-simplest-on-drag"
-    title="Second simplest (as data-on-drag)"
-    initialState={{ value: 0 }}
-    manipulable={({ state, drag }) => (
-      <rect
-        id="switch"
-        transform={translate(state.value * 100, 20 * (-1) ** state.value + 20)}
-        x={0}
-        y={0}
-        width={100}
-        height={100}
-        data-on-drag={drag(() => [
-          state.value > 0 && straightTo({ value: state.value - 1 }),
-          state.value < 3 && straightTo({ value: state.value + 1 }),
-        ])}
-      />
-    )}
     height={200}
     padding={20}
   />,
