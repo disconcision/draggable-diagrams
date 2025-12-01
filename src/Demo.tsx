@@ -1,6 +1,7 @@
 import { ReactElement, ReactNode, useState } from "react";
 import { Link } from "react-router-dom";
 import { ConfigCheckbox } from "./config-controls";
+import { useDemoContext } from "./DemoContext";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Manipulable, ManipulableDrawer } from "./manipulable";
 import { hasKey } from "./utils";
@@ -61,6 +62,8 @@ export function Demo<T extends object, Config>(props: DemoProps<T, Config>) {
     initialRelativePointerMotion = false,
   } = props;
 
+  const { baseUrl } = useDemoContext();
+
   const [snapRadius, setSnapRadius] = useState(initialSnapRadius);
   const [chainDrags, setChainDrags] = useState(initialChainDrags);
   const [relativePointerMotion, setRelativePointerMotion] = useState(
@@ -75,12 +78,16 @@ export function Demo<T extends object, Config>(props: DemoProps<T, Config>) {
     <div className="bg-white rounded-lg p-5 shadow-sm" id={id}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900 m-0">
-          <Link
-            to={id}
-            className="no-underline text-gray-900 hover:text-gray-700 transition-colors"
-          >
-            {title}
-          </Link>
+          {baseUrl ? (
+            <Link
+              to={`${baseUrl}/${id}`}
+              className="no-underline text-gray-900 hover:text-gray-700 transition-colors"
+            >
+              {title}
+            </Link>
+          ) : (
+            title
+          )}
         </h2>
       </div>
       {notes && <div className="mt-2 mb-4 text-sm text-gray-600">{notes}</div>}

@@ -1,24 +1,28 @@
 import { ReactElement, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { DemoContext } from "./DemoContext";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { PrettyPrint } from "./pretty-print";
 
 export function DemoListPage({ demos }: { demos: ReactElement[] }) {
   const [debugMode, setDebugMode] = useState(false);
+  const location = useLocation();
+  const baseUrl = location.pathname;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="text-center py-10 px-5 max-w-3xl mx-auto">
-        <h1 className="text-3xl font-normal text-gray-800">
-          Draggable Diagrams
-        </h1>
+        <Link to="/" className="text-gray-500 text-sm no-underline">
+          <h1 className="text-3xl font-normal text-gray-800">
+            Draggable Diagrams
+          </h1>
+        </Link>
       </div>
       <div className="flex flex-col gap-5 px-5 pb-5 max-w-3xl mx-auto flex-1">
         {demos.map((demo) => {
           const id = (demo.props as any).id;
           return (
-            <DemoContext.Provider key={id} value={{ debugMode }}>
+            <DemoContext.Provider key={id} value={{ debugMode, baseUrl }}>
               <ErrorBoundary>{demo}</ErrorBoundary>
             </DemoContext.Provider>
           );
@@ -61,7 +65,11 @@ export function SingleDemoPage({
         <div className="text-center py-10 px-5 max-w-3xl mx-auto">
           <h1 className="text-3xl font-normal text-gray-800">Demo not found</h1>
           <div className="mt-5">
-            <Link to=".." relative="path" className="text-blue-600 text-sm hover:text-blue-700">
+            <Link
+              to=".."
+              relative="path"
+              className="text-blue-600 text-sm hover:text-blue-700"
+            >
               ← Back to all demos
             </Link>
           </div>
@@ -73,9 +81,11 @@ export function SingleDemoPage({
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="text-center py-10 px-5 max-w-3xl mx-auto">
-        <h1 className="text-3xl font-normal text-gray-800">
-          Draggable Diagrams
-        </h1>
+        <Link to="/" className="text-gray-500 text-sm no-underline">
+          <h1 className="text-3xl font-normal text-gray-800">
+            Draggable Diagrams
+          </h1>
+        </Link>
       </div>
       <div className="text-center py-2.5 px-5 max-w-3xl mx-auto">
         <Link

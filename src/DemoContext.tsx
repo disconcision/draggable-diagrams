@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 interface DemoContextValue {
   debugMode: boolean;
   onDragStateChange?: (dragState: any) => void;
+  baseUrl?: string;
 }
 
 export const DemoContext = createContext<DemoContextValue | undefined>(undefined);
