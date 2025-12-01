@@ -5,6 +5,8 @@ import { autoRoute } from "./autoRoute";
 import { demosCanvas } from "./canvas/demos";
 import { DemoListPage, SingleDemoPage } from "./DemoLayout";
 import { demos } from "./demos";
+import { DocsIndexPage } from "./DocsIndexPage";
+import { DocsPage } from "./DocsPage";
 import "./index.css";
 import { IndexPage } from "./IndexPage";
 import { PrettyPrintDemo } from "./pretty-print-demo";
@@ -14,6 +16,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <HashRouter>
       <Routes>
         {autoRoute("/", IndexPage)}
+        {autoRoute("/docs", DocsIndexPage)}
+        {autoRoute("/docs/:slug", DocsPage)}
         {autoRoute("/demos", DemoListPage, { demos })}
         {autoRoute("/demos/:id", SingleDemoPage, { demos })}
         {autoRoute("/demos-canvas", DemoListPage, { demos: demosCanvas })}

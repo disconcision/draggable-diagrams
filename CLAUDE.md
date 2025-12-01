@@ -6,6 +6,86 @@ This document provides guidance for working on the draggable-diagrams codebase.
 
 This project implements interactive, draggable SVG diagrams with sophisticated state interpolation. The core concept is **manifolds** - continuous spaces of valid states that elements can be dragged through. When you drag an element, the system finds nearby valid states and smoothly interpolates between them.
 
+## Project Infrastructure
+
+### Build System
+- **Vite** - Fast build tool and dev server
+- **TypeScript** - Type-safe JavaScript with strict mode enabled
+- **React 19** - UI framework
+- **Vitest** - Unit testing
+
+### Routing
+- **React Router DOM** with `HashRouter` - All routes use hash-based navigation (`#/path`)
+- **Custom `autoRoute()` helper** (`src/autoRoute.tsx`) - Type-safe route definitions that automatically inject URL params
+- Routes defined in `src/main.tsx`
+
+**Adding a new route:**
+```typescript
+// 1. Create page component (e.g., src/MyPage.tsx)
+export function MyPage() {
+  return <div>My content</div>;
+}
+
+// 2. Add to src/main.tsx
+import { MyPage } from "./MyPage";
+{autoRoute("/my-page", MyPage)}
+
+// 3. Access at http://localhost:5173/#/my-page
+```
+
+**Routes with parameters:**
+```typescript
+// Type-safe params extraction
+{autoRoute("/demos/:id", SingleDemoPage, { demos })}
+// Component automatically receives { id: string, demos: Demo[] }
+```
+
+### Styling
+- **Tailwind CSS 4** - Utility-first CSS framework
+- Imported via `@import "tailwindcss"` in `src/index.css`
+- **Design system patterns** (from `IndexPage.tsx`):
+  - Background: `bg-gray-50` (light gray)
+  - Cards: `bg-white rounded-lg shadow-sm`
+  - Buttons: `bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors`
+  - Links: `text-blue-600 hover:text-blue-800 underline`
+
+### MDX Documentation Pages
+- **Build-time MDX compilation** - Uses `@mdx-js/rollup` Vite plugin to compile `.mdx` files into React components
+- **Automatic routing** - `DocsPage` component uses `import.meta.glob()` to dynamically load all `.mdx` files
+- **`/docs/:slug` route** - Automatically maps to `src/docs/:slug.mdx`
+- **Custom components** - `Callout` and `Demo` are automatically available in all docs pages
+
+**Adding a documentation page:**
+```mdx
+<!-- src/docs/my-doc.mdx -->
+# My Documentation
+
+Content with **markdown** and <Callout type="info">callouts</Callout>
+```
+
+That's it! The page is automatically available at `#/docs/my-doc`
+
+### Project Structure
+```
+src/
+  main.tsx              - App entry point, routes
+  autoRoute.tsx         - Type-safe routing helper
+  index.css             - Tailwind imports
+
+  [PageName].tsx        - Page components (IndexPage, etc.)
+  DocsPage.tsx          - Dynamic docs page loader (uses import.meta.glob)
+  MDXPage.tsx           - Wrapper component for MDX pages
+
+  manipulable-*.tsx     - Manipulable implementations
+  demos.tsx             - Demo configurations
+  Demo.tsx              - Demo wrapper component
+
+  canvas/               - Legacy canvas-based demos
+  docs/                 - MDX documentation pages
+    components.tsx      - Custom React components for MDX
+    *.mdx               - MDX source files (auto-routed to /docs/:slug)
+```
+
 ## Architecture
 
 ### Manipulable
@@ -120,9 +200,6 @@ Each `manipulable-*.tsx` file contains a Manipulable implementation. Good exampl
 # Install dependencies
 npm install
 
-# Start dev server
-npm run dev
-
 # Run tests
 npm test
 
@@ -135,6 +212,8 @@ npm run build
 # Type check
 npm run typecheck
 ```
+
+**IMPORTANT:** Do NOT run `npm run dev` automatically. The user will start the dev server when needed.
 
 ## Common Patterns
 
