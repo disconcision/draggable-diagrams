@@ -6,6 +6,12 @@ import { SvgElem } from "./jsx-flatten";
 import { overlapIntervals } from "./layout";
 import { Manipulable, translate } from "./manipulable";
 import {
+  Finalizers,
+  pointRef,
+  PointRef,
+  resolvePointRef,
+} from "./svg-finalizers";
+import {
   buildHasseDiagram,
   HasseDiagram,
   tree3,
@@ -13,7 +19,8 @@ import {
   TreeMorph,
   TreeNode,
 } from "./trees";
-import { Vec2, Vec2able } from "./vec2";
+import { assert } from "./utils";
+import { Vec2 } from "./vec2";
 
 export namespace OrderPreserving {
   export type State = {
@@ -52,7 +59,7 @@ export namespace OrderPreserving {
     elements.push(r.element);
 
     if (config.showTradRep) {
-      const domNodeCenters: Record<string, PointInGroup> = {};
+      const domNodeCenters: Record<string, PointRef> = {};
       const domR = drawTree(
         state.domainTree,
         "domain",
@@ -64,7 +71,7 @@ export namespace OrderPreserving {
         <g transform={translate(0, state.yForTradRep)}>{domR.element}</g>
       );
 
-      const codNodeCenters: Record<string, PointInGroup> = {};
+      const codNodeCenters: Record<string, PointRef> = {};
       const codR = drawTree(
         state.codomainTree,
         "codomain",
@@ -79,9 +86,13 @@ export namespace OrderPreserving {
       );
 
       for (const [domElem, codElem] of Object.entries(morph)) {
-        finalizers.push(() => {
-          const from = resolvePoint(domNodeCenters[domElem]);
-          const to = resolvePoint(codNodeCenters[codElem]);
+        finalizers.push((tree) => {
+          const domRef = domNodeCenters[domElem];
+          assert(!!domRef, "domRef is undefined");
+          const codRef = codNodeCenters[codElem];
+          assert(!!codRef, "codRef is undefined");
+          const from = resolvePointRef(domRef, tree);
+          const to = resolvePointRef(codRef, tree);
           const fromAdjusted = from.towards(to, FG_NODE_SIZE / 2);
           const mid = from.lerp(to, 0.5).add(Vec2(0, -10));
 
@@ -99,7 +110,8 @@ export namespace OrderPreserving {
       }
     }
 
-    return <g>{[...elements, ...finalizers.resolve()]}</g>;
+    const mainTree = <g>{elements}</g>;
+    return <g>{[mainTree, ...finalizers.resolve(mainTree)]}</g>;
   };
 
   export const state1: State = {
@@ -129,57 +141,6 @@ export namespace OrderPreserving {
     );
   }
 
-  // # Deferred rendering system
-
-  type PointInGroup = {
-    group: GroupContext;
-    localPos: Vec2;
-  };
-
-  type GroupContext = {
-    parent: GroupContext | null;
-    offset: Vec2;
-  };
-
-  class Finalizers {
-    private fns: (() => SvgElem)[] = [];
-
-    push(fn: () => SvgElem) {
-      this.fns.push(fn);
-    }
-
-    resolve(): SvgElem[] {
-      return this.fns.map((fn) => fn());
-    }
-  }
-
-  function pointInGroup(group: GroupContext, localPos: Vec2able): PointInGroup {
-    return {
-      group,
-      localPos: Vec2(localPos),
-    };
-  }
-
-  function resolvePoint(point: PointInGroup): Vec2 {
-    let pos = point.localPos;
-    let ctx: GroupContext | null = point.group;
-    while (ctx) {
-      pos = pos.add(ctx.offset);
-      ctx = ctx.parent;
-    }
-    return pos;
-  }
-
-  function createGroupContext(
-    parent: GroupContext | null,
-    offset: Vec2able
-  ): GroupContext {
-    return {
-      parent,
-      offset: Vec2(offset),
-    };
-  }
-
   // # Drawing constants
 
   const BG_NODE_PADDING = 10;
@@ -197,14 +158,12 @@ export namespace OrderPreserving {
     state: State,
     drag: any
   ): { element: SvgElem; w: number; h: number } {
-    const rootCtx = createGroupContext(null, Vec2(0));
     const result = drawBgSubtree(
       bgNode,
       [fgNode],
       morph,
       {},
       finalizers,
-      rootCtx,
       state,
       drag
     );
@@ -219,16 +178,15 @@ export namespace OrderPreserving {
     bgNode: TreeNode,
     fgNodes: TreeNode[],
     morph: TreeMorph,
-    fgNodeCenters: Record<string, PointInGroup>,
+    fgNodeCenters: Record<string, PointRef>,
     finalizers: Finalizers,
-    parentCtx: GroupContext,
     state: State,
     drag: any
   ): {
     element: SvgElem;
     w: number;
     h: number;
-    rootCenter: PointInGroup;
+    rootCenter: PointRef;
   } {
     const elements: SvgElem[] = [];
 
@@ -243,7 +201,6 @@ export namespace OrderPreserving {
       fgNodesHere,
       fgNodeCenters,
       finalizers,
-      parentCtx,
       state,
       drag
     );
@@ -259,7 +216,6 @@ export namespace OrderPreserving {
       };
     }
 
-    const childCtx = createGroupContext(parentCtx, Vec2(0));
     const childRs = bgNode.children.map((child) =>
       drawBgSubtree(
         child,
@@ -267,7 +223,6 @@ export namespace OrderPreserving {
         morph,
         fgNodeCenters,
         finalizers,
-        childCtx,
         state,
         drag
       )
@@ -284,7 +239,12 @@ export namespace OrderPreserving {
     };
     const { aOffset, bOffset, length: width } = overlapIntervals(params);
 
-    elements.push(<g transform={translate(aOffset, 0)}>{bgNodeR.element}</g>);
+    const nodeGroupId = `bg-node-group-${bgNode.id}`;
+    elements.push(
+      <g id={nodeGroupId} transform={translate(aOffset, 0)}>
+        {bgNodeR.element}
+      </g>
+    );
 
     let x = bOffset;
     const y = bgNodeR.h + BG_NODE_GAP;
@@ -292,9 +252,10 @@ export namespace OrderPreserving {
 
     for (const [i, childR] of childRs.entries()) {
       const child = bgNode.children[i];
+      const childGroupId = `bg-child-group-${bgNode.id}-${child.id}`;
       const childOffset = Vec2(x, y);
       elements.push(
-        <g id={`bg-child-${child.id}`} transform={translate(childOffset)}>
+        <g id={childGroupId} transform={translate(childOffset)}>
           {childR.element}
         </g>
       );
@@ -302,15 +263,12 @@ export namespace OrderPreserving {
       x += childR.w + BG_NODE_GAP;
       maxY = Math.max(maxY, y + childR.h);
 
-      const childCtxWithOffset = createGroupContext(parentCtx, childOffset);
-      const resolvedChildCenter = {
-        ...childR.rootCenter,
-        group: childCtxWithOffset,
-      };
+      const bgRootCenter = bgNodeR.rootCenter;
+      const childRootCenter = childR.rootCenter;
 
-      finalizers.push(() => {
-        const from = resolvePoint(bgNodeR.rootCenter);
-        const to = resolvePoint(resolvedChildCenter);
+      finalizers.push((tree) => {
+        const from = resolvePointRef(bgRootCenter, tree);
+        const to = resolvePointRef(childRootCenter, tree);
         return (
           <line
             id={`bg-edge-${bgNode.id}-${child.id}`}
@@ -330,10 +288,7 @@ export namespace OrderPreserving {
       element: <g>{elements}</g>,
       w: width,
       h: maxY,
-      rootCenter: {
-        ...bgNodeR.rootCenter,
-        group: createGroupContext(parentCtx, Vec2(aOffset, 0)),
-      },
+      rootCenter: bgNodeR.rootCenter,
     };
   }
 
@@ -341,9 +296,8 @@ export namespace OrderPreserving {
     morph: TreeMorph,
     bgNode: TreeNode,
     fgNodesHere: TreeNode[],
-    fgNodeCenters: Record<string, PointInGroup>,
+    fgNodeCenters: Record<string, PointRef>,
     finalizers: Finalizers,
-    parentCtx: GroupContext,
     state: State,
     drag: any
   ): {
@@ -351,7 +305,7 @@ export namespace OrderPreserving {
     w: number;
     h: number;
     fgNodesBelow: TreeNode[];
-    rootCenter: PointInGroup;
+    rootCenter: PointRef;
   } {
     const elementsInRect: SvgElem[] = [];
 
@@ -361,23 +315,19 @@ export namespace OrderPreserving {
     let maxY = y + 10;
     const fgNodesBelow: TreeNode[] = [];
 
-    const rectCtx = createGroupContext(parentCtx, Vec2(0));
-
     for (const fgNode of fgNodesHere) {
-      const fgCtx = createGroupContext(rectCtx, Vec2(x, y));
       const r = drawFgSubtreeInBgNode(
         fgNode,
         bgNode.id,
         morph,
         fgNodeCenters,
         finalizers,
-        fgCtx,
         state,
         drag
       );
       elementsInRect.push(
         <g
-          id={`drawBgNodeWithFgNodesInside-fg-child-${fgNode.id}`}
+          id={`fg-in-bg-${bgNode.id}-${fgNode.id}`}
           transform={translate(x, y)}
         >
           {r.element}
@@ -399,13 +349,13 @@ export namespace OrderPreserving {
     const nodeCenterInCircle = Vec2(circleRadius);
     const offset = nodeCenterInCircle.sub(nodeCenterInRect);
 
-    const finalCtx = createGroupContext(parentCtx, offset);
+    const circleId = `bg-circle-${bgNode.id}`;
 
     return {
       element: (
         <g>
           <circle
-            id={`bg-circle-${bgNode.id}`}
+            id={circleId}
             cx={nodeCenterInCircle.x}
             cy={nodeCenterInCircle.y}
             r={circleRadius}
@@ -418,7 +368,7 @@ export namespace OrderPreserving {
       w: 2 * circleRadius,
       h: 2 * circleRadius,
       fgNodesBelow,
-      rootCenter: pointInGroup(finalCtx, nodeCenterInCircle),
+      rootCenter: pointRef(circleId, nodeCenterInCircle),
     };
   }
 
@@ -426,9 +376,8 @@ export namespace OrderPreserving {
     fgNode: TreeNode,
     bgNodeId: string,
     morph: TreeMorph,
-    fgNodeCenters: Record<string, PointInGroup>,
+    fgNodeCenters: Record<string, PointRef>,
     finalizers: Finalizers,
-    parentCtx: GroupContext,
     state: State,
     drag: any
   ): {
@@ -441,34 +390,28 @@ export namespace OrderPreserving {
     const fgNodesBelow: TreeNode[] = [];
     let childrenX = 0;
     let childrenMaxH = 0;
-    const childrenCtx = createGroupContext(
-      parentCtx,
-      Vec2(0, FG_NODE_SIZE + FG_NODE_GAP)
-    );
+
+    const childIntermediatePoints: Record<string, PointRef> = {};
 
     for (const [i, child] of fgNode.children.entries()) {
       if (i > 0) {
         childrenX += FG_NODE_GAP;
       }
 
-      const edgeKey = `${fgNode.id}->${child.id}`;
+      const edgeKey = `fg-edge-${fgNode.id}-${child.id}`;
       if (morph[child.id] === bgNodeId) {
-        const childCtx = createGroupContext(childrenCtx, Vec2(childrenX, 0));
+        const childGroupId = `fg-child-${fgNode.id}-${child.id}`;
         const r = drawFgSubtreeInBgNode(
           child,
           bgNodeId,
           morph,
           fgNodeCenters,
           finalizers,
-          childCtx,
           state,
           drag
         );
         childrenElements.push(
-          <g
-            id={`drawFgSubtreeInBgNode-fg-child-${child.id}`}
-            transform={translate(childrenX, 0)}
-          >
+          <g id={childGroupId} transform={translate(childrenX, 0)}>
             {r.element}
           </g>
         );
@@ -476,10 +419,13 @@ export namespace OrderPreserving {
         childrenX += r.w;
         childrenMaxH = Math.max(childrenMaxH, r.h);
 
-        const resolvedChildCenter = { ...fgNodeCenters[child.id] };
-        finalizers.push(() => {
-          const from = resolvePoint(fgNodeCenters[fgNode.id]);
-          const to = resolvePoint(resolvedChildCenter);
+        finalizers.push((tree) => {
+          const fromRef = fgNodeCenters[fgNode.id];
+          assert(!!fromRef, "fromRef is undefined");
+          const toRef = fgNodeCenters[child.id];
+          assert(!!toRef, "toRef is undefined");
+          const from = resolvePointRef(fromRef, tree);
+          const to = resolvePointRef(toRef, tree);
           return (
             <path
               id={edgeKey}
@@ -493,16 +439,34 @@ export namespace OrderPreserving {
       } else {
         fgNodesBelow.push(child);
 
-        const childrenXBefore = childrenX;
-        finalizers.push(() => {
-          const myCenter = fgNodeCenters[fgNode.id];
-          const intermediate = resolvePoint({
-            group: childrenCtx,
-            localPos: Vec2(childrenXBefore, 0),
-          });
-          const childCenter = fgNodeCenters[child.id];
-          const from = resolvePoint(myCenter);
-          const to = resolvePoint(childCenter);
+        // Create intermediate point for this child's edge
+        const intermediateId = `fg-intermediate-${fgNode.id}-${child.id}`;
+        childIntermediatePoints[child.id] = pointRef(
+          intermediateId,
+          Vec2(childrenX, 0)
+        );
+
+        childrenElements.push(<g id={intermediateId} key={intermediateId} />);
+      }
+    }
+
+    // Set the node center before creating finalizers that need it
+    fgNodeCenters[fgNode.id] = pointRef(fgNode.id, Vec2(0, 0));
+
+    // Add finalizers for edges to children below
+    for (const child of fgNode.children) {
+      if (morph[child.id] !== bgNodeId) {
+        const edgeKey = `fg-edge-${fgNode.id}-${child.id}`;
+        const intermediateRef = childIntermediatePoints[child.id];
+
+        finalizers.push((tree) => {
+          const fromRef = fgNodeCenters[fgNode.id];
+          assert(!!fromRef, "fromRef is undefined");
+          const toRef = fgNodeCenters[child.id];
+          assert(!!toRef, "toRef is undefined");
+          const from = resolvePointRef(fromRef, tree);
+          const intermediate = resolvePointRef(intermediateRef, tree);
+          const to = resolvePointRef(toRef, tree);
           return (
             <path
               id={edgeKey}
@@ -517,8 +481,12 @@ export namespace OrderPreserving {
     }
 
     let nodeX;
+    const childrenContainerId = `fg-children-${fgNode.id}`;
     const childrenContainer = (
-      <g transform={translate(0, FG_NODE_SIZE + FG_NODE_GAP)}>
+      <g
+        id={childrenContainerId}
+        transform={translate(0, FG_NODE_SIZE + FG_NODE_GAP)}
+      >
         {childrenElements}
       </g>
     );
@@ -530,11 +498,10 @@ export namespace OrderPreserving {
     }
 
     const nodeCenter = Vec2(nodeX, FG_NODE_SIZE / 2);
-    fgNodeCenters[fgNode.id] = pointInGroup(parentCtx, nodeCenter);
 
     return {
       element: (
-        <g className="drawFgSubtreeInBgNode">
+        <g>
           <circle
             id={fgNode.id}
             transform={translate(nodeCenter)}
@@ -576,22 +543,14 @@ export namespace OrderPreserving {
     node: TreeNode,
     keyPrefix: string,
     style: "fg" | "bg",
-    nodeCenters: Record<string, PointInGroup>,
+    nodeCenters: Record<string, PointRef>,
     finalizers: Finalizers
   ): {
     element: SvgElem;
     w: number;
     h: number;
   } {
-    const rootCtx = createGroupContext(null, Vec2(0));
-    const r = drawSubtree(
-      node,
-      keyPrefix,
-      style,
-      nodeCenters,
-      finalizers,
-      rootCtx
-    );
+    const r = drawSubtree(node, keyPrefix, style, nodeCenters, finalizers);
     return {
       element: r.element,
       w: r.w,
@@ -603,9 +562,8 @@ export namespace OrderPreserving {
     node: TreeNode,
     keyPrefix: string,
     style: "fg" | "bg",
-    nodeCenters: Record<string, PointInGroup>,
-    finalizers: Finalizers,
-    parentCtx: GroupContext
+    nodeCenters: Record<string, PointRef>,
+    finalizers: Finalizers
   ): {
     element: SvgElem;
     w: number;
@@ -614,27 +572,15 @@ export namespace OrderPreserving {
     const childrenElements: SvgElem[] = [];
     let childrenX = 0;
     let childrenMaxH = 0;
-    const childrenCtx = createGroupContext(
-      parentCtx,
-      Vec2(0, FG_NODE_SIZE + FG_NODE_GAP)
-    );
 
     for (const [i, child] of node.children.entries()) {
       if (i > 0) {
         childrenX += FG_NODE_GAP;
       }
-      const childCtx = createGroupContext(childrenCtx, Vec2(childrenX, 0));
-      const r = drawSubtree(
-        child,
-        keyPrefix,
-        style,
-        nodeCenters,
-        finalizers,
-        childCtx
-      );
+      const r = drawSubtree(child, keyPrefix, style, nodeCenters, finalizers);
       childrenElements.push(
         <g
-          id={`subtree-bg-child-${child.id}`}
+          id={`${keyPrefix}-child-${node.id}-${child.id}`}
           transform={translate(childrenX, 0)}
         >
           {r.element}
@@ -643,13 +589,16 @@ export namespace OrderPreserving {
       childrenX += r.w;
       childrenMaxH = Math.max(childrenMaxH, r.h);
 
-      const resolvedChildCenter = { ...nodeCenters[child.id] };
-      finalizers.push(() => {
-        const from = resolvePoint(nodeCenters[node.id]);
-        const to = resolvePoint(resolvedChildCenter);
+      finalizers.push((tree) => {
+        const fromRef = nodeCenters[node.id];
+        assert(!!fromRef, "fromRef is undefined");
+        const toRef = nodeCenters[child.id];
+        assert(!!toRef, "toRef is undefined");
+        const from = resolvePointRef(fromRef, tree);
+        const to = resolvePointRef(toRef, tree);
         return (
           <path
-            id={`${keyPrefix}-${node.id}->${child.id}`}
+            id={`${keyPrefix}-edge-${node.id}-${child.id}`}
             d={`M ${from.x} ${from.y} Q ${from.x} ${from.y} ${to.x} ${to.y}`}
             fill="none"
             stroke={style === "fg" ? "black" : "lightgray"}
@@ -674,13 +623,14 @@ export namespace OrderPreserving {
     }
 
     const nodeCenter = Vec2(nodeX, FG_NODE_SIZE / 2);
-    nodeCenters[node.id] = pointInGroup(parentCtx, nodeCenter);
+    const nodeId = `${keyPrefix}-${node.id}`;
+    nodeCenters[node.id] = pointRef(nodeId, Vec2(0, 0));
 
     return {
       element: (
         <g>
           <circle
-            id={`${keyPrefix}-${node.id}`}
+            id={nodeId}
             transform={translate(nodeCenter)}
             cx={0}
             cy={0}
