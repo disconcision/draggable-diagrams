@@ -10,7 +10,7 @@ export namespace Braid {
   };
 
   export const state1: State = {
-    n: 3,
+    n: 4,
     seq: [],
   };
 
@@ -102,16 +102,12 @@ export namespace Braid {
           ))}
         </g>
         {perm.map((p, i) => (
-          <circle
+          <g
             id={`strand-end-${p}`}
             transform={translate(
               i * TILE_SIZE,
               (state.seq.length + 1) * TILE_SIZE
             )}
-            cx={0}
-            cy={0}
-            r={4}
-            fill="black"
             data-z-index={1}
             data-on-drag={drag(() => [
               span(
@@ -132,8 +128,9 @@ export namespace Braid {
               ),
             ])}
           >
-            <title>{p}</title>
-          </circle>
+            <circle r={20} fill="transparent" />
+            <circle r={4} fill="gray" />
+          </g>
         ))}
       </g>
     );
