@@ -144,11 +144,12 @@ export function Demo<T extends object, Config>(props: DemoProps<T, Config>) {
             value={chainDrags}
             onChange={setChainDrags}
           />
-          <ConfigCheckbox
+          {/* TODO: make this do something */}
+          {/* <ConfigCheckbox
             label="Relative pointer motion"
             value={relativePointerMotion}
             onChange={setRelativePointerMotion}
-          />
+          /> */}
           {hasConfig(props) && (
             <>
               <div className="border-t border-gray-300 my-1" />
