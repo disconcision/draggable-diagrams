@@ -236,7 +236,7 @@ npm run typecheck
 ### Creating a Manipulable
 
 ```typescript
-import { Manipulable, translate, rotate } from "./manipulable-svg";
+import { Manipulable, translate, rotate } from "./manipulable";
 import { numsAtPaths } from "./DragSpec";
 
 type MyState = {
@@ -366,7 +366,7 @@ The codebase provides proper types for common patterns:
 function helper(drag: any) { ... }
 
 // ✓ CORRECT - use proper types
-import { Drag } from "./manipulable-svg";
+import { Drag } from "./manipulable";
 function helper(drag: Drag<MyState>) { ... }
 
 // ✗ WRONG - bypasses type checking

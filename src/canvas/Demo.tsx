@@ -104,7 +104,7 @@ export function DemoCanvas<T extends object, Config>({
   );
 
   return (
-    <div className="bg-white rounded-lg p-5 shadow-sm" id={id}>
+    <div className="bg-white rounded-lg p-5 shadow-sm border-2 border-orange-400" id={id}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900 m-0">
           <Link

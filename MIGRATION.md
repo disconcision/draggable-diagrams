@@ -45,7 +45,7 @@ import { circle, group, line } from "./shape";
 **After:**
 ```typescript
 import { straightTo } from "./DragSpec";
-import { Manipulable, translate } from "./manipulable-svg";
+import { Manipulable, translate } from "./manipulable";
 ```
 
 ### Type Signature
@@ -403,7 +403,7 @@ export const manipulableGridPoly: Manipulable<GridPolyState> = {
 import { produce } from "immer";
 import _ from "lodash";
 import { span } from "./DragSpec";
-import { Manipulable, translate } from "./manipulable-svg";
+import { Manipulable, translate } from "./manipulable";
 
 type GridPolyState = {
   w: number;
