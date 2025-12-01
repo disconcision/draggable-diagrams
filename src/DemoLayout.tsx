@@ -11,7 +11,7 @@ export function DemoListPage({ demos }: { demos: ReactElement[] }) {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="text-center py-10 px-5 max-w-3xl mx-auto">
         <h1 className="text-3xl font-normal text-gray-800">
-          Draggable diagrams
+          Draggable Diagrams
         </h1>
       </div>
       <div className="flex flex-col gap-5 px-5 pb-5 max-w-3xl mx-auto flex-1">
@@ -74,7 +74,7 @@ export function SingleDemoPage({
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="text-center py-10 px-5 max-w-3xl mx-auto">
         <h1 className="text-3xl font-normal text-gray-800">
-          Draggable diagrams
+          Draggable Diagrams
         </h1>
       </div>
       <div className="text-center py-2.5 px-5 max-w-3xl mx-auto">

@@ -501,6 +501,7 @@ function computeRenderState<T extends object, Config>(
       config: diagramConfig,
     });
     // console.log("content from idle state:", content);
+    // prettyLog(content, { label: "content from idle state" });
     flattenedToRender = postProcessForInteraction(content, dragState.state);
     currentFlattened = flattenedToRender;
   } else if (dragState.type === "animating") {
@@ -989,7 +990,7 @@ export function ManipulableDrawer<T extends object, Config>({
       width={width}
       height={height}
       xmlns="http://www.w3.org/2000/svg"
-      style={{ overflow: "visible" }}
+      className="overflow-visible select-none"
     >
       {sortedEntries.map(([key, element]) => (
         <Fragment key={key}>{stripDraggables(element)}</Fragment>

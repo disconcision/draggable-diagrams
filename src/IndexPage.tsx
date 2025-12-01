@@ -4,7 +4,7 @@ export function IndexPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
       <div className="text-center py-10 px-5 max-w-3xl mx-auto">
-        <h1 className="text-4xl font-normal text-gray-800 mb-3">
+        <h1 className="text-4xl font-normal text-gray-800 mb-12">
           Draggable Diagrams
         </h1>
 
@@ -20,12 +20,12 @@ export function IndexPage() {
             to="/demos"
             className="block w-64 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors no-underline text-center font-medium"
           >
-            SVG Demos
+            Demos
           </Link>
 
           <Link
             to="/demos-canvas"
-            className="block w-64 px-6 py-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors no-underline text-center font-medium"
+            className="mt-6 text-sm text-gray-600 hover:text-gray-800 underline"
           >
             Canvas Demos (Legacy)
           </Link>

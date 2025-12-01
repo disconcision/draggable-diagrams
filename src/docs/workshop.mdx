@@ -10,7 +10,7 @@ Hey thanks for joining the workshop and trying out Draggable Diagrams! My hope i
 
 Let's jump in!
 
-## What is Draggable Diagrams?
+## Introduction to Draggable Diagrams
 
 Draggable Diagrams (DD) is a framework for making interactive diagrams. "Diagrams" here is potentially broad – it could include diagrams of mathematical structures, weird new controllers, direct-manipulation editors, and other interfaces besides. The unique angle of DD is, as the name implies, making drag-drop interactions easier to implement. It does this with a React-y, state-driven approach. In DD, you write a "render" function that turns underlying state into an SVG drawing. To make an object in this drawing draggable, you need only describe what *new states* should be accessible by dragging it. DD will pre-render these possible drawings, and use them to guide a drag-drop interaction.
 
@@ -77,7 +77,91 @@ Pieces of this puzzle:
 
 - The argument to `drag` can be a lot of different things. For one, it can be a callback that generates a drag spec lazily. That might be smart for performance, but we don't do that here – we just provide a pre-computed `span` object. That means "I want to be able to drag back and forth between all the states in this list". The main alternative to `span` is `straightTo`. That means "I want to drag straight from my starting state to this other state" – you can return an array of `straightTo`s to tell DD you want a couple disjoint tracks from the starting state to the targets.
 
-With this knowledge we can
+With this knowledge we can take on a more involved example: reordering objects.
+
+<LiveEditor
+  code={`
+    type State = {
+      perm: string[];
+    };
+
+    const initialState: State = {
+      perm: ["A", "B", "C", "D", "E"],
+    };
+
+    const manipulable: Manipulable<State> = ({
+      state,
+      drag,
+      draggedId,
+    }) => {
+      const TILE_SIZE = 50;
+
+      return (
+        <g transform={translate(50, 50)}>
+          {state.perm.map((p, idx) => {
+            const isDragged = p === draggedId;
+            return (
+              <g
+                id={p}
+                transform={translate(idx * TILE_SIZE, isDragged ? -10 : 0)}
+                data-z-index={isDragged ? 1 : 0}
+                data-on-drag={drag(() => {
+                  const draggedIdx = state.perm.indexOf(p);
+                  return span(
+                    _.range(state.perm.length).map((idx) =>
+                      produce(state, (draft) => {
+                        draft.perm.splice(draggedIdx, 1);
+                        draft.perm.splice(idx, 0, p);
+                      }),
+                    ),
+                  );
+                })}
+              >
+                <rect
+                  x={0}
+                  y={0}
+                  width={TILE_SIZE}
+                  height={TILE_SIZE}
+                  stroke="black"
+                  strokeWidth={2}
+                  fill="white"
+                />
+                <text
+                  x={TILE_SIZE / 2}
+                  y={TILE_SIZE / 2}
+                  dominantBaseline="middle"
+                  textAnchor="middle"
+                  fontSize={20}
+                  fill="black"
+                >
+                  {p}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+      );
+    };
+  `}
+/>
+
+Some important aspects, top to bottom:
+
+- This diagram "lifts" a tile a bit when it's getting dragged. That's possible because DD provides `draggedId` as a function argument, which is set to the `id` attribute of the currently-dragged element, or `null`. The diagram uses this to calculate `isDragged` in a loop and apply effects conditionally.
+
+- `id` is a much bigger deal than just powering `draggedId`. DD uses `id` to connect elements across renderings of different states. If `id` is not provided, DD will use position in the tree structure, which sometimes is all you need. But here, that would fail – we're rendering tiles in order of position, which means the tile in tree position *i* will change over time. To get drag control and interpolation between positions, you need `id`s!
+
+   - Note that elements are sometimes identified using a combination of `id` & tree position. For instance, the C tile's `<text>` will be identified via the path `C/1`.
+
+   - `id` acts like a global version of React's `key`. I considered adding `key` as a local version, but I haven't run into a need for it yet. Let me know what you think!
+
+- SVG doesn't have z-index. But because elements with `id`s end up "ripped out" of the SVG structure, we can put z-indices on them (with `data-z-index`) to determine their ultimate ordering. Here, we use that to make sure the dragged tile is on top of the others.
+
+- Now the important part: the drag spec attached to `data-on-drag`! Dragging an element of the array should be able to bring you to every possible version of the array where the dragged element is removed and then inserted in a different location. We compute all these possible arrays in the drag spec callback. Specifically, we do so with [Immer](https://immerjs.github.io/immer/)'s `produce` function, which lets you apply mutations to a "draft" to immutably produce a new value. You could also just `structuredClone` the original value and mutate it, or painstakingly use a bunch of `{ ...oldState, newKey: ...}`-type expressions.
+
+I think those are the basics. Hope they make sense.
+
+From here, it's choose-your-own-adventure. There's a lot you can do with just these mechanisms; the [demos](#/demos) page has more examples to guide and inspire you. Below, I'll add quick notes on a few other mechanisms or topics.
 
 ## Other topics
 

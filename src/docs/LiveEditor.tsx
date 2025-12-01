@@ -1,9 +1,11 @@
 import * as Babel from "@babel/standalone";
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror from "@uiw/react-codemirror";
+import { produce } from "immer";
+import _ from "lodash";
 import parserBabel from "prettier/parser-babel";
 import prettier from "prettier/standalone";
-import { useMemo, useState } from "react";
+import { createElement, useMemo, useState } from "react";
 import { DemoContext } from "../DemoContext";
 import * as DragSpecModule from "../DragSpec";
 import { ErrorBoundary } from "../ErrorBoundary";
@@ -55,20 +57,13 @@ export function LiveEditor({
         filename: "editor.tsx",
       }).code;
 
-      // JSX factory function that creates SVG element objects
-      const createElement = (type: string, props: any, ...children: any[]) => ({
-        type,
-        props: {
-          ...props,
-          children: children.length > 0 ? children : undefined,
-        },
-      });
-
       // Create a function that returns { manipulable, initialState }
       const fn = new Function(
         "createElement",
         "DragSpec",
         "Manipulable",
+        "_",
+        "produce",
         `
         const { numsAtPaths, straightTo, span } = DragSpec;
         const { translate, rotate, scale } = Manipulable;
@@ -82,6 +77,8 @@ export function LiveEditor({
         createElement,
         DragSpecModule,
         ManipulableModule,
+        _,
+        produce,
       );
 
       setError(null);
