@@ -67,3 +67,14 @@ export function findElement(
 
   return null;
 }
+
+export function updatePropsDownTree(
+  element: Svgx,
+  mapFn: (el: Svgx) => React.SVGProps<SVGElement> | undefined
+): Svgx {
+  return updateElement(
+    element,
+    (child) => updatePropsDownTree(child, mapFn),
+    mapFn(element)
+  );
+}

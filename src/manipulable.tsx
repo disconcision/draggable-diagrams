@@ -2,10 +2,8 @@ import { Delaunay } from "d3-delaunay";
 import * as d3Ease from "d3-ease";
 import _ from "lodash";
 import {
-  Children,
   cloneElement,
   Fragment,
-  isValidElement,
   PointerEvent,
   ReactElement,
   SetStateAction,
@@ -23,7 +21,7 @@ import { minimize } from "./math/minimize";
 import { Vec2, Vec2able } from "./math/vec2";
 import { getAtPath, setAtPath } from "./paths";
 import { prettyLog, PrettyPrint } from "./pretty-print";
-import { Svgx } from "./svgx";
+import { Svgx, updatePropsDownTree } from "./svgx";
 import {
   accumulateTransforms,
   getAccumulatedTransform,
@@ -38,7 +36,6 @@ import {
   assert,
   assertNever,
   assertWithJSX,
-  emptyToUndefined,
   hasKey,
   isObject,
   manyToArray,
@@ -283,30 +280,23 @@ function getDragSpecCallbackOnElement<T>(
   );
 }
 
-// Recurse through the SVG tree, applying a desired function to all draggable elements
-function mapDraggables<T>(
-  node: Svgx,
-  fn: (el: Svgx, dragSpecCallback: () => DragSpec<T>) => Svgx
-): Svgx {
-  const props = node.props as any;
-
-  const newElement = cloneElement(node, {
-    children: emptyToUndefined(
-      Children.toArray(props.children).map((child) =>
-        isValidElement(child) ? mapDraggables(child as Svgx, fn) : child
-      )
-    ),
-  });
-
-  const dragSpecCallback = getDragSpecCallbackOnElement<T>(node);
-  return dragSpecCallback ? fn(newElement, dragSpecCallback) : newElement;
-}
-
-function stripDraggables<T>(node: Svgx): Svgx {
-  return mapDraggables<T>(node, (el) =>
-    cloneElement(el, {
-      [onDragPropName as any]: undefined,
-    })
+function drawHoisted(hoisted: HoistedSvgx): Svgx {
+  return (
+    <>
+      {Array.from(hoisted.entries())
+        .sort(([_keyA, elemA], [_keyB, elemB]) => {
+          const zIndexA = parseInt((elemA.props as any)["data-z-index"]) || 0;
+          const zIndexB = parseInt((elemB.props as any)["data-z-index"]) || 0;
+          return zIndexA - zIndexB;
+        })
+        .map(([key, element]) => (
+          <Fragment key={key}>
+            {updatePropsDownTree(element, () => ({
+              [onDragPropName as any]: undefined,
+            }))}
+          </Fragment>
+        ))}
+    </>
   );
 }
 
@@ -880,8 +870,10 @@ export function ManipulableDrawer<T extends object, Config>({
       },
       accumulateTransforms,
       (el) =>
-        mapDraggables<T>(el, (el, dragSpecCallback) => {
-          return cloneElement(el, {
+        updatePropsDownTree(el, (el) => {
+          const dragSpecCallback = getDragSpecCallbackOnElement<T>(el);
+          if (!dragSpecCallback) return;
+          return {
             style: { cursor: "grab", ...(el.props.style || {}) },
             onPointerDown: (e: PointerEvent) => {
               try {
@@ -914,7 +906,7 @@ export function ManipulableDrawer<T extends object, Config>({
                 throwRenderError(error);
               }
             },
-          });
+          };
         }),
       hoistSvg
     );
@@ -1011,15 +1003,6 @@ export function ManipulableDrawer<T extends object, Config>({
     drawerConfigWithDefaults.animationDuration,
   ]);
 
-  // Sort by data-z-index for rendering order
-  const sortedEntries = Array.from(hoistedToRender.entries()).sort(
-    ([_keyA, elemA], [_keyB, elemB]) => {
-      const zIndexA = parseInt((elemA.props as any)["data-z-index"]) || 0;
-      const zIndexB = parseInt((elemB.props as any)["data-z-index"]) || 0;
-      return zIndexA - zIndexB;
-    }
-  );
-
   // prettyLog(sortedEntries, { label: "sortedEntries for rendering" });
 
   return (
@@ -1030,9 +1013,7 @@ export function ManipulableDrawer<T extends object, Config>({
       xmlns="http://www.w3.org/2000/svg"
       className="overflow-visible select-none touch-none"
     >
-      {sortedEntries.map(([key, element]) => (
-        <Fragment key={key}>{stripDraggables(element)}</Fragment>
-      ))}
+      {drawHoisted(hoistedToRender)}
       {debugMode && debugRender}
     </svg>
   );
