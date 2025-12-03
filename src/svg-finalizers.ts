@@ -5,7 +5,7 @@ import {
   SvgElem,
 } from "./jsx-flatten";
 import { localToGlobal, parseTransform } from "./svg-transform";
-import { assert } from "./utils";
+import { assert, assertDefined } from "./utils";
 import { Vec2, Vec2able } from "./vec2";
 
 /**
@@ -17,20 +17,24 @@ export type PointRef = {
   localPos: Vec2;
 };
 
+type Finalizer = (resolve: (ref: PointRef) => Vec2) => SvgElem;
+
 /**
  * Collects deferred rendering functions that need to run after the SVG tree is assembled.
  * Finalizers receive the completed tree and can resolve point references to draw
  * connecting lines, paths, etc.
  */
 export class Finalizers {
-  private fns: ((tree: SvgElem) => SvgElem)[] = [];
+  private fns: Finalizer[] = [];
 
-  push(fn: (tree: SvgElem) => SvgElem) {
+  push(fn: Finalizer) {
     this.fns.push(fn);
   }
 
-  resolve(tree: SvgElem): SvgElem[] {
-    return this.fns.map((fn) => fn(tree));
+  run(tree: SvgElem): SvgElem[] {
+    const resolve = (ref: PointRef) =>
+      resolvePointRef(assertDefined(ref), tree);
+    return this.fns.map((fn) => fn(resolve));
   }
 }
 

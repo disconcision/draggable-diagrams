@@ -23,6 +23,23 @@ export function assert(
   }
 }
 
+export function assertDefined<T>(
+  x: T | undefined | null,
+  msg?: string | (() => void)
+): T {
+  if (x === undefined || x === null) {
+    if (typeof msg === "function") {
+      console.group("Assertion failed; debug info:");
+      msg();
+      console.groupEnd();
+      throw new Error("Assertion failed: value is undefined or null");
+    } else {
+      throw new Error(msg ?? "Assertion failed: value is undefined or null");
+    }
+  }
+  return x;
+}
+
 export function assertWithJSX(
   condition: boolean,
   msg: string,

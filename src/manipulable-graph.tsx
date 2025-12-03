@@ -1,6 +1,7 @@
 import _ from "lodash";
+import { arrowhead } from "./arrows";
 import { numsAtPaths, span } from "./DragSpec";
-import { Manipulable, points, translate } from "./manipulable";
+import { Manipulable, translate } from "./manipulable";
 import { Vec2 } from "./vec2";
 
 export namespace Graph {
@@ -21,13 +22,7 @@ export namespace Graph {
           const fromArrow = fromCenter.towards(toCenter, NODE_R + 5);
           const toArrow = toCenter.towards(fromCenter, NODE_R + 5);
 
-          // Draw a triangular arrowhead
-          const arrowHeadAngle = Math.PI / 8;
           const arrowHeadLength = 20;
-          const backFromTip = toArrow
-            .sub(fromArrow)
-            .norm()
-            .mul(-arrowHeadLength);
 
           // Is the opposite edge present?
           const oppositeEdgeKey = _.findKey(
@@ -47,6 +42,8 @@ export namespace Graph {
             .towards(fromArrow, arrowHeadLength / 2)
             .add(offset);
 
+          const direction = toArrow.sub(fromArrow);
+
           return (
             <g id={`edge-${key}`}>
               <line
@@ -57,16 +54,13 @@ export namespace Graph {
                 stroke="black"
                 strokeWidth={2}
               />
-              <polygon
-                id={`head-${key}`}
-                transform={translate(arrowPos)}
-                points={points(
-                  Vec2(0),
-                  backFromTip.rotate(arrowHeadAngle),
-                  backFromTip.rotate(-arrowHeadAngle)
-                )}
-                fill="black"
-                data-on-drag={drag(() => {
+              {arrowhead({
+                tip: arrowPos,
+                direction,
+                headLength: arrowHeadLength,
+                id: `head-${key}`,
+                fill: "black",
+                "data-on-drag": drag(() => {
                   // Construct all new graphs where the "edgeKey" edge has a different node as "to"
                   const newStates = [];
                   for (const newToNodeKey of Object.keys(state.nodes)) {
@@ -88,9 +82,9 @@ export namespace Graph {
                     });
                   }
                   return span(newStates);
-                })}
-                data-z-index={1}
-              />
+                }),
+                "data-z-index": 1,
+              })}
               <circle
                 id={`tail-${key}`}
                 transform={translate(tailPos)}

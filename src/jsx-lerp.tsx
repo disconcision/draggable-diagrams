@@ -148,10 +148,30 @@ export function lerpSvgNode(a: SvgElem, b: SvgElem, t: number): SvgElem {
 
   // Elements should be the same type
   if (a.type !== b.type) {
-    throw new Error(
+    throw new ErrorWithJSX(
       `Cannot lerp between different element types: ${String(
         a.type
-      )} and ${String(b.type)}`
+      )} and ${String(b.type)}`,
+      (
+        <>
+          <p className="mb-2">
+            During interpolation, I found elements of different types at the
+            same path in the "before" and "after" SVG trees. I don't know how to
+            interpolate between those, sorry.
+          </p>
+          {a.props.id === b.props.id && (
+            <p className="mb-2">
+              (FYI: These elements share the ID{" "}
+              <span className="font-mono">{a.props.id}</span>. I would guess
+              that you are drawing this element in two different code paths, and
+              they don't match up.)
+            </p>
+          )}
+          <PrettyPrint value={a} />
+          <div className="my-4">vs</div>
+          <PrettyPrint value={b} />
+        </>
+      )
     );
   }
 

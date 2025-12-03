@@ -162,7 +162,10 @@ export function PrettyPrint({
   }
 
   return (
-    <div ref={containerRef} style={{ width: "100%", ...style }}>
+    <div
+      ref={containerRef}
+      style={{ width: "100%", ...style, overflowX: "auto" }}
+    >
       {/* Hidden measurement element with same font as output */}
       <span
         ref={measureRef}
