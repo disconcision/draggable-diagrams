@@ -80,7 +80,7 @@ export namespace OrderPreserving {
 
   export const defaultConfig: Config = {
     oneNodeAtATime: false,
-    showTradRep: true,
+    showTradRep: false,
   };
 
   export const manipulable: Manipulable<State, Config> = ({
@@ -104,58 +104,7 @@ export namespace OrderPreserving {
     elements.push(r.element);
 
     if (config.showTradRep) {
-      const domNodeCenters: Record<string, PointRef> = {};
-      const domR = drawTree(
-        state.domainTree,
-        "domain",
-        "fg",
-        domNodeCenters,
-        finalizers
-      );
-      elements.push(
-        <g transform={translate(0, state.yForTradRep)}>{domR.element}</g>
-      );
-
-      const codNodeCenters: Record<string, PointRef> = {};
-      const codR = drawTree(
-        state.codomainTree,
-        "codomain",
-        "bg",
-        codNodeCenters,
-        finalizers
-      );
-      elements.push(
-        <g transform={translate(domR.w + 40, state.yForTradRep)}>
-          {codR.element}
-        </g>
-      );
-
-      for (const [domElem, codElem] of Object.entries(morph)) {
-        finalizers.push((resolve) => {
-          const from = resolve(domNodeCenters[domElem]);
-          const to = resolve(codNodeCenters[codElem]);
-          const mid = from.lerp(to, 0.5).add(Vec2(0, -from.dist(to) / 6));
-          const fromAdjusted = from.towards(mid, FG_NODE_SIZE / 2);
-          const toAdjusted = to.towards(mid, FG_NODE_SIZE / 2);
-
-          return (
-            <g id={`morphism-arrow-${domElem}`}>
-              <path
-                d={`M ${fromAdjusted.arr()} Q ${mid.arr()} ${toAdjusted.arr()}`}
-                fill="none"
-                stroke="#4287f5"
-                strokeWidth={2}
-              />
-              {arrowhead({
-                tip: toAdjusted,
-                direction: to.sub(mid),
-                headLength: 15,
-                fill: "#4287f5",
-              })}
-            </g>
-          );
-        });
-      }
+      elements.push(...drawTradRep(state, morph, finalizers, drag, config));
     }
 
     const mainTree = <g>{elements}</g>;
@@ -185,6 +134,52 @@ export namespace OrderPreserving {
     );
   }
 
+  // # Drag spec
+
+  export function dragSpec(
+    draggedNodeId: string,
+    state: State,
+    config: Config
+  ) {
+    const { morph, allMorphs, codomainTree } = state;
+    const domainIds = Object.keys(morph);
+
+    let newMorphs;
+
+    if (config.oneNodeAtATime) {
+      newMorphs = allMorphs.filter((newMorph) => {
+        return domainIds.every(
+          (nodeId) =>
+            nodeId === draggedNodeId || // dragged node can go anywhere
+            morph[nodeId] === newMorph[nodeId] // others stay put
+        );
+      });
+    } else {
+      // 1. group morphisms by where they send draggedNodeId
+      const morphsByDragTarget = _.groupBy(
+        allMorphs,
+        (targetMorph) => targetMorph[draggedNodeId]
+      );
+
+      // 2. sort groups by how many nodes they change, and pick first
+      newMorphs = Object.values(morphsByDragTarget).map(
+        (morphsWithDragTarget) =>
+          _.minBy(morphsWithDragTarget, (newMorph) =>
+            _.sum(
+              domainIds.map((nodeId) =>
+                nodeDist(
+                  getNodeById(codomainTree, morph[nodeId])!,
+                  getNodeById(codomainTree, newMorph[nodeId])!
+                )
+              )
+            )
+          )!
+      );
+    }
+
+    return span(newMorphs.map((morph) => ({ ...state, morph })));
+  }
+
   // # Drawing constants
 
   const BG_NODE_PADDING = 10;
@@ -207,7 +202,6 @@ export namespace OrderPreserving {
       bgNode,
       [fgNode],
       morph,
-      {},
       finalizers,
       state,
       drag,
@@ -224,7 +218,6 @@ export namespace OrderPreserving {
     bgNode: TreeNode,
     fgNodes: TreeNode[],
     morph: TreeMorph,
-    fgNodeCenters: Record<string, PointRef>,
     finalizers: Finalizers,
     state: State,
     drag: Drag<State>,
@@ -246,7 +239,6 @@ export namespace OrderPreserving {
       morph,
       bgNode,
       fgNodesHere,
-      fgNodeCenters,
       finalizers,
       state,
       drag,
@@ -265,16 +257,7 @@ export namespace OrderPreserving {
     }
 
     const childRs = bgNode.children.map((child) =>
-      drawBgSubtree(
-        child,
-        fgNodesBelow,
-        morph,
-        fgNodeCenters,
-        finalizers,
-        state,
-        drag,
-        config
-      )
+      drawBgSubtree(child, fgNodesBelow, morph, finalizers, state, drag, config)
     );
 
     const childrenWidth =
@@ -346,7 +329,6 @@ export namespace OrderPreserving {
     morph: TreeMorph,
     bgNode: TreeNode,
     fgNodesHere: TreeNode[],
-    fgNodeCenters: Record<string, PointRef>,
     finalizers: Finalizers,
     state: State,
     drag: Drag<State>,
@@ -371,7 +353,6 @@ export namespace OrderPreserving {
         fgNode,
         bgNode.id,
         morph,
-        fgNodeCenters,
         finalizers,
         state,
         drag,
@@ -428,7 +409,6 @@ export namespace OrderPreserving {
     fgNode: TreeNode,
     bgNodeId: string,
     morph: TreeMorph,
-    fgNodeCenters: Record<string, PointRef>,
     finalizers: Finalizers,
     state: State,
     drag: Drag<State>,
@@ -457,7 +437,6 @@ export namespace OrderPreserving {
           child,
           bgNodeId,
           morph,
-          fgNodeCenters,
           finalizers,
           state,
           drag,
@@ -476,8 +455,8 @@ export namespace OrderPreserving {
         childrenMaxH = Math.max(childrenMaxH, r.h);
 
         finalizers.push((resolve) => {
-          const from = resolve(fgNodeCenters[fgNode.id]);
-          const to = resolve(fgNodeCenters[child.id]);
+          const from = resolve(pointRef(fgNode.id, Vec2(0)));
+          const to = resolve(pointRef(child.id, Vec2(0)));
           return (
             <path
               id={edgeId}
@@ -500,9 +479,9 @@ export namespace OrderPreserving {
 
         const intermediateRef = pointRef(childrenId, Vec2(childrenX, 0));
         finalizers.push((resolve) => {
-          const myCenter = resolve(fgNodeCenters[fgNode.id]);
+          const myCenter = resolve(pointRef(fgNode.id, Vec2(0)));
           const intermediate = resolve(intermediateRef);
-          const childCenter = resolve(fgNodeCenters[child.id]);
+          const childCenter = resolve(pointRef(child.id, Vec2(0)));
           return (
             <path
               id={edgeId}
@@ -521,8 +500,6 @@ export namespace OrderPreserving {
         });
       }
     }
-
-    fgNodeCenters[fgNode.id] = pointRef(fgNode.id, Vec2(0, 0));
 
     let nodeX;
     let childrenTransform;
@@ -555,45 +532,7 @@ export namespace OrderPreserving {
             cy={0}
             r={FG_NODE_SIZE / 2}
             fill="black"
-            data-on-drag={drag(() => {
-              const { morph, allMorphs, codomainTree } = state;
-              const domainIds = Object.keys(morph);
-
-              let newMorphs;
-
-              if (config.oneNodeAtATime) {
-                newMorphs = allMorphs.filter((newMorph) => {
-                  return domainIds.every(
-                    (nodeId) =>
-                      nodeId === fgNode.id || // dragged node can go anywhere
-                      morph[nodeId] === newMorph[nodeId] // others stay put
-                  );
-                });
-              } else {
-                // 1. group morphisms by where they send fgNode.id
-                const morphsByDragTarget = _.groupBy(
-                  allMorphs,
-                  (targetMorph) => targetMorph[fgNode.id]
-                );
-
-                // 2. sort groups by how many nodes they change, and pick first
-                newMorphs = Object.values(morphsByDragTarget).map(
-                  (morphsWithDragTarget) =>
-                    _.minBy(morphsWithDragTarget, (newMorph) =>
-                      _.sum(
-                        domainIds.map((nodeId) =>
-                          nodeDist(
-                            getNodeById(codomainTree, morph[nodeId])!,
-                            getNodeById(codomainTree, newMorph[nodeId])!
-                          )
-                        )
-                      )
-                    )!
-                );
-              }
-
-              return span(newMorphs.map((morph) => ({ ...state, morph })));
-            })}
+            data-on-drag={drag(() => dragSpec(fgNode.id, state, config))}
           />
           {childrenContainer}
         </g>
@@ -604,18 +543,76 @@ export namespace OrderPreserving {
     };
   }
 
+  function nodeSvgId(nodeId: string, prefix: string): string {
+    return `${prefix}-${nodeId}`;
+  }
+
+  function drawTradRep(
+    state: State,
+    morph: TreeMorph,
+    finalizers: Finalizers,
+    drag: Drag<State>,
+    config: Config
+  ): SvgElem[] {
+    const elements: SvgElem[] = [];
+
+    const domR = drawTree(state.domainTree, "domain", "fg", finalizers);
+    elements.push(
+      <g transform={translate(0, state.yForTradRep)}>{domR.element}</g>
+    );
+
+    const codR = drawTree(state.codomainTree, "codomain", "bg", finalizers);
+    elements.push(
+      <g transform={translate(domR.w + 40, state.yForTradRep)}>
+        {codR.element}
+      </g>
+    );
+
+    for (const [domElem, codElem] of Object.entries(morph)) {
+      finalizers.push((resolve) => {
+        const from = resolve(pointRef(nodeSvgId(domElem, "domain"), Vec2(0)));
+        const to = resolve(pointRef(nodeSvgId(codElem, "codomain"), Vec2(0)));
+        const mid = from.lerp(to, 0.5).add(Vec2(0, -from.dist(to) / 6));
+        const fromAdjusted = from.towards(mid, FG_NODE_SIZE / 2);
+        const toAdjusted = to.towards(mid, FG_NODE_SIZE / 2);
+
+        return (
+          <g id={`morphism-arrow-${domElem}`}>
+            <path
+              d={`M ${fromAdjusted.arr()} Q ${mid.arr()} ${toAdjusted
+                .towards(mid, 5)
+                .arr()}`}
+              fill="none"
+              stroke="#4287f5"
+              strokeWidth={2}
+            />
+            {arrowhead({
+              tip: toAdjusted,
+              headAngle: Math.PI / 10,
+              direction: to.sub(mid),
+              headLength: 15,
+              fill: "#4287f5",
+              "data-on-drag": drag(() => dragSpec(domElem, state, config)),
+            })}
+          </g>
+        );
+      });
+    }
+
+    return elements;
+  }
+
   function drawTree(
     node: TreeNode,
     idPrefix: string,
     style: "fg" | "bg",
-    nodeCenters: Record<string, PointRef>,
     finalizers: Finalizers
   ): {
     element: SvgElem;
     w: number;
     h: number;
   } {
-    const r = drawSubtree(node, idPrefix, style, nodeCenters, finalizers);
+    const r = drawSubtree(node, idPrefix, style, finalizers);
     return {
       element: r.element,
       w: r.w,
@@ -627,7 +624,6 @@ export namespace OrderPreserving {
     node: TreeNode,
     idPrefix: string,
     style: "fg" | "bg",
-    nodeCenters: Record<string, PointRef>,
     finalizers: Finalizers
   ): {
     element: SvgElem;
@@ -642,7 +638,7 @@ export namespace OrderPreserving {
       if (i > 0) {
         childrenX += FG_NODE_GAP;
       }
-      const r = drawSubtree(child, idPrefix, style, nodeCenters, finalizers);
+      const r = drawSubtree(child, idPrefix, style, finalizers);
       childrenElements.push(
         <g
           id={`${idPrefix}-child-${node.id}-${child.id}`}
@@ -655,8 +651,8 @@ export namespace OrderPreserving {
       childrenMaxH = Math.max(childrenMaxH, r.h);
 
       finalizers.push((resolve) => {
-        const from = resolve(nodeCenters[node.id]);
-        const to = resolve(nodeCenters[child.id]);
+        const from = resolve(pointRef(nodeSvgId(node.id, idPrefix), Vec2(0)));
+        const to = resolve(pointRef(nodeSvgId(child.id, idPrefix), Vec2(0)));
         return (
           <line
             id={`${idPrefix}-edge-${node.id}-${child.id}`}
@@ -684,14 +680,12 @@ export namespace OrderPreserving {
     }
 
     const nodeCenter = Vec2(nodeX, FG_NODE_SIZE / 2);
-    const nodeId = `${idPrefix}-${node.id}`;
-    nodeCenters[node.id] = pointRef(nodeId, Vec2(0, 0));
 
     return {
       element: (
         <g>
           <circle
-            id={nodeId}
+            id={nodeSvgId(node.id, idPrefix)}
             transform={translate(nodeCenter)}
             cx={0}
             cy={0}

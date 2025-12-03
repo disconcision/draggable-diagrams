@@ -284,7 +284,7 @@ export const demos: ReactElement[] = [
     initialState={OrderPreserving.state3To3}
     height={400}
     padding={20}
-    defaultConfig={OrderPreserving.defaultConfig}
+    defaultConfig={{ ...OrderPreserving.defaultConfig, showTradRep: true }}
     ConfigPanel={OrderPreserving.ConfigPanel}
     sourceFile="manipulable-order-preserving.tsx"
   />,
@@ -305,7 +305,7 @@ export const demos: ReactElement[] = [
     }
     manipulable={OrderPreserving.manipulable}
     initialState={OrderPreserving.state7To7}
-    height={600}
+    height={700}
     padding={20}
     defaultConfig={OrderPreserving.defaultConfig}
     ConfigPanel={OrderPreserving.ConfigPanel}
