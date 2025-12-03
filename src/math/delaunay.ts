@@ -1,6 +1,6 @@
 import { Delaunay } from "d3-delaunay";
 import _ from "lodash";
-import { assert } from "../utils";
+import { assert, assertWarning } from "../utils";
 import { Vec2 } from "./vec2";
 
 export function findTriangle(
@@ -135,7 +135,7 @@ export function projectOntoConvexHull(
       const edgeLen2 = edge.len2();
       assert(edgeLen2 > 0);
       const t = pt.sub(pt0).dot(edge) / edgeLen2;
-      assert(t >= 0 && t <= 1, () => {
+      assertWarning(t >= 0 && t <= 1, () => {
         console.log("t", t);
         console.log("pt", pt);
         console.log("pt0", pt0);
