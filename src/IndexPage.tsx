@@ -24,13 +24,6 @@ export function IndexPage() {
           </Link>
 
           <Link
-            to="/demos-canvas"
-            className="mt-6 text-sm text-gray-600 hover:text-gray-800 underline"
-          >
-            Canvas Demos (Legacy)
-          </Link>
-
-          <Link
             to="/pretty-print"
             className="mt-6 text-sm text-gray-600 hover:text-gray-800 underline"
           >

@@ -7,7 +7,6 @@ This document provides guidance for working on the draggable-diagrams codebase.
 - NEVER say "Perfect!" or similar overly enthusiastic confirmations – your work is rarely perfect. Just explain what was done.
 - NEVER use `any` as a lazy workaround for type errors. Only use `any` when it is truly called for (e.g., interfacing with untyped external code, or when the type system genuinely cannot express the constraint). Ask first.
 - NEVER run `npm run dev`. The user will start the dev server when needed.
-- `src/old-canvas-version` is around for archival purposes. It should not be necessary to touch it. Requests to modify manipulables do not refer to this code.
 
 ## Project Overview
 

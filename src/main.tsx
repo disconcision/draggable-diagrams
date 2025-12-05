@@ -8,7 +8,6 @@ import { DocsIndexPage } from "./DocsIndexPage";
 import { DocsPage } from "./DocsPage";
 import "./index.css";
 import { IndexPage } from "./IndexPage";
-import { demosCanvas } from "./old-canvas-version/demos-canvas";
 import { PrettyPrintDemo } from "./pretty-print-demo";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -20,8 +19,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         {autoRoute("/docs/:slug", DocsPage)}
         {autoRoute("/demos", DemoListPage, { demos })}
         {autoRoute("/demos/:id", SingleDemoPage, { demos })}
-        {autoRoute("/demos-canvas", DemoListPage, { demos: demosCanvas })}
-        {autoRoute("/demos-canvas/:id", SingleDemoPage, { demos: demosCanvas })}
         {autoRoute("/pretty-print", PrettyPrintDemo)}
       </Routes>
     </HashRouter>

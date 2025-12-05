@@ -1,4 +1,3 @@
-import { Layer } from "../old-canvas-version/layer";
 import { lerp, Vec2 } from "./vec2";
 
 export type XYWH = readonly [number, number, number, number];
@@ -97,35 +96,4 @@ export function polyArea(poly: Vec2[]): number {
     area -= poly[j].x * poly[i].y;
   }
   return Math.abs(area) / 2;
-}
-
-export function debugRect(
-  lyr: Layer,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  color: string = "magenta"
-) {
-  lyr.do(() => {
-    lyr.strokeStyle = color;
-    lyr.beginPath();
-    lyr.rect(x, y, w, h);
-    lyr.stroke();
-  });
-}
-
-export function debugPoly(lyr: Layer, poly: Vec2[], color: string = "magenta") {
-  lyr.do(() => {
-    lyr.strokeStyle = color;
-    lyr.beginPath();
-    if (poly.length > 0) {
-      lyr.moveTo(poly[0].x, poly[0].y);
-      for (const p of poly.slice(1)) {
-        lyr.lineTo(p.x, p.y);
-      }
-      lyr.closePath();
-    }
-    lyr.stroke();
-  });
 }
