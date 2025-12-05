@@ -1,5 +1,7 @@
-import { span } from "../DragSpec";
-import { Drag, Manipulable, translate } from "../manipulable";
+import { ConfigCheckbox, ConfigPanelProps } from "../configurable";
+import { configurableManipulable } from "../demos";
+import { detachReattach, span } from "../DragSpec";
+import { Drag, translate } from "../manipulable";
 import { Svgx } from "../svgx";
 
 export namespace Outline {
@@ -212,6 +214,14 @@ export namespace Outline {
     ],
   };
 
+  type Config = {
+    useDetachReattach: boolean;
+  };
+
+  const initialConfig: Config = {
+    useDetachReattach: false,
+  };
+
   const HEIGHT = 25;
   const WIDTH = 100;
   const INDENT = 20;
@@ -220,7 +230,8 @@ export namespace Outline {
     tree: Tree,
     rootState: Tree,
     draggedId: string | null,
-    drag: Drag<Tree>
+    drag: Drag<Tree>,
+    config: Config
   ): {
     elem: Svgx;
     h: number;
@@ -229,32 +240,7 @@ export namespace Outline {
     const zIndex = isDragged ? 1 : 0;
 
     const block = (
-      <g
-        data-on-drag={drag(() => {
-          const newState = structuredClone(rootState);
-          // Remove the dragged node from its current location
-          let foundNode: Tree | null = null;
-          function removeKey(node: Tree): boolean {
-            for (let i = 0; i < node.children.length; i++) {
-              if (node.children[i].id === tree.id) {
-                foundNode = node.children[i];
-                node.children.splice(i, 1);
-                return true;
-              }
-              if (removeKey(node.children[i])) {
-                return true;
-              }
-            }
-            return false;
-          }
-          removeKey(newState);
-          if (!foundNode) {
-            return [];
-          }
-
-          return span(insertAtAllPositions(newState, foundNode));
-        })}
-      >
+      <g>
         <rect
           x={0}
           y={0}
@@ -281,10 +267,52 @@ export namespace Outline {
 
     return {
       elem: (
-        <g id={tree.id} data-z-index={zIndex}>
+        <g
+          id={tree.id}
+          data-z-index={zIndex}
+          data-on-drag={drag(() => {
+            const detachedState = structuredClone(rootState);
+            // Remove the dragged node from its current location
+            let foundNode: Tree | null = null;
+            function removeKey(node: Tree): boolean {
+              for (let i = 0; i < node.children.length; i++) {
+                if (node.children[i].id === tree.id) {
+                  foundNode = node.children[i];
+                  node.children.splice(i, 1);
+                  return true;
+                }
+                if (removeKey(node.children[i])) {
+                  return true;
+                }
+              }
+              return false;
+            }
+            removeKey(detachedState);
+            if (!foundNode) {
+              return [];
+            }
+
+            const reattachedStates = insertAtAllPositions(
+              detachedState,
+              foundNode
+            );
+
+            if (config.useDetachReattach) {
+              return detachReattach(detachedState, reattachedStates);
+            } else {
+              return span(reattachedStates);
+            }
+          })}
+        >
           {block}
           {tree.children.map((child) => {
-            const childRender = renderTree(child, rootState, draggedId, drag);
+            const childRender = renderTree(
+              child,
+              rootState,
+              draggedId,
+              drag,
+              config
+            );
             const childPositioned = (
               <g id={`position-${child.id}`} transform={translate(INDENT, y)}>
                 {childRender.elem}
@@ -341,15 +369,26 @@ export namespace Outline {
     return helper(tree);
   }
 
-  export const manipulable: Manipulable<State> = ({
-    state,
-    drag,
-    draggedId,
-  }) => {
+  export const manipulable = configurableManipulable<State, Config>(
+    { initialConfig, ConfigPanel },
+    (config, { state, drag, draggedId }) => {
+      return (
+        <g transform={translate(10, 10)}>
+          {renderTree(state, state, draggedId, drag, config).elem}
+        </g>
+      );
+    }
+  );
+
+  function ConfigPanel({ config, setConfig }: ConfigPanelProps<Config>) {
     return (
-      <g transform={translate(10, 10)}>
-        {renderTree(state, state, draggedId, drag).elem}
-      </g>
+      <ConfigCheckbox
+        label="Detach/reattach"
+        value={config.useDetachReattach}
+        onChange={(newValue) =>
+          setConfig({ ...config, useDetachReattach: newValue })
+        }
+      />
     );
-  };
+  }
 }
