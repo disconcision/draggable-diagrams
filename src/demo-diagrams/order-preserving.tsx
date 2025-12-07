@@ -585,7 +585,7 @@ export namespace OrderPreserving {
             />
             {arrowhead({
               tip: toAdjusted,
-              headAngle: Math.PI / 10,
+              headAngleRad: Math.PI / 10,
               direction: to.sub(mid),
               headLength: 15,
               fill: "#4287f5",

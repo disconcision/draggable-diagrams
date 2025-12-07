@@ -1,6 +1,6 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { span } from "../DragSpec";
+import { span, straightTo } from "../DragSpec";
 import { Manipulable, translate } from "../manipulable";
 
 export namespace Braid {
@@ -111,6 +111,7 @@ export namespace Braid {
             data-z-index={1}
             data-on-drag={drag(() => [
               span(
+                state,
                 i > 0 &&
                   produce(state, (s) => {
                     s.seq.push([i, i - 1]);
@@ -120,12 +121,12 @@ export namespace Braid {
                     s.seq.push([i, i + 1]);
                   })
               ),
-              span(
-                state.seq.length > 0 &&
+              state.seq.length > 0 &&
+                straightTo(
                   produce(state, (s) => {
                     s.seq.pop();
                   })
-              ),
+                ),
             ])}
           >
             <circle r={20} fill="transparent" />

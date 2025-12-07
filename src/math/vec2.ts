@@ -1,11 +1,13 @@
 // mini Vec2 library by Elliot & Josh
 
+import { assertNever } from "../utils";
+
 export type Vec2 = Vec2Class;
 
 export type Vec2able =
   | Vec2
   | [number, number, ...any]
-  | readonly [number, number]
+  | readonly [number, number, ...any]
   | { x: number; y: number }
   | number;
 
@@ -18,15 +20,26 @@ export function Vec2(xOrXY: number | Vec2able, y?: number): Vec2 {
     } else {
       return new Vec2Class(xOrXY, y);
     }
+  } else if (xOrXY instanceof Vec2Class) {
+    return xOrXY;
   } else if (typeof xOrXY === "object" && "x" in xOrXY && "y" in xOrXY) {
     return new Vec2Class(xOrXY.x, xOrXY.y);
-  } else if (Array.isArray(xOrXY)) {
+  } else if (isArrayWithTwoNumbers(xOrXY)) {
     return new Vec2Class(xOrXY[0], xOrXY[1]);
   } else {
-    // TS doesn't think `readonly [number, number]` passes the
-    // Array.isArray check
-    return xOrXY as any as Vec2Class;
+    assertNever(xOrXY);
   }
+}
+
+export function isArrayWithTwoNumbers(
+  value: unknown
+): value is [number, number, ...any] | readonly [number, number, ...any] {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    typeof value[0] === "number" &&
+    typeof value[1] === "number"
+  );
 }
 
 class Vec2Class {
@@ -110,11 +123,11 @@ class Vec2Class {
     return this.div(this.len());
   }
 
-  angle(): number {
+  angleRad(): number {
     return Math.atan2(this.y, this.x);
   }
 
-  angleTo(v: Vec2able): number {
+  angleToRad(v: Vec2able): number {
     v = Vec2(v);
     return Math.atan2(v.y - this.y, v.x - this.x);
   }

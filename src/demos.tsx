@@ -356,7 +356,7 @@ export const demos: SomeDemoData[] = [
     title: "Rush Hour",
     manipulable: RushHour.manipulable,
     initialStates: [RushHour.state1],
-    height: 300,
+    height: 320,
     padding: 20,
     sourceFile: "rush-hour.tsx",
   }),

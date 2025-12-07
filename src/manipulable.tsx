@@ -18,7 +18,7 @@ import { LerpSpring } from "./math/lerp-spring";
 import { minimize } from "./math/minimize";
 import { Vec2, Vec2able } from "./math/vec2";
 import { getAtPath, setAtPath } from "./paths";
-import { prettyLog, PrettyPrint } from "./pretty-print";
+import { PrettyPrint } from "./pretty-print";
 import { Svgx, updatePropsDownTree } from "./svgx";
 import {
   accumulateTransforms,
@@ -51,9 +51,18 @@ export function translate(a: Vec2able | number, b?: number): string {
   return `translate(${x},${y}) `; // end in space
 }
 
-export function rotate(degrees: number, c: Vec2able = Vec2(0)): string {
+export function rotateDeg(degrees: number, c: Vec2able = Vec2(0)): string {
   const [cx, cy] = Vec2(c).arr();
   return `rotate(${degrees},${cx},${cy}) `; // end in space
+}
+
+export function rotateRad(radians: number, c: Vec2able = Vec2(0)): string {
+  return rotateDeg((radians * 180) / Math.PI, c);
+}
+
+/** @deprecated Use rotateDeg instead */
+export function rotate(degrees: number, c: Vec2able = Vec2(0)): string {
+  return rotateDeg(degrees, c);
 }
 
 export function scale(sx: number, sy?: number): string {
@@ -129,7 +138,7 @@ function lerpHoisted3(
   return lerpHoisted(ab, c, l2);
 }
 
-type ManifoldPoint<T> = {
+export type ManifoldPoint<T> = {
   state: T;
   hoisted: HoistedSvgx;
   dragSpecCallbackAtNewState: (() => DragSpec<T>) | undefined;
@@ -137,12 +146,12 @@ type ManifoldPoint<T> = {
   andThen: T | undefined;
 };
 
-type Manifold<T> = {
+export type Manifold<T> = {
   points: ManifoldPoint<T>[];
   delaunay: Delaunay<Delaunay.Point>;
 };
 
-type DragState<T> =
+export type DragState<T> =
   | { type: "idle"; state: T }
   | {
       type: "dragging";
@@ -305,8 +314,8 @@ function makeManifoldPoint<T extends object>({
     )
   );
 
-  console.log("making manifold point; element:");
-  prettyLog(element);
+  // console.log("making manifold point; element:");
+  // prettyLog(element);
 
   const accumulatedTransform = getAccumulatedTransform(element);
   const transforms = parseTransform(accumulatedTransform || "");
@@ -402,7 +411,7 @@ function computeEnterDraggingMode<T extends object>(
       detachedHoisted,
       reattachedPoints: dragSpec.reattachedStates.map((state) =>
         makeManifoldPoint({
-          state,
+          state: state.targetState,
           targetStateLike: state,
           manipulable,
           draggedPath,
@@ -443,19 +452,26 @@ function computeEnterDraggingMode<T extends object>(
 
   const startingPoint = makeManifoldPoint(makeManifoldPointProps);
 
-  const manifolds = manifoldSpecs.map(({ states }) => {
-    const points = [
-      startingPoint,
-      ...states
-        .filter((s) => !_.isEqual(s, state))
-        .map((state) =>
-          makeManifoldPoint({
-            ...makeManifoldPointProps,
-            targetStateLike: state,
-          })
-        ),
-    ];
+  const manifolds = manifoldSpecs.map((manifoldSpec) => {
+    const states =
+      manifoldSpec.type === "manifold"
+        ? manifoldSpec.states
+        : manifoldSpec.type === "straight-to"
+        ? [state, manifoldSpec.state]
+        : assertNever(manifoldSpec);
+
+    const points = states.map((state) =>
+      makeManifoldPoint({
+        ...makeManifoldPointProps,
+        targetStateLike: state,
+      })
+    );
+    console.log(
+      "triangulating manifold with points:",
+      points.map((info) => info.position.arr())
+    );
     const delaunay = Delaunay.from(points.map((info) => info.position.arr()));
+    console.log("created delaunay:", delaunay);
     return { points, delaunay };
   });
 
@@ -577,6 +593,7 @@ function computeRenderState<T extends object>(
       // Draw red triangulation edges
       const { triangles, points } = manifold.delaunay;
       for (let i = 0; i < triangles.length; i += 3) {
+        // TODO: make this more robust to weird -1s
         const ax = points[2 * triangles[i]];
         const ay = points[2 * triangles[i] + 1];
         const bx = points[2 * triangles[i + 1]];
@@ -723,7 +740,7 @@ function computeRenderState<T extends object>(
     let backgroundTarget = dragState.detachedHoisted;
     if (pointer.dist(closestPoint.position) < 50) {
       // that's perm TILE_SIZE lol
-      newState = closestPoint.state;
+      newState = closestPoint.andThen ?? closestPoint.state;
       newStateTarget = closestPoint.hoisted;
       const { remaining } = hoistedExtract(
         closestPoint.hoisted,

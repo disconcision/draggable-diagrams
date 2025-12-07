@@ -36,7 +36,7 @@ export function Demo<T extends object>({
   const [chainDrags, setChainDrags] = useState(
     initialDrawerConfig?.chainDrags ?? true
   );
-  const [relativePointerMotion, setRelativePointerMotion] = useState(
+  const [relativePointerMotion, _setRelativePointerMotion] = useState(
     initialDrawerConfig?.relativePointerMotion ?? false
   );
 
@@ -82,21 +82,29 @@ export function Demo<T extends object>({
         <div className="flex-1 min-w-0" style={{ padding }}>
           {initialStates.map((initialState, idx) => (
             <div key={idx}>
-              <ErrorBoundary>
-                <ManipulableDrawer
-                  manipulable={manipulable.withConfig(diagramConfig)}
-                  initialState={initialState}
-                  drawerConfig={{
-                    snapRadius,
-                    chainDrags,
-                    relativePointerMotion,
-                    animationDuration: 300,
-                  }}
-                  height={height}
-                  debugMode={debugMode}
-                  onDragStateChange={onDragStateChange}
-                />
-              </ErrorBoundary>
+              <div className="relative group">
+                <Link
+                  to={`/demos/${id}/inspect/${idx}`}
+                  className="absolute top-0 right-0 text-xs text-gray-400 hover:text-gray-600 no-underline opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  inspect
+                </Link>
+                <ErrorBoundary>
+                  <ManipulableDrawer
+                    manipulable={manipulable.withConfig(diagramConfig)}
+                    initialState={initialState}
+                    drawerConfig={{
+                      snapRadius,
+                      chainDrags,
+                      relativePointerMotion,
+                      animationDuration: 300,
+                    }}
+                    height={height}
+                    debugMode={debugMode}
+                    onDragStateChange={onDragStateChange}
+                  />
+                </ErrorBoundary>
+              </div>
               {initialStates.length > 1 && idx < initialStates.length - 1 && (
                 <div className="border-t border-gray-200 my-8" />
               )}
@@ -133,7 +141,7 @@ export function Demo<T extends object>({
           {/* <ConfigCheckbox
             label="Relative pointer motion"
             value={relativePointerMotion}
-            onChange={setRelativePointerMotion}
+            onChange={_setRelativePointerMotion}
           /> */}
           {demoData.manipulable.type === "configurable" && (
             <>

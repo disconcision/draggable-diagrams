@@ -90,9 +90,11 @@ export function prettyLog(
 export function PrettyPrint({
   value,
   style,
+  className,
 }: {
   value: unknown;
   style?: React.CSSProperties;
+  className?: string;
 }) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const measureRef = React.useRef<HTMLSpanElement>(null);
@@ -159,6 +161,7 @@ export function PrettyPrint({
     <div
       ref={containerRef}
       style={{ width: "100%", ...style, overflowX: "auto" }}
+      className={className}
     >
       {/* Hidden measurement element with same font as output */}
       <span

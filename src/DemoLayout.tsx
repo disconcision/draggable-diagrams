@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Demo } from "./Demo";
-import { SomeDemoData } from "./demos";
+import { demos } from "./demos";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { PrettyPrint } from "./pretty-print";
 
-export function DemoListPage({ demos }: { demos: SomeDemoData[] }) {
+export function DemoListPage() {
   const [debugMode, setDebugMode] = useState(false);
   const location = useLocation();
   const baseUrl = location.pathname;
@@ -42,13 +42,7 @@ export function DemoListPage({ demos }: { demos: SomeDemoData[] }) {
   );
 }
 
-export function SingleDemoPage({
-  demos,
-  id,
-}: {
-  demos: SomeDemoData[];
-  id: string;
-}) {
+export function SingleDemoPage({ id }: { id: string }) {
   const [debugMode, setDebugMode] = useState(false);
 
   const demo = demos.find((d) => d.run((demo) => demo.id === id));

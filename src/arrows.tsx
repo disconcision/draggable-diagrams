@@ -1,5 +1,5 @@
 import { SVGProps } from "react";
-import { path, translate } from "./manipulable";
+import { path, rotateRad, translate } from "./manipulable";
 import { Vec2, Vec2able } from "./math/vec2";
 
 /**
@@ -18,7 +18,7 @@ import { Vec2, Vec2able } from "./math/vec2";
 export function arrowhead({
   tip,
   direction,
-  headAngle = Math.PI / 8,
+  headAngleRad = Math.PI / 4,
   headLength = 20,
   ...polygonProps
 }: Omit<SVGProps<SVGPolygonElement>, "points" | "transform" | "direction"> & {
@@ -27,23 +27,20 @@ export function arrowhead({
   /** Direction vector the arrow points (will be normalized) */
   direction: Vec2able;
   /** Angle between the two sides of the arrowhead (default: Math.PI / 8) */
-  headAngle?: number;
+  headAngleRad?: number;
   /** Length from tip to base of arrowhead (default: 20) */
   headLength?: number;
 }) {
   const tipVec = Vec2(tip);
+  const dirVec = Vec2(direction);
 
-  // Vector pointing backwards from tip along the arrow direction
-  const backFromTip = Vec2(direction).norm().mul(-headLength);
+  // Define arrowhead pointing right (at 0 degrees) with tip at origin
+  const halfWidth = headLength * Math.tan(headAngleRad / 2);
 
   return (
     <polygon
-      transform={translate(tipVec)}
-      points={path(
-        Vec2(0),
-        backFromTip.rotate(headAngle),
-        backFromTip.rotate(-headAngle)
-      )}
+      transform={translate(tipVec) + rotateRad(dirVec.angleRad())}
+      points={path([0, 0], [-headLength, halfWidth], [-headLength, -halfWidth])}
       {...polygonProps}
     />
   );

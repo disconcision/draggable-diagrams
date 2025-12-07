@@ -12,10 +12,10 @@ export namespace Graph {
 
   export const state1: State = {
     nodes: {
-      "1": { x: 0, y: 0 },
-      "2": { x: 100, y: 0 },
-      "3": { x: 100, y: 100 },
-      "4": { x: 0, y: 100 },
+      "1": { x: 20, y: 20 },
+      "2": { x: 120, y: 20 },
+      "3": { x: 120, y: 120 },
+      "4": { x: 20, y: 120 },
     },
     edges: {
       "1": { from: "1", to: "2" },
@@ -77,7 +77,7 @@ export namespace Graph {
                 fill: "black",
                 "data-on-drag": drag(() => {
                   // Construct all new graphs where the "edgeKey" edge has a different node as "to"
-                  const newStates = [];
+                  const newStates = [state];
                   for (const newToNodeKey of Object.keys(state.nodes)) {
                     if (newToNodeKey === edge.from || newToNodeKey === edge.to)
                       continue;

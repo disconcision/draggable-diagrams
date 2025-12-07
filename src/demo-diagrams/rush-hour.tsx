@@ -53,7 +53,7 @@ export namespace RushHour {
       )?.y;
 
       return (
-        <g>
+        <g transform={translate(BORDER_WIDTH, BORDER_WIDTH)}>
           {/* Grid */}
           {_.range(state.w).map((x) =>
             _.range(state.h).map((y) => (
