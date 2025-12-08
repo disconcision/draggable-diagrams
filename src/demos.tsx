@@ -253,7 +253,7 @@ export const demos: SomeDemoData[] = [
   }),
   demoData({
     id: "bezier",
-    title: "Bezier Curve Editor",
+    title: "Bezier curve editor",
     notes: (
       <>
         Drag the endpoints (red) or control points (yellow) orrrrr the curve
@@ -404,10 +404,23 @@ export const demos: SomeDemoData[] = [
   }),
   demoData({
     id: "dragon",
-    title: "Dragon",
+    title: "Dragon curve",
+    notes: (
+      <>
+        Adapted from{" "}
+        <a
+          href="https://omrelli.ug/g9/"
+          className="hover:text-gray-700 hover:underline"
+        >
+          g9's famous example
+        </a>
+        . Nice performance stress test (which we are failing; try larger
+        "Levels").
+      </>
+    ),
     manipulable: Dragon.manipulable,
     initialStates: [Dragon.state1],
-    height: 500,
+    height: 300,
     padding: 20,
     initialDrawerConfig: { relativePointerMotion: true },
     sourceFile: "dragon.tsx",
