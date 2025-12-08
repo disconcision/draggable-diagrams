@@ -1,5 +1,5 @@
 import { numAtPath } from "../DragSpec";
-import { Manipulable, rotate, translate } from "../manipulable";
+import { Manipulable, rotateDeg, translate } from "../manipulable";
 
 export namespace Clock {
   export type State = {
@@ -18,7 +18,7 @@ export namespace Clock {
       strokeWidth: number
     ) {
       return (
-        <g id={name} transform={translate(100, 100) + rotate(degrees)}>
+        <g id={name} transform={translate(100, 100) + rotateDeg(degrees)}>
           <line
             x1={0}
             y1={0}

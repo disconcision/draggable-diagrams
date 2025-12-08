@@ -1,6 +1,6 @@
 import { produce } from "immer";
 import { straightTo } from "../DragSpec";
-import { Manipulable, rotate, translate } from "../manipulable";
+import { Manipulable, rotateDeg, translate } from "../manipulable";
 
 export namespace Spinny {
   export type State = {
@@ -32,7 +32,9 @@ export namespace Spinny {
         return (
           <g
             id={p}
-            transform={rotate(angle) + translate(RADIUS, 0) + rotate(-angle)}
+            transform={
+              rotateDeg(angle) + translate(RADIUS, 0) + rotateDeg(-angle)
+            }
             data-z-index={1}
             data-on-drag={drag([
               straightTo(

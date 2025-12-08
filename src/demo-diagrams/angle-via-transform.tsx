@@ -1,5 +1,5 @@
 import { numAtPath } from "../DragSpec";
-import { Manipulable, rotate, translate } from "../manipulable";
+import { Manipulable, rotateDeg, translate } from "../manipulable";
 
 export namespace AngleViaTransform {
   export type State = {
@@ -15,7 +15,7 @@ export namespace AngleViaTransform {
 
     return (
       <g transform={translate(100, 100)}>
-        <g transform={rotate(state.angle)}>
+        <g transform={rotateDeg(state.angle)}>
           <line
             x1={0}
             y1={0}
