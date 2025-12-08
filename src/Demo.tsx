@@ -42,7 +42,7 @@ export function Demo<T extends object>({
 
   const [diagramConfig, setDiagramConfig] = useState<any>(
     demoData.manipulable.type === "configurable"
-      ? demoData.manipulable.initialConfig
+      ? demoData.manipulable.defaultConfig
       : undefined
   );
 

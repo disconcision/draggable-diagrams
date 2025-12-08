@@ -62,12 +62,12 @@ export namespace Sokoban {
     levelEditable: boolean;
   };
 
-  const initialConfig: Config = {
+  const defaultConfig: Config = {
     levelEditable: false,
   };
 
   export const manipulable = configurableManipulable<State, Config>(
-    { initialConfig, ConfigPanel },
+    { defaultConfig, ConfigPanel },
     (config, { state, drag }) => {
       const TILE_SIZE = 50;
 

@@ -106,7 +106,7 @@ export namespace NoolTree {
     pullDownTail: boolean;
   };
 
-  const initialConfig: Config = {
+  const defaultConfig: Config = {
     commutativity: true,
     pullUpOp: false,
     pullDownOp: false,
@@ -115,7 +115,7 @@ export namespace NoolTree {
   };
 
   export const manipulable = configurableManipulable<State, Config>(
-    { initialConfig, ConfigPanel },
+    { defaultConfig, ConfigPanel },
     (config, { state, drag }) => {
       return renderTree(state, state, drag, config).element;
     }

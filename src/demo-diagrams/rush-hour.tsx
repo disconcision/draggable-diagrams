@@ -39,12 +39,12 @@ export namespace RushHour {
     oneSquareAtATime: boolean;
   };
 
-  const initialConfig: Config = {
+  const defaultConfig: Config = {
     oneSquareAtATime: false,
   };
 
   export const manipulable = configurableManipulable<State, Config>(
-    { initialConfig, ConfigPanel },
+    { defaultConfig, ConfigPanel },
     (config, { state, drag }) => {
       const TILE_SIZE = 50;
       const BORDER_WIDTH = 10;

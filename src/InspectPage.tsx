@@ -86,7 +86,7 @@ export function InspectPage({
               <ManipulableDrawer
                 manipulable={demo.manipulable.withConfig(
                   demo.manipulable.type === "configurable"
-                    ? demo.manipulable.initialConfig
+                    ? demo.manipulable.defaultConfig
                     : undefined
                 )}
                 initialState={initialState}

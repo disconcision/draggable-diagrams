@@ -31,14 +31,14 @@ export namespace Todo {
     useDetachReattach: boolean;
   };
 
-  const initialConfig: Config = {
+  const defaultConfig: Config = {
     useDetachReattach: false,
   };
 
   const TILE_SIZE = 55;
 
   export const manipulable = configurableManipulable<State, Config>(
-    { initialConfig, ConfigPanel },
+    { defaultConfig, ConfigPanel },
     (config, { state, drag, draggedId, setState }) => {
       return (
         <g>

@@ -78,13 +78,13 @@ export namespace OrderPreserving {
     showTradRep: boolean;
   };
 
-  const initialConfig: Config = {
+  const defaultConfig: Config = {
     oneNodeAtATime: false,
     showTradRep: false,
   };
 
   export const manipulable = configurableManipulable<State, Config>(
-    { initialConfig, ConfigPanel },
+    { defaultConfig, ConfigPanel },
     (config, { state, drag }) => {
       const { morph } = state;
       const elements: Svgx[] = [];

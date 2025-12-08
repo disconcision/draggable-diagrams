@@ -218,7 +218,7 @@ export namespace Outline {
     useDetachReattach: boolean;
   };
 
-  const initialConfig: Config = {
+  const defaultConfig: Config = {
     useDetachReattach: false,
   };
 
@@ -370,7 +370,7 @@ export namespace Outline {
   }
 
   export const manipulable = configurableManipulable<State, Config>(
-    { initialConfig, ConfigPanel },
+    { defaultConfig, ConfigPanel },
     (config, { state, drag, draggedId }) => {
       return (
         <g transform={translate(10, 10)}>

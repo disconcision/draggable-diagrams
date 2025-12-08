@@ -6,7 +6,7 @@ export type Configurable<T, Config> = {
 } & ConfigurableProps<Config>;
 
 export type ConfigurableProps<Config> = {
-  initialConfig: Config;
+  defaultConfig: Config;
   ConfigPanel: React.ComponentType<ConfigPanelProps<Config>>;
 };
 
@@ -22,7 +22,7 @@ export function configurable<T, Config>(
   return {
     type: "configurable",
     withConfig,
-    initialConfig: props.initialConfig,
+    defaultConfig: props.defaultConfig,
     ConfigPanel: props.ConfigPanel,
   };
 }
