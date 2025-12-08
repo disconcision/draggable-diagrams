@@ -60,11 +60,6 @@ export function rotateRad(radians: number, c: Vec2able = Vec2(0)): string {
   return rotateDeg((radians * 180) / Math.PI, c);
 }
 
-/** @deprecated Use rotateDeg instead */
-export function rotate(degrees: number, c: Vec2able = Vec2(0)): string {
-  return rotateDeg(degrees, c);
-}
-
 export function scale(sx: number, sy?: number): string {
   if (sy === undefined) sy = sx;
   return `scale(${sx},${sy}) `; // end in space

@@ -29,7 +29,7 @@ import { numsAtPaths } from "./DragSpec";
 import {
   DrawerConfig,
   Manipulable,
-  rotate,
+  rotateDeg,
   scale,
   translate,
 } from "./manipulable";
@@ -309,7 +309,7 @@ export const demos: SomeDemoData[] = [
     manipulable: ({ state: { angle, scaleX }, drag }) => (
       <circle
         transform={
-          translate(100, 100) + rotate(angle) + scale(scaleX, 1 / scaleX)
+          translate(100, 100) + rotateDeg(angle) + scale(scaleX, 1 / scaleX)
         }
         cx={0}
         cy={0}
