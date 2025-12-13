@@ -904,7 +904,7 @@ export function ManipulableDrawer<T extends object>({
     };
   }, []);
 
-  const [Svgx, setSvgx] = useState<SVGSVGElement | null>(null);
+  const [svgElem, setSvgElem] = useState<SVGSVGElement | null>(null);
 
   function postProcessForInteraction(element: Svgx, state: T): HoistedSvgx {
     return pipe(
@@ -929,13 +929,7 @@ export function ManipulableDrawer<T extends object>({
               try {
                 // console.log("onPointerDown");
                 e.stopPropagation();
-                assert(!!Svgx, "SVG element must be set");
-                const rect = Svgx.getBoundingClientRect();
-                const pointerPos = Vec2(
-                  e.clientX - rect.left,
-                  e.clientY - rect.top
-                );
-                setPointer(pointerPos);
+                const pointerPos = setPointerFromEvent(e.nativeEvent);
                 const accumulatedTransform = getAccumulatedTransform(el);
                 const transforms = parseTransform(accumulatedTransform || "");
                 const pointerLocal = globalToLocal(transforms, pointerPos);
@@ -987,10 +981,19 @@ export function ManipulableDrawer<T extends object>({
     }
   }, [dragState.type]);
 
+  const setPointerFromEvent = useCallback(
+    (e: globalThis.PointerEvent) => {
+      assert(!!svgElem);
+      const rect = svgElem.getBoundingClientRect();
+      const pointerPos = Vec2(e.clientX - rect.left, e.clientY - rect.top);
+      setPointer(pointerPos);
+      return pointerPos;
+    },
+    [svgElem]
+  );
+
   // Attach document-level event listeners during drag
   useEffect(() => {
-    if (!Svgx) return;
-
     if (
       dragState.type !== "dragging" &&
       dragState.type !== "dragging-detach-reattach" &&
@@ -1001,8 +1004,7 @@ export function ManipulableDrawer<T extends object>({
 
     const handlePointerMove = (e: globalThis.PointerEvent) => {
       if (paused) return;
-      const rect = Svgx.getBoundingClientRect();
-      setPointer(Vec2(e.clientX - rect.left, e.clientY - rect.top));
+      setPointerFromEvent(e);
     };
 
     const handlePointerUp = () => {
@@ -1014,6 +1016,7 @@ export function ManipulableDrawer<T extends object>({
     };
 
     const handlePointerCancel = () => {
+      // TODO: we need to do something with dragstate in this case
       setPointer(null);
     };
 
@@ -1026,13 +1029,13 @@ export function ManipulableDrawer<T extends object>({
       document.removeEventListener("pointerup", handlePointerUp);
       document.removeEventListener("pointercancel", handlePointerCancel);
     };
-  }, [Svgx, dragState.type, onPointerUp, paused]);
+  }, [dragState.type, onPointerUp, paused, setPointerFromEvent]);
 
   // prettyLog(sortedEntries, { label: "sortedEntries for rendering" });
 
   return (
     <svg
-      ref={setSvgx}
+      ref={setSvgElem}
       width={width}
       height={height}
       xmlns="http://www.w3.org/2000/svg"
