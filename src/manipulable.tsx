@@ -1,4 +1,3 @@
-import { Delaunay } from "d3-delaunay";
 import * as d3Ease from "d3-ease";
 import _ from "lodash";
 import {
@@ -13,7 +12,7 @@ import {
 } from "react";
 import { DragSpec, span, TargetStateLike, toTargetState } from "./DragSpec";
 import { ErrorWithJSX } from "./ErrorBoundary";
-import { projectOntoConvexHull } from "./math/delaunay";
+import { Delaunay } from "./math/delaunay";
 import { LerpSpring } from "./math/lerp-spring";
 import { minimize } from "./math/minimize";
 import { Vec2, Vec2able } from "./math/vec2";
@@ -158,7 +157,7 @@ export type ManifoldPoint<T> = {
 
 export type Manifold<T> = {
   points: ManifoldPoint<T>[];
-  delaunay: Delaunay<Delaunay.Point>;
+  delaunay: Delaunay;
 };
 
 export type DragState<T> =
@@ -483,7 +482,7 @@ function computeEnterDraggingMode<T extends object>(
       "triangulating manifold with points:",
       points.map((info) => info.position.arr())
     );
-    const delaunay = Delaunay.from(points.map((info) => info.position.arr()));
+    const delaunay = new Delaunay(points.map((info) => info.position.arr()));
     console.log("created delaunay:", delaunay);
     return { points, delaunay };
   });
@@ -581,7 +580,7 @@ function computeRenderState<T extends object>(
     const draggableDestPt = Vec2(pointer);
 
     const manifoldProjections = dragState.manifolds.map((manifold) => ({
-      ...projectOntoConvexHull(manifold.delaunay, draggableDestPt),
+      ...manifold.delaunay.projectOntoConvexHull(draggableDestPt),
       manifold,
     }));
 
@@ -604,25 +603,17 @@ function computeRenderState<T extends object>(
       });
 
       // Draw red triangulation edges
-      const { triangles, points } = manifold.delaunay;
-      for (let i = 0; i < triangles.length; i += 3) {
-        // TODO: make this more robust to weird -1s
-        const ax = points[2 * triangles[i]];
-        const ay = points[2 * triangles[i] + 1];
-        const bx = points[2 * triangles[i + 1]];
-        const by = points[2 * triangles[i + 1] + 1];
-        const cx = points[2 * triangles[i + 2]];
-        const cy = points[2 * triangles[i + 2] + 1];
-
+      manifold.delaunay.triangles().forEach((tri) => {
+        const [a, b, c] = tri;
         debugRender.push(
           <path
-            d={path("M", ax, ay, "L", bx, by, "L", cx, cy, "Z")}
+            d={path("M", a.x, a.y, "L", b.x, b.y, "L", c.x, c.y, "Z")}
             stroke="red"
             strokeWidth={2}
             fill="none"
           />
         );
-      }
+      });
 
       // Draw blue circle at projected point
       debugRender.push(

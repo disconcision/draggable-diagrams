@@ -64,8 +64,8 @@ export function span<T>(
 ): DragSpecManifold<T> {
   const states = manyToArray(manyStates);
   assert(
-    states.length > 1,
-    "span requires at least two states... did you forget the starting state, or mean to use straightTo?"
+    states.length > 0,
+    "span requires at least one state... did you forget the starting state?"
   );
   return {
     type: "manifold",
