@@ -5,7 +5,7 @@ import {
   Manifold,
   ManifoldPoint,
   ManipulableDrawer,
-} from "./manipulable";
+} from "./ManipulableDrawer";
 import { PrettyPrint } from "./pretty-print";
 import { drawHoisted } from "./svgx/hoist";
 

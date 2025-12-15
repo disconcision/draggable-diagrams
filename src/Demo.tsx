@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ConfigCheckbox } from "./configurable";
 import { DemoData } from "./demos";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { ManipulableDrawer } from "./manipulable";
+import { ManipulableDrawer } from "./ManipulableDrawer";
 
 export function Demo<T extends object>({
   demoData,

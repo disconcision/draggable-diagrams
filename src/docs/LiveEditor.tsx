@@ -9,7 +9,8 @@ import { createElement, useMemo, useState } from "react";
 import * as DragSpecModule from "../DragSpec";
 import { ErrorBoundary } from "../ErrorBoundary";
 import * as ManipulableModule from "../manipulable";
-import { Manipulable, ManipulableDrawer } from "../manipulable";
+import { Manipulable } from "../manipulable";
+import { ManipulableDrawer } from "../ManipulableDrawer";
 import { normalizeIndent } from "../normalizeIndent";
 import { numberScrubber } from "./numberScrubber";
 

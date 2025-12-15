@@ -174,3 +174,9 @@ export function hasKey<K extends string | number | symbol>(
 export function emptyToUndefined<T>(arr: T[]): T[] | undefined {
   return arr.length === 0 ? undefined : arr;
 }
+
+export function noOp(): void {}
+
+export function throwError(): never {
+  throw new Error("This function should not have been called");
+}

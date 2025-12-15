@@ -29,7 +29,8 @@ import { Spinny } from "./demo-diagrams/spinny";
 import { Tiles } from "./demo-diagrams/tiles";
 import { Todo } from "./demo-diagrams/todo";
 import { numsAtPaths } from "./DragSpec";
-import { DrawerConfig, Manipulable } from "./manipulable";
+import { Manipulable } from "./manipulable";
+import { DrawerConfig } from "./ManipulableDrawer";
 import { rotateDeg, scale, translate } from "./svgx/helpers";
 import { hasKey } from "./utils";
 
