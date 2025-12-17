@@ -6,6 +6,7 @@ import { Bezier } from "./demo-diagrams/bezier";
 import { BluefishPerm } from "./demo-diagrams/bluefish-perm";
 import { BluefishStatic } from "./demo-diagrams/bluefish-static";
 import { Braid } from "./demo-diagrams/braid";
+import { Carousel } from "./demo-diagrams/carousel";
 import { Clock } from "./demo-diagrams/clock";
 import { Dragon } from "./demo-diagrams/dragon";
 import { Fifteen } from "./demo-diagrams/fifteen";
@@ -251,6 +252,20 @@ export const demos: SomeDemoData[] = [
     height: 400,
     padding: 20,
     sourceFile: "todo.tsx",
+  }),
+  demoData({
+    id: "carousel",
+    title: "Carousel",
+    notes:
+      "Partially-AI-generated carousel with swipe navigation, interactive dots, and arrow buttons." +
+      " Ought to use clipPaths but those don't work yet." +
+      " Fun bug: try clicking next/prev buttons rapidly.",
+    manipulable: Carousel.manipulable,
+    initialStates: [Carousel.state1],
+    height: 300,
+    padding: 20,
+    sourceFile: "carousel.tsx",
+    initialDrawerConfig: { snapRadius: 1 },
   }),
   demoData({
     id: "rush-hour",

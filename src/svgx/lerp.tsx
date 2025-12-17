@@ -23,6 +23,8 @@ const COLOR_PROPS = new Set([
   "outlineColor",
 ]);
 
+const NO_LERP_PROPS = new Set(["pointerEvents"]);
+
 /**
  * Parses a points string (e.g., "0,0 10,5 20,10") into an array of [x, y] pairs.
  */
@@ -207,6 +209,7 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
     // TODO: audit handling of data- props
     if (key.startsWith("data-") && key !== "data-z-index") continue;
     if (/^on[A-Z]/.test(key)) continue;
+    if (NO_LERP_PROPS.has(key)) continue;
 
     const valA = propsA[key];
     const valB = propsB[key];
