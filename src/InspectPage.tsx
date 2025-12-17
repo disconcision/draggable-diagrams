@@ -90,12 +90,7 @@ export function InspectPage({
                     : undefined
                 )}
                 initialState={initialState}
-                drawerConfig={{
-                  snapRadius: 10,
-                  chainDrags: true,
-                  relativePointerMotion: false,
-                  animationDuration: 300,
-                }}
+                drawerConfig={demo.initialDrawerConfig}
                 height={demo.height}
                 debugMode={debugMode}
                 onDragStateChange={setDragState}
