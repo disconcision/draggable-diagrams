@@ -6,12 +6,12 @@ import React from "react";
 export type Svgx = React.ReactElement<React.SVGProps<SVGElement>>;
 
 /**
- * Determines if we should recurse into an element's children when walking the tree.
- * Returns false for foreignObject to avoid processing non-SVG content inside it.
- * It's still fine to read the foreignObject element's props (like transform).
+ * Determines if we should recurse into an element's children when
+ * walking the tree. Returns false for stuff that shouldn't get
+ * processed or hoisted.
  */
 export function shouldRecurseIntoChildren(element: Svgx): boolean {
-  return element.type !== "foreignObject";
+  return element.type !== "foreignObject" && element.type !== "defs";
 }
 
 /**
