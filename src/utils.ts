@@ -201,3 +201,32 @@ export function uPairs<T>(l: T[]): [T, T][] {
   }
   return result;
 }
+
+/**
+ * Make a function that can be called either directly or as a template literal tag
+ */
+export function templateLiteralTagOrNot<R>(fn: (input: string) => R) {
+  function wrapper(s: string): R;
+  function wrapper(strings: TemplateStringsArray, ...values: unknown[]): R;
+  function wrapper(a: any, ...rest: any[]): R {
+    if (typeof a === "string") {
+      return fn(a);
+    } else {
+      // Called as a template literal tag
+      let out = a[0];
+      for (let i = 0; i < rest.length; i++) {
+        out += String(rest[i]) + a[i + 1];
+      }
+      return fn(out);
+    }
+  }
+  return wrapper;
+}
+
+export type Entries<T> = {
+  [K in keyof T]: [K, T[K]];
+}[keyof T][];
+
+export function objectEntries<T extends object>(obj: T): Entries<T> {
+  return Object.entries(obj) as Entries<T>;
+}

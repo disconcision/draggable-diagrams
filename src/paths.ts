@@ -26,7 +26,6 @@ export function getAtPath<T, V>(obj: T, path: PathIn<T, V>): V {
 
 // Set value at path immutably, preserving type structure
 export function setAtPath<T, V>(obj: T, path: PathIn<T, V>, value: V): T {
-  console.log("setAtPath", obj, path, value);
   const [first, ...rest] = path as [any, ...any[]];
 
   if (rest.length === 0) {

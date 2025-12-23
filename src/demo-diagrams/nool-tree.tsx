@@ -1,29 +1,21 @@
 import _ from "lodash";
+import { ReactNode } from "react";
+import {
+  allPossibleRewrites,
+  isWildcard,
+  Pattern,
+  rewr,
+  Rewrite,
+  Tree,
+} from "../asts";
 import { ConfigCheckbox, ConfigPanelProps } from "../configurable";
 import { configurableManipulable } from "../demos";
-import { DragSpec, straightTo } from "../DragSpec";
+import { DragSpec, span, straightTo } from "../DragSpec";
 import { Drag } from "../manipulable";
-import { translate } from "../svgx/helpers";
 import { Svgx } from "../svgx";
-import { insertImm, removeImm, setImm } from "../utils";
+import { translate } from "../svgx/helpers";
 
 export namespace NoolTree {
-  // # trees
-
-  export type Tree = {
-    id: string;
-    label: string;
-    children: Tree[];
-  };
-
-  function isOp(node: Tree): boolean {
-    return node.label === "+" || node.label === "×";
-  }
-
-  function isBinaryOp(node: Tree): boolean {
-    return isOp(node) && node.children.length === 2;
-  }
-
   // # state etc
 
   export type State = Tree;
@@ -99,20 +91,73 @@ export namespace NoolTree {
     ],
   };
 
+  type RewriteSet = {
+    rewrites: Rewrite[];
+    title: string;
+    subtitle?: string;
+    defaultEnabled?: boolean;
+  };
+
+  const rewriteSets: RewriteSet[] = [
+    {
+      title: "Commutativity",
+      rewrites: [
+        rewr("(+ #A #B)", "(+ B A)"),
+        rewr("(× #A #B)", "(× B A)"),
+        // comment for line break
+      ],
+      defaultEnabled: true,
+    },
+    {
+      title: "Associativity",
+      subtitle: "Pull up op",
+      rewrites: [
+        rewr("(+2 #(+1 A B) C)", "(+1 A (+2 B C))"),
+        rewr("(+1 A #(+2 B C))", "(+2 (+1 A B) C)"),
+        rewr("(×2 #(×1 A B) C)", "(×1 A (×2 B C))"),
+        rewr("(×1 A #(×2 B C))", "(×2 (×1 A B) C)"),
+      ],
+    },
+    {
+      title: "Associativity",
+      subtitle: "Pull down op",
+      rewrites: [
+        rewr("#(+1 A (+2 B C))", "(+2 (+1 A B) C)"),
+        rewr("#(+2 (+1 A B) C)", "(+1 A (+2 B C))"),
+        rewr("#(×1 A (×2 B C))", "(×2 (×1 A B) C)"),
+        rewr("#(×2 (×1 A B) C)", "(×1 A (×2 B C))"),
+      ],
+    },
+    {
+      title: "Associativity",
+      subtitle: "Pull up operand",
+      rewrites: [
+        rewr("(+2 (+1 #A B) C)", "(+1 A (+2 B C))"),
+        rewr("(+1 A (+2 #B C))", "(+2 (+1 A B) C)"),
+        rewr("(×2 (×1 #A B) C)", "(×1 A (×2 B C))"),
+        rewr("(×1 A (×2 #B C))", "(×2 (×1 A B) C)"),
+      ],
+      defaultEnabled: true,
+    },
+    {
+      title: "Associativity",
+      subtitle: "Pull down operand",
+      rewrites: [
+        rewr("(+1 #A (+2 B C))", "(+2 (+1 A B) C)"),
+        rewr("(+2 (+1 A B) #C)", "(+1 A (+2 B C))"),
+        rewr("(×1 #A (×2 B C))", "(×2 (×1 A B) C)"),
+        rewr("(×2 (×1 A B) #C)", "(×1 A (×2 B C))"),
+      ],
+      defaultEnabled: true,
+    },
+  ];
+
   type Config = {
-    commutativity: boolean;
-    pullUpOp: boolean;
-    pullDownOp: boolean;
-    pullUpTail: boolean;
-    pullDownTail: boolean;
+    activeRewriteSets: boolean[];
   };
 
   const defaultConfig: Config = {
-    commutativity: true,
-    pullUpOp: false,
-    pullDownOp: false,
-    pullUpTail: true,
-    pullDownTail: true,
+    activeRewriteSets: rewriteSets.map((rs) => rs.defaultEnabled ?? false),
   };
 
   export const manipulable = configurableManipulable<State, Config>(
@@ -208,255 +253,96 @@ export namespace NoolTree {
     draggedKey: string,
     config: Config
   ): DragSpec<State> {
-    function walk(currentTree: Tree, replaceNode: (newNode: Tree) => void) {
-      // commutativity
-      if (config.commutativity && isOp(currentTree)) {
-        const childIdx = currentTree.children.findIndex(
-          (c) => c.id === draggedKey
-        );
-        if (childIdx !== -1) {
-          const dragged = currentTree.children[childIdx];
-          const childrenWithoutDragged = removeImm(
-            currentTree.children,
-            childIdx
-          );
-          _.range(0, childrenWithoutDragged.length + 1).forEach((insertIdx) => {
-            if (insertIdx === childIdx) return;
-            replaceNode({
-              ...currentTree,
-              children: insertImm(childrenWithoutDragged, insertIdx, dragged),
-            });
-          });
-        }
-      }
+    const newTrees = allPossibleRewrites(
+      state,
+      _.zip(rewriteSets, config.activeRewriteSets).flatMap(([set, enabled]) =>
+        enabled ? set!.rewrites : []
+      ),
+      draggedKey
+    );
 
-      // pull up op to associate
-      if (config.pullUpOp && isBinaryOp(currentTree)) {
-        const childIdx = currentTree.children.findIndex(
-          (c) => c.id === draggedKey
-        );
-        if (childIdx !== -1) {
-          const dragged = currentTree.children[childIdx];
-          if (dragged.label === currentTree.label && isBinaryOp(dragged)) {
-            if (childIdx === 0) {
-              replaceNode({
-                ...dragged,
-                children: [
-                  dragged.children[0],
-                  {
-                    ...currentTree,
-                    children: [dragged.children[1], currentTree.children[1]],
-                  },
-                ],
-              });
-            } else {
-              replaceNode({
-                ...dragged,
-                children: [
-                  {
-                    ...currentTree,
-                    children: [currentTree.children[0], dragged.children[0]],
-                  },
-                  dragged.children[1],
-                ],
-              });
-            }
+    return [span(state), newTrees.map(straightTo)];
+  }
+
+  const drawRewrite = (rewrite: Rewrite) => {
+    function findFirstTriggerId(pattern: Pattern): string | null {
+      if (pattern.isTrigger) {
+        return pattern.id;
+      }
+      if (!isWildcard(pattern)) {
+        for (const child of pattern.children) {
+          const result = findFirstTriggerId(child);
+          if (result !== null) {
+            return result;
           }
         }
       }
+      return null;
+    }
+    const firstTriggerId = findFirstTriggerId(rewrite.from);
+    return (
+      <>
+        {drawPattern(rewrite.from, true, firstTriggerId)} →{" "}
+        {drawPattern(rewrite.to, true, firstTriggerId)}
+      </>
+    );
+  };
 
-      // pull down op to associate
-      if (
-        config.pullDownOp &&
-        currentTree.id === draggedKey &&
-        isBinaryOp(currentTree)
-      ) {
-        const child0 = currentTree.children[0];
-        if (isBinaryOp(child0) && child0.label === currentTree.label) {
-          replaceNode({
-            ...child0,
-            children: [
-              child0.children[0],
-              {
-                ...currentTree,
-                children: [child0.children[1], currentTree.children[1]],
-              },
-            ],
-          });
-        }
-        const child1 = currentTree.children[1];
-        if (isBinaryOp(child1) && child1.label === currentTree.label) {
-          replaceNode({
-            ...child1,
-            children: [
-              {
-                ...currentTree,
-                children: [currentTree.children[0], child1.children[0]],
-              },
-              child1.children[1],
-            ],
-          });
-        }
-      }
-
-      // pull up "tail" to associate
-      if (config.pullUpTail && isBinaryOp(currentTree)) {
-        const child0 = currentTree.children[0];
-        if (isBinaryOp(child0) && child0.label === currentTree.label) {
-          const grandchild0 = child0.children[0];
-          if (grandchild0.id === draggedKey) {
-            replaceNode({
-              ...child0,
-              children: [
-                grandchild0,
-                {
-                  ...currentTree,
-                  children: [child0.children[1], currentTree.children[1]],
-                },
-              ],
-            });
-          }
-        }
-        const child1 = currentTree.children[1];
-        if (isBinaryOp(child1) && child1.label === currentTree.label) {
-          const grandchild1 = child1.children[1];
-          if (grandchild1.id === draggedKey) {
-            replaceNode({
-              ...child1,
-              children: [
-                {
-                  ...currentTree,
-                  children: [currentTree.children[0], child1.children[0]],
-                },
-                grandchild1,
-              ],
-            });
-          }
-        }
-      }
-
-      // pull down "tail" to associate
-      if (config.pullDownTail && isBinaryOp(currentTree)) {
-        const [child0, child1] = currentTree.children;
-        if (
-          isBinaryOp(child0) &&
-          child0.label === currentTree.label &&
-          child1.id === draggedKey
-        ) {
-          replaceNode({
-            ...child0,
-            children: [
-              child0.children[0],
-              {
-                ...currentTree,
-                children: [child0.children[1], child1],
-              },
-            ],
-          });
-        }
-        if (
-          isBinaryOp(child1) &&
-          child1.label === currentTree.label &&
-          child0.id === draggedKey
-        ) {
-          replaceNode({
-            ...child1,
-            children: [
-              {
-                ...currentTree,
-                children: [child0, child1.children[0]],
-              },
-              child1.children[1],
-            ],
-          });
-        }
-      }
-
-      // recurse
-      currentTree.children.forEach((child, childIdx) =>
-        walk(child, (newChild) =>
-          replaceNode({
-            ...currentTree,
-            children: setImm(currentTree.children, childIdx, newChild),
-          })
-        )
+  const drawPattern = (
+    pattern: Pattern,
+    topLevel: boolean,
+    firstTriggerId: string | null
+  ): ReactNode => {
+    let contents;
+    if (isWildcard(pattern)) {
+      contents = pattern.id;
+    } else {
+      const opById: Record<string, ReactNode> = {
+        "+": <span className="text-red-600 font-bold">+</span>,
+        "+1": <span className="text-red-600 font-bold">+</span>,
+        "+2": <span className="text-green-600 font-bold">+</span>,
+      };
+      contents = (
+        <>
+          {topLevel ? "" : "("}
+          {pattern.children.length > 0 &&
+            pattern.children.map((child, i) => [
+              i > 0 && <> {opById[pattern.id]} </>,
+              drawPattern(child, false, firstTriggerId),
+            ])}
+          {topLevel ? "" : ")"}
+        </>
       );
     }
 
-    const spec: DragSpec<State> = [];
-    walk(state, (newTree) => {
-      spec.push(straightTo(newTree));
-    });
-    return spec;
-  }
+    if (pattern.id === firstTriggerId) {
+      return <span className="bg-amber-200 rounded-sm p-0.5">{contents}</span>;
+    } else {
+      return contents;
+    }
+  };
 
   function ConfigPanel({ config, setConfig }: ConfigPanelProps<Config>) {
-    const plus1 = <span className="text-red-600 font-bold">+</span>;
-    const plus2 = <span className="text-green-600 font-bold">+</span>;
-    const D = ({ children }: { children: React.ReactNode }) => (
-      <span className="bg-amber-200 rounded-sm p-0.5">{children}</span>
-    );
-
-    return (
-      <>
-        <ConfigCheckbox
-          value={config.commutativity}
-          onChange={(v) => setConfig({ ...config, commutativity: v })}
-        >
-          <b>Commutativity</b>
-          <br />
-          <D>A</D> {plus1} B → B {plus1} <D>A</D>
-        </ConfigCheckbox>
-
-        <ConfigCheckbox
-          value={config.pullUpOp}
-          onChange={(v) => setConfig({ ...config, pullUpOp: v })}
-        >
-          <b>Associativity</b>
-          <br />
-          Pull up op
-          <br />
-          <D>(A {plus1} B)</D> {plus2} C →{" "}
-          <D>
-            A {plus1} (B {plus2} C)
-          </D>
-        </ConfigCheckbox>
-
-        <ConfigCheckbox
-          value={config.pullDownOp}
-          onChange={(v) => setConfig({ ...config, pullDownOp: v })}
-        >
-          <b>Associativity</b>
-          <br />
-          Pull down op
-          <br />
-          <D>
-            A {plus1} (B {plus2} C)
-          </D>{" "}
-          → <D>(A {plus1} B)</D> {plus2} C
-        </ConfigCheckbox>
-
-        <ConfigCheckbox
-          value={config.pullUpTail}
-          onChange={(v) => setConfig({ ...config, pullUpTail: v })}
-        >
-          <b>Associativity</b>
-          <br />
-          Pull up operand
-          <br />(<D>A</D> {plus1} B) {plus2} C → <D>A</D> {plus1} (B {plus2} C)
-        </ConfigCheckbox>
-
-        <ConfigCheckbox
-          value={config.pullDownTail}
-          onChange={(v) => setConfig({ ...config, pullDownTail: v })}
-        >
-          <b>Associativity</b>
-          <br />
-          Pull down operand
-          <br />
-          <D>A</D> {plus1} (B {plus2} C) → (<D>A</D> {plus1} B) {plus2} C
-        </ConfigCheckbox>
-      </>
-    );
+    return rewriteSets.map((rewriteSet, i) => (
+      <ConfigCheckbox
+        key={i}
+        value={config.activeRewriteSets[i]}
+        onChange={(v) => {
+          const newActive = [...config.activeRewriteSets];
+          newActive[i] = v;
+          setConfig({ ...config, activeRewriteSets: newActive });
+        }}
+      >
+        <b>{rewriteSet.title}</b>
+        {rewriteSet.subtitle && (
+          <>
+            <br />
+            {rewriteSet.subtitle}
+          </>
+        )}
+        <br />
+        {rewriteSet.rewrites.length > 0 && drawRewrite(rewriteSet.rewrites[0])}
+      </ConfigCheckbox>
+    ));
   }
 }
