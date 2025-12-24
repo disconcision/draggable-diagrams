@@ -42,7 +42,6 @@ import { useAnimationLoop } from "./useAnimationLoop";
 import { useRenderError } from "./useRenderError";
 import {
   DOmit,
-  assertDefined,
   assertNever,
   assertWithJSX,
   hasKey,
@@ -78,7 +77,7 @@ export function ManipulableDrawer<T extends object>({
     state: initialState,
   });
   const [paused, setPaused] = useState(false);
-  const pointerRef = useRef<Vec2 | null>(null);
+  const pointerRef = useRef<Vec2 | undefined>(undefined);
 
   const drawerConfigWithDefaults = useMemo(
     () => ({
@@ -132,11 +131,7 @@ export function ManipulableDrawer<T extends object>({
   const setDragStateWithoutByproducts = useCallback(
     (newDragState: DOmit<DragState<T>, "byproducts">) => {
       setDragState(
-        updateDragState(
-          newDragState,
-          dragContext,
-          assertDefined(pointerRef.current)
-        )
+        updateDragState(newDragState, dragContext, pointerRef.current)
       );
     },
     [dragContext, setDragState]
@@ -150,11 +145,7 @@ export function ManipulableDrawer<T extends object>({
         dragState.type === "drag-detach-reattach"
       ) {
         setDragState(
-          updateDragState(
-            dragState,
-            dragContext,
-            assertDefined(pointerRef.current)
-          )
+          updateDragState(dragState, dragContext, pointerRef.current)
         );
       }
     }, [dragContext, dragState, setDragState])
@@ -743,7 +734,7 @@ type DragContext<T extends object> = {
 function updateDragState<T extends object>(
   dragState: DOmit<DragState<T>, "byproducts">,
   ctx: DragContext<T>,
-  pointer: Vec2
+  pointer?: Vec2
 ): DragState<T> {
   if (dragState.type === "idle") {
     return dragState;
@@ -764,6 +755,8 @@ function updateDragState<T extends object>(
       };
     }
   } else if (dragState.type === "drag") {
+    assert(!!pointer, "Pointer must be defined in drag mode");
+
     let newState: T;
     let hoistedToRender: HoistedSvgx;
 
@@ -862,6 +855,8 @@ function updateDragState<T extends object>(
       },
     };
   } else if (dragState.type === "drag-detach-reattach") {
+    assert(!!pointer, "Pointer must be defined in drag-detach-reattach mode");
+
     // compute background target based on proximity to positions
     const closestPoint = _.minBy(
       [dragState.startingPoint, ...dragState.reattachedPoints],
@@ -1040,30 +1035,36 @@ const DrawIdleMode = memoGeneric(
           immediate = false,
         } = {}
       ) => {
-        newState =
-          typeof newState === "function" ? newState(dragState.state) : newState;
+        try {
+          newState =
+            typeof newState === "function"
+              ? newState(dragState.state)
+              : newState;
 
-        if (immediate) {
+          if (immediate) {
+            ctx.setDragState({
+              type: "idle",
+              state: newState,
+            });
+            return;
+          }
+
+          // animate to new state
           ctx.setDragState({
-            type: "idle",
-            state: newState,
+            type: "animating",
+            startHoisted: postProcessReadOnly(content),
+            targetHoisted: renderManipulableReadOnly(ctx.manipulable, {
+              state: newState,
+              draggedId: null,
+            }),
+            startTime: Date.now(),
+            easing,
+            duration: seconds * 1000,
+            nextDragState: { type: "idle", state: newState },
           });
-          return;
+        } catch (error) {
+          ctx.throwRenderError(error);
         }
-
-        // animate to new state
-        ctx.setDragState({
-          type: "animating",
-          startHoisted: postProcessReadOnly(content),
-          targetHoisted: renderManipulableReadOnly(ctx.manipulable, {
-            state: newState,
-            draggedId: null,
-          }),
-          startTime: Date.now(),
-          easing,
-          duration: seconds * 1000,
-          nextDragState: { type: "idle", state: newState },
-        });
       },
     });
 
