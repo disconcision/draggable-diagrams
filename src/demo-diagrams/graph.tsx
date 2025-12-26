@@ -1,22 +1,24 @@
 import _ from "lodash";
+import { amb, produceAmb, require } from "../amb";
 import { arrowhead } from "../arrows";
 import { numsAtPaths, span } from "../DragSpec";
 import { Manipulable } from "../manipulable";
-import { translate } from "../svgx/helpers";
 import { Vec2 } from "../math/vec2";
+import { translate } from "../svgx/helpers";
+import { uPairs } from "../utils";
 
 export namespace Graph {
   export type State = {
-    nodes: { [key: string]: { x: number; y: number } };
+    nodes: { [key: string]: Vec2 };
     edges: { [key: string]: { from: string; to: string } };
   };
 
   export const state1: State = {
     nodes: {
-      "1": { x: 20, y: 20 },
-      "2": { x: 120, y: 20 },
-      "3": { x: 120, y: 120 },
-      "4": { x: 20, y: 120 },
+      "1": Vec2(20, 20),
+      "2": Vec2(120, 20),
+      "3": Vec2(120, 120),
+      "4": Vec2(20, 120),
     },
     edges: {
       "1": { from: "1", to: "2" },
@@ -33,8 +35,8 @@ export namespace Graph {
       <g>
         {/* Render edges first so they're behind nodes */}
         {Object.entries(state.edges).map(([key, edge]) => {
-          const fromCenter = Vec2(state.nodes[edge.from]);
-          const toCenter = Vec2(state.nodes[edge.to]);
+          const fromCenter = state.nodes[edge.from];
+          const toCenter = state.nodes[edge.to];
           const fromArrow = fromCenter.towards(toCenter, NODE_R + 5);
           const toArrow = toCenter.towards(fromCenter, NODE_R + 5);
 
@@ -63,10 +65,8 @@ export namespace Graph {
           return (
             <g id={`edge-${key}`}>
               <line
-                x1={fromArrow.x + offset.x}
-                y1={fromArrow.y + offset.y}
-                x2={lineEnd.x}
-                y2={lineEnd.y}
+                {...fromArrow.add(offset).xy1()}
+                {...lineEnd.xy2()}
                 stroke="black"
                 strokeWidth={2}
               />
@@ -76,64 +76,35 @@ export namespace Graph {
                 headLength: arrowHeadLength,
                 id: `head-${key}`,
                 fill: "black",
-                "data-on-drag": drag(() => {
-                  // Construct all new graphs where the "edgeKey" edge has a different node as "to"
-                  const newStates = [state];
-                  for (const newToNodeKey of Object.keys(state.nodes)) {
-                    if (newToNodeKey === edge.from || newToNodeKey === edge.to)
-                      continue;
-                    if (
-                      _.findKey(
-                        state.edges,
-                        (e) => e.from === edge.from && e.to === newToNodeKey
-                      )
-                    )
-                      continue;
-                    newStates.push({
-                      ...state,
-                      edges: {
-                        ...state.edges,
-                        [key]: { from: edge.from, to: newToNodeKey },
-                      },
-                    });
-                  }
-                  return span(newStates);
-                }),
+                "data-on-drag": drag(() =>
+                  span(
+                    produceAmb(state, (draft) => {
+                      draft.edges[key].to = amb(Object.keys(state.nodes));
+                      require(draft.edges[key].to !== draft.edges[key].from);
+                      require(uPairs(Object.values(draft.edges)).every(
+                        ([e1, e2]) => !(e1.from === e2.from && e1.to === e2.to)
+                      ));
+                    })
+                  )
+                ),
                 "data-z-index": 1,
               })}
               <circle
                 id={`tail-${key}`}
                 transform={translate(tailPos)}
-                cx={0}
-                cy={0}
                 r={5}
                 fill="black"
-                data-on-drag={drag(() => {
-                  // Construct all new graphs where the "edgeKey" edge has a different node as "from"
-                  const newStates = [];
-                  for (const newFromNodeKey of Object.keys(state.nodes)) {
-                    if (
-                      newFromNodeKey === edge.to ||
-                      newFromNodeKey === edge.from
-                    )
-                      continue;
-                    if (
-                      _.findKey(
-                        state.edges,
-                        (e) => e.from === newFromNodeKey && e.to === edge.to
-                      )
-                    )
-                      continue;
-                    newStates.push({
-                      ...state,
-                      edges: {
-                        ...state.edges,
-                        [key]: { from: newFromNodeKey, to: edge.to },
-                      },
-                    });
-                  }
-                  return span(newStates);
-                })}
+                data-on-drag={drag(() =>
+                  span(
+                    produceAmb(state, (draft) => {
+                      draft.edges[key].from = amb(Object.keys(state.nodes));
+                      require(draft.edges[key].to !== draft.edges[key].from);
+                      require(uPairs(Object.values(draft.edges)).every(
+                        ([e1, e2]) => !(e1.from === e2.from && e1.to === e2.to)
+                      ));
+                    })
+                  )
+                )}
                 data-z-index={1}
               />
             </g>
@@ -145,8 +116,6 @@ export namespace Graph {
           <circle
             id={`node-${key}`}
             transform={translate(node.x, node.y)}
-            cx={0}
-            cy={0}
             r={NODE_R}
             fill="black"
             data-on-drag={drag(

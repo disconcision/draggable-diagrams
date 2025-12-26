@@ -20,7 +20,7 @@ export function Vec2(xOrXY: number | Vec2able, y?: number): Vec2 {
     } else {
       return new Vec2Class(xOrXY, y);
     }
-  } else if (xOrXY instanceof Vec2Class) {
+  } else if (isVec2(xOrXY)) {
     return xOrXY;
   } else if (typeof xOrXY === "object" && "x" in xOrXY && "y" in xOrXY) {
     return new Vec2Class(xOrXY.x, xOrXY.y);
@@ -31,7 +31,7 @@ export function Vec2(xOrXY: number | Vec2able, y?: number): Vec2 {
   }
 }
 
-export function isArrayWithTwoNumbers(
+function isArrayWithTwoNumbers(
   value: unknown
 ): value is [number, number, ...any] | readonly [number, number, ...any] {
   return (
@@ -40,6 +40,10 @@ export function isArrayWithTwoNumbers(
     typeof value[0] === "number" &&
     typeof value[1] === "number"
   );
+}
+
+export function isVec2(value: unknown): value is Vec2 {
+  return value instanceof Vec2Class;
 }
 
 class Vec2Class {

@@ -630,8 +630,7 @@ function debugForDragMode(
       debugRender.push(
         <circle
           key={`manifold-${manifoldIdx}-point-${ptIdx}`}
-          cx={pt.position.x}
-          cy={pt.position.y}
+          {...pt.position.cxy()}
           r={snapRadius}
           fill="red"
           opacity={0.3}
@@ -655,8 +654,7 @@ function debugForDragMode(
     // Draw blue circle at projected point
     debugRender.push(
       <circle
-        cx={projectedPt.x}
-        cy={projectedPt.y}
+        {...projectedPt.cxy()}
         r={10}
         stroke="blue"
         strokeWidth={2}
@@ -667,10 +665,8 @@ function debugForDragMode(
     // Draw blue line from draggable dest to projected point
     debugRender.push(
       <line
-        x1={pointer.x}
-        y1={pointer.y}
-        x2={projectedPt.x}
-        y2={projectedPt.y}
+        {...pointer.xy1()}
+        {...projectedPt.xy2()}
         stroke="blue"
         strokeWidth={2}
       />
@@ -698,8 +694,7 @@ function debugForDragParamsMode(
     debugRender.push(
       <circle
         key="drag-params-achieved"
-        cx={achievedPos.x}
-        cy={achievedPos.y}
+        {...achievedPos.cxy()}
         r={5}
         fill="green"
         stroke="darkgreen"
@@ -710,10 +705,8 @@ function debugForDragParamsMode(
     debugRender.push(
       <line
         key="drag-params-line"
-        x1={achievedPos.x}
-        y1={achievedPos.y}
-        x2={pointer.x}
-        y2={pointer.y}
+        {...achievedPos.xy1()}
+        {...pointer.xy2()}
         stroke="orange"
         strokeWidth={2}
         strokeDasharray="4 4"

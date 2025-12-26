@@ -292,8 +292,7 @@ function ManifoldPointCard({
         >
           {drawHoisted(point.hoisted)}
           <circle
-            cx={point.position.x}
-            cy={point.position.y}
+            {...point.position.cxy()}
             r={(5 * demoHeight) / 100}
             fill="red"
           />

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isVec2, Vec2 } from "./math/vec2";
 import { getAtPath, PathIn, setAtPath } from "./paths";
 
 describe("PathIn type", () => {
@@ -211,6 +212,18 @@ describe("setAtPath", () => {
 
     expect(result.config).toEqual(newConfig);
     expect(obj.config).toEqual({ theme: "dark", lang: "en" });
+  });
+
+  it("preserves Vec2 instances when setting properties", () => {
+    const obj = {
+      pos: Vec2(10, 20),
+    };
+
+    const result = setAtPath<typeof obj, number>(obj, ["pos", "x"], 30);
+
+    expect(isVec2(result.pos)).toBe(true);
+    expect(result.pos.x).toBe(30);
+    expect(result.pos.y).toBe(20);
   });
 });
 

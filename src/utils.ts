@@ -191,3 +191,13 @@ export type DOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
  */
 export const memoGeneric = <C extends (...props: any) => ReactNode>(c: C) =>
   memo(c as any) as unknown as C;
+
+export function uPairs<T>(l: T[]): [T, T][] {
+  const result: [T, T][] = [];
+  for (let i = 0; i < l.length; i++) {
+    for (let j = i + 1; j < l.length; j++) {
+      result.push([l[i], l[j]]);
+    }
+  }
+  return result;
+}

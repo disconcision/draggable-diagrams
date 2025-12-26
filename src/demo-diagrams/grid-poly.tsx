@@ -1,37 +1,28 @@
-import { produce } from "immer";
 import _ from "lodash";
+import { amb, produceAmb, require } from "../amb";
 import { span } from "../DragSpec";
 import { Manipulable } from "../manipulable";
+import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
+import { uPairs } from "../utils";
 
 export namespace GridPoly {
   export type State = {
     w: number;
     h: number;
-    points: {
-      x: number;
-      y: number;
-    }[];
+    points: Vec2[];
   };
 
   export const state1: State = {
     w: 6,
     h: 6,
-    points: [
-      { x: 1, y: 1 },
-      { x: 4, y: 2 },
-      { x: 3, y: 5 },
-      { x: 1, y: 4 },
-    ],
+    points: [Vec2(1, 1), Vec2(4, 2), Vec2(3, 5), Vec2(1, 4)],
   };
 
   export const stateSmol: State = {
     w: 2,
     h: 2,
-    points: [
-      { x: 0, y: 0 },
-      { x: 1, y: 1 },
-    ],
+    points: [Vec2(0, 0), Vec2(1, 1)],
   };
 
   export const manipulable: Manipulable<State> = ({ state, drag }) => {
@@ -51,11 +42,8 @@ export namespace GridPoly {
           const nextPt = state.points[(idx + 1) % state.points.length];
           return (
             <line
-              // {...Vec2(pt).mul(TILE_SIZE).xy1()}
-              x1={pt.x * TILE_SIZE}
-              y1={pt.y * TILE_SIZE}
-              x2={nextPt.x * TILE_SIZE}
-              y2={nextPt.y * TILE_SIZE}
+              {...pt.mul(TILE_SIZE).xy1()}
+              {...nextPt.mul(TILE_SIZE).xy2()}
               stroke="black"
               strokeWidth={2}
             />
@@ -66,25 +54,19 @@ export namespace GridPoly {
         {state.points.map((pt, idx) => (
           <circle
             transform={translate(pt.x * TILE_SIZE, pt.y * TILE_SIZE)}
-            cx={0}
-            cy={0}
             r={10}
             fill="black"
-            data-on-drag={drag(() => {
-              const states = [];
-              for (const x of _.range(state.w)) {
-                for (const y of _.range(state.h)) {
-                  if (!state.points.some((p) => p.x === x && p.y === y)) {
-                    states.push(
-                      produce(state, (draft) => {
-                        draft.points[idx] = { x, y };
-                      })
-                    );
-                  }
-                }
-              }
-              return span(states);
-            })}
+            data-on-drag={drag(() =>
+              span(
+                produceAmb(state, (draft) => {
+                  draft.points[idx] = Vec2(
+                    amb(_.range(state.w)),
+                    amb(_.range(state.h))
+                  );
+                  require(uPairs(draft.points).every(([p1, p2]) => !p1.eq(p2)));
+                })
+              )
+            )}
           />
         ))}
       </g>
