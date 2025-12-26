@@ -201,8 +201,8 @@ export const demos: SomeDemoData[] = [
     sourceFile: "insert-and-remove.tsx",
   }),
   demoData({
-    id: "lonely-tile-on-a-grid",
-    title: "Lonely tile on a grid",
+    id: "tiles",
+    title: "Tiles on a grid",
     notes: (
       <>
         I'm trying to make dragging feel right here. Goal is for the tile to
@@ -211,7 +211,7 @@ export const demos: SomeDemoData[] = [
       </>
     ),
     manipulable: Tiles.manipulable,
-    initialStates: [Tiles.stateLonely],
+    initialStates: [Tiles.stateLonely, Tiles.stateFriendly],
     height: 300,
     padding: 20,
     initialDrawerConfig: { relativePointerMotion: true },

@@ -1,9 +1,9 @@
 import _ from "lodash";
 import { straightTo } from "../DragSpec";
 import { Manipulable } from "../manipulable";
-import { translate } from "../svgx/helpers";
 import { Vec2 } from "../math/vec2";
 import { inXYWH } from "../math/xywh";
+import { translate } from "../svgx/helpers";
 
 export namespace Tiles {
   export type State = {
@@ -13,6 +13,14 @@ export namespace Tiles {
   };
 
   export const stateLonely: State = {
+    w: 5,
+    h: 5,
+    tiles: {
+      A: { x: 2, y: 2 },
+    },
+  };
+
+  export const stateFriendly: State = {
     w: 5,
     h: 5,
     tiles: {
