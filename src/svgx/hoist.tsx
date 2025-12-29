@@ -264,6 +264,19 @@ export function hoistedTransform(
   return { byId: transformedById, descendents: hoisted.descendents };
 }
 
+export function hoistedPrefixIds(
+  hoisted: HoistedSvgx,
+  prefix: string
+): HoistedSvgx {
+  const prefixedById = new Map<string, Svgx>();
+  for (const [key, element] of hoisted.byId.entries()) {
+    const newId = prefix + key;
+    const prefixedElement = cloneElement(element, { id: newId });
+    prefixedById.set(newId, prefixedElement);
+  }
+  return { byId: prefixedById, descendents: null };
+}
+
 export function findByPathInHoisted(
   path: string,
   hoisted: HoistedSvgx

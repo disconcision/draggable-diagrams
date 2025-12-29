@@ -8,7 +8,8 @@ import { assert, hasKey, Many, manyToArray } from "./utils";
 export type DragSpec<T> =
   | Many<DragSpecManifold<T>>
   | DragSpecParams<T>
-  | DragSpecDetachReattach<T>;
+  | DragSpecDetachReattach<T>
+  | DragSpecFree<T>;
 
 const targetStateSymbol: unique symbol = Symbol("TargetState");
 
@@ -40,6 +41,12 @@ export type DragSpecDetachReattach<T> = {
   type: "detach-reattach";
   detachedState: T;
   reattachedStates: TargetState<T>[];
+};
+
+export type DragSpecFree<T> = {
+  type: "free";
+  states: TargetState<T>[];
+  animate: boolean;
 };
 
 export type TargetStateLike<T> = T | TargetState<T>;
@@ -85,6 +92,17 @@ export function detachReattach<T>(
     type: "detach-reattach",
     detachedState,
     reattachedStates: manyToArray(reattachedStates).map(toTargetState),
+  };
+}
+
+export function free<T>(
+  states: Many<TargetStateLike<T>>,
+  options?: { animate?: boolean }
+): DragSpecFree<T> {
+  return {
+    type: "free",
+    states: manyToArray(states).map(toTargetState),
+    animate: options?.animate ?? false,
   };
 }
 

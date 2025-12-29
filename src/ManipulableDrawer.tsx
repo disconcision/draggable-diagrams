@@ -9,7 +9,13 @@ import React, {
   useState,
 } from "react";
 import { assert } from "vitest";
-import { DragSpec, TargetStateLike, span, toTargetState } from "./DragSpec";
+import {
+  DragSpec,
+  DragSpecManifold,
+  TargetStateLike,
+  span,
+  toTargetState,
+} from "./DragSpec";
 import {
   Manipulable,
   ManipulableProps,
@@ -17,7 +23,11 @@ import {
   unsafeDrag,
 } from "./manipulable";
 import { Delaunay } from "./math/delaunay";
-import { LerpSpringState, step } from "./math/lerp-spring-f";
+import {
+  LerpSpringState,
+  createLerpSpringState,
+  step,
+} from "./math/lerp-spring-f";
 import { minimize } from "./math/minimize";
 import { Vec2 } from "./math/vec2";
 import { getAtPath, setAtPath } from "./paths";
@@ -33,6 +43,7 @@ import {
   hoistSvg,
   hoistedExtract,
   hoistedMerge,
+  hoistedPrefixIds,
   hoistedTransform,
 } from "./svgx/hoist";
 import { lerpHoisted, lerpHoisted3 } from "./svgx/lerp";
@@ -142,7 +153,8 @@ export function ManipulableDrawer<T extends object>({
       // These are the only two states that need updating over time
       if (
         dragState.type === "animating" ||
-        dragState.type === "drag-detach-reattach"
+        dragState.type === "drag-detach-reattach" ||
+        dragState.type === "drag-free"
       ) {
         setDragState(
           updateDragState(dragState, dragContext, pointerRef.current)
@@ -155,6 +167,7 @@ export function ManipulableDrawer<T extends object>({
     if (
       dragState.type === "drag-manifolds" ||
       dragState.type === "drag-detach-reattach" ||
+      dragState.type === "drag-free" ||
       dragState.type === "drag-params"
     ) {
       document.body.style.cursor = "grabbing";
@@ -168,6 +181,7 @@ export function ManipulableDrawer<T extends object>({
     if (
       dragState.type !== "drag-manifolds" &&
       dragState.type !== "drag-detach-reattach" &&
+      dragState.type !== "drag-free" &&
       dragState.type !== "drag-params"
     ) {
       return;
@@ -232,6 +246,8 @@ export function ManipulableDrawer<T extends object>({
         <DrawDragManifoldsMode dragState={dragState} ctx={renderContext} />
       ) : dragState.type === "drag-detach-reattach" ? (
         <DrawDragDetachReattachMode dragState={dragState} ctx={renderContext} />
+      ) : dragState.type === "drag-free" ? (
+        <DrawDragFreeMode dragState={dragState} ctx={renderContext} />
       ) : dragState.type === "drag-params" ? (
         <DrawDragParamsMode dragState={dragState} ctx={renderContext} />
       ) : (
@@ -299,6 +315,31 @@ export type DragState<T> =
       detachedState: T;
       detachedHoisted: HoistedSvgx;
       reattachedPoints: ManifoldPoint<T>[];
+      backgroundSpringState: LerpSpringState<HoistedSvgx>;
+      byproducts: {
+        /**
+         * the hoisted to render, made by combining the springing
+         * background with the foreground
+         */
+        hoistedToRender: HoistedSvgx;
+        /**
+         * the state that releasing the pointer should take us to
+         */
+        newState: T;
+        /**
+         * the hoisted rendered diagram for newState
+         */
+        newStateHoisted: HoistedSvgx;
+      };
+    }
+  | {
+      type: "drag-free";
+      draggedPath: string;
+      draggedId: string;
+      pointerLocal: Vec2;
+      pointerStart: Vec2;
+      draggedHoisted: HoistedSvgx;
+      points: ManifoldPoint<T>[];
       backgroundSpringState: LerpSpringState<HoistedSvgx>;
       byproducts: {
         /**
@@ -385,6 +426,7 @@ function postProcessForInteraction<T extends object>(
                   el.props.id || null,
                   dragSpecCallback(),
                   pointerLocal,
+                  pointer,
                   ctx.manipulable
                 )
               );
@@ -403,6 +445,7 @@ function makeManifoldPoint<T extends object>({
   manipulable,
   draggedPath,
   draggedId,
+  ghostId,
   pointerLocal,
   state,
 }: {
@@ -410,6 +453,7 @@ function makeManifoldPoint<T extends object>({
   manipulable: Manipulable<T>;
   draggedPath: string;
   draggedId: string | null;
+  ghostId?: string;
   pointerLocal: Vec2;
   state: T;
 }): ManifoldPoint<T> {
@@ -419,6 +463,7 @@ function makeManifoldPoint<T extends object>({
   const hoisted = renderManipulableReadOnly(manipulable, {
     state: targetState.targetState,
     draggedId,
+    ghostId: ghostId || null,
   });
   // prettyLog(hoisted, { label: "hoisted in makeManifoldPoint" });
   console.log("gonna find", draggedPath, "in hoisted:");
@@ -470,6 +515,7 @@ function computeEnterDraggingMode<T extends object>(
   draggedId: string | null,
   dragSpec: DragSpec<T>,
   pointerLocal: Vec2,
+  pointerStart: Vec2,
   manipulable: Manipulable<T>
 ): DOmit<DragState<T>, "byproducts"> {
   console.log("enterDraggingMode", state, draggedPath);
@@ -532,6 +578,7 @@ function computeEnterDraggingMode<T extends object>(
     const detachedHoisted = renderManipulableReadOnly(manipulable, {
       state: detachedState,
       draggedId,
+      ghostId: null,
     });
 
     return {
@@ -553,18 +600,63 @@ function computeEnterDraggingMode<T extends object>(
           pointerLocal,
         })
       ),
-      backgroundSpringState: {
-        cur: background,
-        curT: Date.now(),
-        prev: background,
-        prevT: Date.now(),
-      },
+      backgroundSpringState: createLerpSpringState(background, Date.now()),
     };
   }
 
-  const manifoldSpecs = pipe(
+  if (hasKey(dragSpec, "type") && dragSpec.type === "free") {
+    // where we start
+    const startingPoint = makeManifoldPoint({
+      state,
+      targetStateLike: state,
+      manipulable,
+      draggedPath,
+      draggedId,
+      pointerLocal,
+    });
+
+    // snatch out the dragged SVG element
+    assert(
+      !!draggedId,
+      "Dragged element actually needs ID for detach-reattach drags"
+    );
+    const { extracted: draggedHoisted } = hoistedExtract(
+      startingPoint.hoisted,
+      draggedId
+    );
+    assert(
+      !!draggedHoisted,
+      "Couldn't find dragged SVG element in starting state"
+    );
+
+    return {
+      type: "drag-free",
+      draggedPath,
+      draggedId,
+      pointerLocal,
+      pointerStart,
+      draggedHoisted,
+      points: dragSpec.states.map((state) =>
+        makeManifoldPoint({
+          state: state.targetState,
+          targetStateLike: state,
+          manipulable,
+          draggedPath,
+          draggedId,
+          ghostId: draggedId,
+          pointerLocal,
+        })
+      ),
+      backgroundSpringState: createLerpSpringState(
+        startingPoint.hoisted,
+        Date.now()
+      ),
+    };
+  }
+
+  const manifoldSpecs: DragSpecManifold<T>[] = pipe(
     manyToArray(dragSpec),
-    (arr) => (arr.length === 0 ? [span([])] : arr) // things go wrong if no manifolds
+    (arr) => (arr.length === 0 ? [span<T>([])] : arr) // things go wrong if no manifolds
   );
 
   const makeManifoldPointProps: Parameters<typeof makeManifoldPoint<T>>[0] = {
@@ -803,6 +895,7 @@ function updateDragState<T extends object>(
             dragState.draggedId,
             dragSpecCallback(),
             dragState.pointerLocal,
+            pointer,
             ctx.manipulable
           );
           // recursive updateDragState call
@@ -900,6 +993,48 @@ function updateDragState<T extends object>(
         newStateHoisted,
       },
     };
+  } else if (dragState.type === "drag-free") {
+    assert(!!pointer, "Pointer must be defined in drag-free mode");
+
+    // compute background target based on proximity to positions
+    const closestPoint = _.minBy(dragState.points, (pt) =>
+      pointer.dist(pt.position)
+    )!;
+    let newState = closestPoint.state;
+    let newStateHoisted = closestPoint.hoisted;
+
+    // now animate background towards target
+    const newBackgroundSpringState = step(
+      dragState.backgroundSpringState,
+      {
+        omega: 0.03, // spring frequency (rad/ms)
+        gamma: 0.1, // damping rate (1/ms)
+      },
+      lerpHoisted,
+      Date.now(),
+      newStateHoisted
+    );
+
+    const hoistedToRender = hoistedMerge(
+      newBackgroundSpringState.cur,
+      hoistedPrefixIds(
+        hoistedTransform(
+          dragState.draggedHoisted,
+          translate(pointer.sub(dragState.pointerStart))
+        ),
+        "floating-"
+      )
+    );
+
+    return {
+      ...dragState,
+      backgroundSpringState: newBackgroundSpringState,
+      byproducts: {
+        hoistedToRender,
+        newState,
+        newStateHoisted,
+      },
+    };
   } else if (dragState.type === "drag-params") {
     assert(!!pointer, "Pointer must be defined while drag-params");
 
@@ -910,6 +1045,7 @@ function updateDragState<T extends object>(
           state: candidateState,
           drag: unsafeDrag,
           draggedId: dragState.draggedId,
+          ghostId: null,
           setState: throwError,
         }),
         assignPaths,
@@ -931,6 +1067,7 @@ function updateDragState<T extends object>(
       state: newState,
       drag: unsafeDrag,
       draggedId: dragState.draggedId,
+      ghostId: null,
       setState: throwError,
     });
 
@@ -970,6 +1107,7 @@ function onPointerUp<T extends object>(
         targetHoisted: renderManipulableReadOnly(ctx.manipulable, {
           state: dragState.byproducts.newState,
           draggedId: null,
+          ghostId: null,
         }),
         startTime: Date.now(),
         easing: d3Ease.easeElastic,
@@ -980,6 +1118,20 @@ function onPointerUp<T extends object>(
       pointer
     );
   } else if (dragState.type === "drag-detach-reattach") {
+    return updateDragState(
+      {
+        type: "animating",
+        startHoisted: dragState.byproducts.hoistedToRender,
+        targetHoisted: dragState.byproducts.newStateHoisted,
+        startTime: Date.now(),
+        easing: d3Ease.easeElastic,
+        duration: ctx.drawerConfig.animationDuration,
+        nextDragState: { type: "idle", state: dragState.byproducts.newState },
+      },
+      ctx,
+      pointer
+    );
+  } else if (dragState.type === "drag-free") {
     return updateDragState(
       {
         type: "animating",
@@ -1020,6 +1172,7 @@ const DrawIdleMode = memoGeneric(
       state: dragState.state,
       drag: unsafeDrag,
       draggedId: null,
+      ghostId: null,
       setState: (
         newState: SetStateAction<T>,
         {
@@ -1049,6 +1202,7 @@ const DrawIdleMode = memoGeneric(
             targetHoisted: renderManipulableReadOnly(ctx.manipulable, {
               state: newState,
               draggedId: null,
+              ghostId: null,
             }),
             startTime: Date.now(),
             easing,
@@ -1097,6 +1251,12 @@ const DrawDragDetachReattachMode = memoGeneric(
   <T extends object>({
     dragState,
   }: DrawModeProps<T, "drag-detach-reattach">) => {
+    return drawHoisted(dragState.byproducts.hoistedToRender);
+  }
+);
+
+const DrawDragFreeMode = memoGeneric(
+  <T extends object>({ dragState }: DrawModeProps<T, "drag-free">) => {
     return drawHoisted(dragState.byproducts.hoistedToRender);
   }
 );

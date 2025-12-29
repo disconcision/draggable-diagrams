@@ -54,7 +54,7 @@ export type DemoData<T extends object> = {
   sourceFile?: string;
 };
 
-function demoData<T extends object>(
+export function demoData<T extends object>(
   data: Omit<DemoData<T>, "manipulable"> & {
     manipulable: Manipulable<T> | Configurable<Manipulable<T>, any>;
   }
@@ -300,16 +300,7 @@ export const demos: SomeDemoData[] = [
     padding: 20,
     sourceFile: "fifteen.tsx",
   }),
-  demoData({
-    id: "hanoi",
-    title: "Towers of Hanoi",
-    notes: <>Uses detach-reattach. Only top disks can be dragged.</>,
-    manipulable: Hanoi.manipulable,
-    initialStates: [Hanoi.state3, Hanoi.state4],
-    height: 180,
-    padding: 20,
-    sourceFile: "hanoi.tsx",
-  }),
+  Hanoi.demo,
   demoData({
     id: "sokoban",
     title: "Sokoban",

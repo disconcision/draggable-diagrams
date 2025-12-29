@@ -16,6 +16,7 @@ export type ManipulableProps<T extends object> = {
   state: T;
   drag: typeof unsafeDrag<T>;
   draggedId: string | null;
+  ghostId: string | null;
   setState: SetState<T>;
 };
 

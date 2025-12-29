@@ -2,9 +2,10 @@ import _ from "lodash";
 import { amb, produceAmb } from "../amb";
 import { ConfigCheckbox, ConfigPanelProps } from "../configurable";
 import { configurableManipulable } from "../demos";
-import { span, straightTo } from "../DragSpec";
+import { free, span, straightTo } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { path, rotateDeg, translate } from "../svgx/helpers";
+import { pipe } from "../utils";
 
 export namespace Tromino {
   export type State = {
@@ -18,19 +19,24 @@ export namespace Tromino {
   };
 
   export type Config = {
+    snappyMode: boolean;
     mazeMode: boolean;
   };
 
   const defaultConfig: Config = {
+    snappyMode: false,
     mazeMode: false,
   };
 
   export const manipulable = configurableManipulable<State, Config>(
     { defaultConfig, ConfigPanel },
-    (config, { state, drag }) => (
+    (config, { state, drag, ghostId }) => (
       <g>
         {drawState(state)}
         <rect
+          id="missing-square"
+          data-z-index={1}
+          opacity={ghostId ? 0.1 : 1}
           transform={translate(
             state.missingSquare.mul(CELL_SIZE).add(TROMINO_PADDING)
           )}
@@ -39,46 +45,13 @@ export namespace Tromino {
           fill="black"
           data-on-drag={drag(() =>
             config.mazeMode
-              ? _.range(1, state.boardLevel + 1).flatMap((level) => {
-                  // are we in the center square of 2**level x 2**level blocks?
-                  const fullCount = 2 ** level;
-                  const halfCount = 2 ** (level - 1);
-                  const isCenterL =
-                    state.missingSquare.x % fullCount === halfCount - 1;
-                  const isCenterR =
-                    state.missingSquare.x % fullCount === halfCount;
-                  const isCenterT =
-                    state.missingSquare.y % fullCount === halfCount - 1;
-                  const isCenterB =
-                    state.missingSquare.y % fullCount === halfCount;
-                  if ((isCenterL || isCenterR) && (isCenterT || isCenterB)) {
-                    // allow straightTo motion to the two adjacent
-                    // center squares
-                    return [
-                      straightTo({
-                        ...state,
-                        missingSquare: state.missingSquare.add([
-                          isCenterL ? 1 : -1,
-                          0,
-                        ]),
-                      }),
-                      straightTo({
-                        ...state,
-                        missingSquare: state.missingSquare.add([
-                          0,
-                          isCenterT ? 1 : -1,
-                        ]),
-                      }),
-                    ];
-                  }
-                })
-              : span(
-                  produceAmb(state, (s) => {
-                    s.missingSquare = Vec2(
-                      amb(_.range(2 ** s.boardLevel)),
-                      amb(_.range(2 ** s.boardLevel))
-                    );
-                  })
+              ? pipe(singleRotationStates(state), (states) =>
+                  config.snappyMode
+                    ? free([state, ...states])
+                    : states.map(straightTo)
+                )
+              : pipe(allStates(state), (states) =>
+                  config.snappyMode ? free(states) : span(states)
                 )
           )}
         />
@@ -86,13 +59,64 @@ export namespace Tromino {
     )
   );
 
+  function allStates(state: State): State[] {
+    return produceAmb(state, (s) => {
+      s.missingSquare = Vec2(
+        amb(_.range(2 ** s.boardLevel)),
+        amb(_.range(2 ** s.boardLevel))
+      );
+    });
+  }
+
+  function singleRotationStates(state: State): State[] {
+    return _.range(1, state.boardLevel + 1).flatMap((level) => {
+      // are we in the center square of 2**level x 2**level blocks?
+      const fullCount = 2 ** level;
+      const halfCount = 2 ** (level - 1);
+      const isCenterL = state.missingSquare.x % fullCount === halfCount - 1;
+      const isCenterR = state.missingSquare.x % fullCount === halfCount;
+      const isCenterT = state.missingSquare.y % fullCount === halfCount - 1;
+      const isCenterB = state.missingSquare.y % fullCount === halfCount;
+      if ((isCenterL || isCenterR) && (isCenterT || isCenterB)) {
+        // allow straightTo motion to the two adjacent
+        // center squares
+        return [
+          {
+            ...state,
+            missingSquare: state.missingSquare.add([isCenterL ? 1 : -1, 0]),
+          },
+          {
+            ...state,
+            missingSquare: state.missingSquare.add([0, isCenterT ? 1 : -1]),
+          },
+        ];
+      } else {
+        return [];
+      }
+    });
+  }
+
   function ConfigPanel({ config, setConfig }: ConfigPanelProps<Config>) {
     return (
-      <ConfigCheckbox
-        label="Maze mode"
-        value={config.mazeMode}
-        onChange={(newValue) => setConfig({ ...config, mazeMode: newValue })}
-      />
+      <>
+        <ConfigCheckbox
+          label="Snappy mode"
+          value={config.snappyMode}
+          onChange={(newValue) =>
+            setConfig({ ...config, snappyMode: newValue })
+          }
+        />
+        <ConfigCheckbox
+          label="Maze mode"
+          value={config.mazeMode}
+          onChange={(newValue) => setConfig({ ...config, mazeMode: newValue })}
+        />
+        <div className="text-xs mt-2">
+          NOTE: snappy+maze mode doesn't work yet, cuz we don't have "Chain
+          drags automatically" for <span className="font-mono">free</span>{" "}
+          drags.
+        </div>
+      </>
     );
   }
 

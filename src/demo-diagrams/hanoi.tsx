@@ -1,6 +1,7 @@
 import { produce } from "immer";
 import { amb, produceAmb, require } from "../amb";
-import { detachReattach } from "../DragSpec";
+import { demoData } from "../demos";
+import { free } from "../DragSpec";
 import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
@@ -32,6 +33,7 @@ export namespace Hanoi {
     state,
     drag,
     draggedId,
+    ghostId,
   }) => {
     const allDisks = state.pegs.flat();
     const maxDiskId = Math.max(
@@ -77,6 +79,8 @@ export namespace Hanoi {
         {state.pegs.map((peg, pegIdx) =>
           peg.map((diskId, positionOnPeg) => {
             const isDragged = diskId.toString() === draggedId;
+            const isGhost = diskId.toString() === ghostId;
+
             const isTopDisk = positionOnPeg === 0;
             const width = diskWidth(diskId);
             const x = X_OFFSET + pegIdx * PEG_SPACING - width / 2;
@@ -110,9 +114,10 @@ export namespace Hanoi {
                       require(newPeg.length === 1 || newPeg[0] < newPeg[1]);
                     });
 
-                    return detachReattach(detached, reattached);
+                    return free(reattached, {});
                   })
                 }
+                opacity={isGhost ? 0.5 : 1}
               >
                 <rect
                   x={0}
@@ -142,4 +147,20 @@ export namespace Hanoi {
       </g>
     );
   };
+
+  export const demo = demoData({
+    id: "hanoi",
+    title: "Towers of Hanoi",
+    notes: (
+      <>
+        Uses <span className="font-mono">free</span>. Only top disks can be
+        dragged.
+      </>
+    ),
+    manipulable,
+    initialStates: [state3, state4],
+    height: 180,
+    padding: 20,
+    sourceFile: "hanoi.tsx",
+  });
 }
