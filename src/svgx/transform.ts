@@ -7,7 +7,7 @@ import { Vec2, Vec2able } from "../math/vec2";
 
 export type Transform =
   | { type: "translate"; x: number; y: number }
-  | { type: "rotate"; degrees: number; cx?: number; cy?: number }
+  | { type: "rotate"; degrees: number; cx: number; cy: number }
   | { type: "scale"; x: number; y: number };
 
 /**
@@ -38,8 +38,8 @@ export function parseTransform(str: string): Transform[] {
         transforms.push({
           type: "rotate",
           degrees: args[0] || 0,
-          cx: args[1],
-          cy: args[2],
+          cx: args[1] || 0,
+          cy: args[2] || 0,
         });
         break;
       case "scale":
@@ -133,28 +133,9 @@ export function lerpTransforms(
   const bAllTranslate = b.every((t) => t.type === "translate");
 
   if (aAllTranslate && bAllTranslate) {
-    const aSum = a.reduce(
-      (acc, t) => ({
-        x: acc.x + (t as any).x,
-        y: acc.y + (t as any).y,
-      }),
-      { x: 0, y: 0 }
-    );
-    const bSum = b.reduce(
-      (acc, t) => ({
-        x: acc.x + (t as any).x,
-        y: acc.y + (t as any).y,
-      }),
-      { x: 0, y: 0 }
-    );
-
-    return [
-      {
-        type: "translate",
-        x: lerp(aSum.x, bSum.x, t),
-        y: lerp(aSum.y, bSum.y, t),
-      },
-    ];
+    const aSum = Vec2(0).add(...a);
+    const bSum = Vec2(0).add(...b);
+    return [{ type: "translate", ...aSum.lerp(bSum, t).xy() }];
   }
 
   // Otherwise, lengths and types must match exactly
@@ -191,8 +172,8 @@ export function lerpTransforms(
         result.push({
           type: "rotate",
           degrees: lerpDegrees(ta.degrees, tb.degrees, t),
-          cx: ta.cx !== undefined ? lerp(ta.cx, tb.cx ?? ta.cx, t) : undefined,
-          cy: ta.cy !== undefined ? lerp(ta.cy, tb.cy ?? ta.cy, t) : undefined,
+          cx: lerp(ta.cx, tb.cx, t),
+          cy: lerp(ta.cy, tb.cy, t),
         });
         break;
       }

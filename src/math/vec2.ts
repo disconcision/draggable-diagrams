@@ -103,9 +103,13 @@ class Vec2Class {
     return this.x === v.x && this.y === v.y;
   }
 
-  add(v: Vec2able): Vec2 {
-    v = Vec2(v);
-    return Vec2(this.x + v.x, this.y + v.y);
+  add(...vs: Vec2able[]): Vec2 {
+    let result: Vec2 = this;
+    for (const v of vs) {
+      const vec = Vec2(v);
+      result = Vec2(result.x + vec.x, result.y + vec.y);
+    }
+    return result;
   }
 
   sub(v: Vec2able): Vec2 {
