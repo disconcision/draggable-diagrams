@@ -63,3 +63,16 @@ export function bluefish(
 
   return jsx;
 }
+
+export function bluefishWithAttach(
+  specFunc: (
+    attach: (id: string, attribs?: SVGAttributes<SVGElement>) => string
+  ) => Child | Child[]
+): Svgx {
+  const attribsById: Record<string, SVGAttributes<SVGElement>> = {};
+  const spec = specFunc((id, attribs) => {
+    attribsById[id] = attribs || {};
+    return id;
+  });
+  return bluefish(spec, attribsById);
+}

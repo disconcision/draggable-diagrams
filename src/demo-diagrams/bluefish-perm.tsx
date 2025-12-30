@@ -1,7 +1,6 @@
 import { Align, createName, Group, Rect, Ref, StackH, Text } from "bluefish-js";
 import { produce } from "immer";
-import { SVGAttributes } from "react";
-import { bluefish } from "../bluefish";
+import { bluefishWithAttach } from "../bluefish";
 import { span } from "../DragSpec";
 import { Manipulable } from "../manipulable";
 
@@ -14,19 +13,21 @@ export namespace BluefishPerm {
     perm: ["A", "B", "C", "D", "E"],
   };
 
-  export const manipulable: Manipulable<State> = ({
-    state,
-    drag,
-    draggedId,
-  }) => {
-    const TILE_SIZE = 50;
+  const TILE_SIZE = 50;
 
-    const attribsById: Record<string, SVGAttributes<SVGElement>> = {};
-
-    return bluefish(
+  export const manipulable: Manipulable<State> = ({ state, drag, draggedId }) =>
+    bluefishWithAttach((attach) =>
       StackH({ spacing: 0 }, [
         ...state.perm.map((p) => {
-          attribsById[p] = {
+          const backgroundName = createName("background");
+          const boxName = createName("box");
+          const labelName = createName("label");
+
+          // TODO: alternative to "background" – make new "Offset"
+          // component... copy-paste "Group" and then offset paint
+          // part as needed
+
+          attach(p, {
             "data-on-drag": drag(() => {
               const draggedIdx = state.perm.indexOf(p);
               return span(
@@ -38,16 +39,8 @@ export namespace BluefishPerm {
                 )
               );
             }),
-            ["data-z-index" as any]: p === draggedId ? 1 : 0,
-          };
-
-          const backgroundName = createName("background");
-          const boxName = createName("box");
-          const labelName = createName("label");
-
-          // TODO: alternative to "background" – make new "Offset"
-          // component... copy-paste "Group" and then offset paint
-          // part as needed
+            "data-z-index": p === draggedId ? 1 : 0,
+          });
 
           return Group({ id: p }, [
             Rect({
@@ -78,8 +71,6 @@ export namespace BluefishPerm {
             ),
           ]);
         }),
-      ]),
-      attribsById
+      ])
     );
-  };
 }
