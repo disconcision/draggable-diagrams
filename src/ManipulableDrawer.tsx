@@ -496,7 +496,7 @@ function makeManifoldPoint<T extends object>({
 }
 
 // TODO: memoize
-function getManifoldPointPosition<T>(
+export function getManifoldPointPosition<T>(
   manifoldPoint: ManifoldPoint<T>,
   pointerLocal: Vec2
 ): Vec2 {

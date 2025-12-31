@@ -3,10 +3,12 @@ import { demos } from "./demos";
 import { ErrorBoundary } from "./ErrorBoundary";
 import {
   DragState,
+  getManifoldPointPosition,
   Manifold,
   ManifoldPoint,
   ManipulableDrawer,
 } from "./ManipulableDrawer";
+import { Vec2 } from "./math/vec2";
 import { PrettyPrint } from "./pretty-print";
 import { drawHoisted } from "./svgx/hoist";
 
@@ -172,6 +174,7 @@ function RHSDragManifoldsMode({
                       pointIdx={pointIdx}
                       demoHeight={demoHeight}
                       demoPadding={demoPadding}
+                      pointerLocal={dragState.pointerLocal}
                     />
                   )
                 )}
@@ -241,6 +244,7 @@ function RHSDragDetachReattachMode({
               pointIdx={pointIdx}
               demoHeight={demoHeight}
               demoPadding={demoPadding}
+              pointerLocal={dragState.pointerLocal}
             />
           )
         )}
@@ -254,11 +258,13 @@ function ManifoldPointCard({
   pointIdx,
   demoHeight,
   demoPadding,
+  pointerLocal,
 }: {
   point: ManifoldPoint<any>;
   pointIdx: number;
   demoHeight: number;
   demoPadding?: number;
+  pointerLocal: Vec2;
 }) {
   const hasAndThen = point.andThen !== undefined;
   return (
@@ -292,7 +298,7 @@ function ManifoldPointCard({
         >
           {drawHoisted(point.hoisted)}
           <circle
-            {...point.position.cxy()}
+            {...getManifoldPointPosition(point, pointerLocal).cxy()}
             r={(5 * demoHeight) / 100}
             fill="red"
           />
