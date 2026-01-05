@@ -8,7 +8,7 @@ import prettier from "prettier/standalone";
 import { createElement, useMemo, useState } from "react";
 import {
   andThen,
-  detachReattach,
+  floating,
   numAtPath,
   numsAtPaths,
   params,
@@ -36,8 +36,8 @@ const GLOBALS = {
   span,
   numAtPath,
   andThen,
-  detachReattach,
   params,
+  floating,
 } as const;
 
 interface LiveEditorProps {

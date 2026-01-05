@@ -2,7 +2,7 @@ import _ from "lodash";
 import { amb, produceAmb } from "../amb";
 import { ConfigCheckbox, ConfigPanelProps } from "../configurable";
 import { configurableManipulable } from "../demos";
-import { free, span, straightTo } from "../DragSpec";
+import { floating, span, straightTo } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { path, rotateDeg, translate } from "../svgx/helpers";
 import { pipe } from "../utils";
@@ -47,11 +47,11 @@ export namespace Tromino {
             config.mazeMode
               ? pipe(singleRotationStates(state), (states) =>
                   config.snappyMode
-                    ? free([state, ...states])
+                    ? floating([state, ...states])
                     : states.map(straightTo)
                 )
               : pipe(allStates(state), (states) =>
-                  config.snappyMode ? free(states) : span(states)
+                  config.snappyMode ? floating(states) : span(states)
                 )
           )}
         />

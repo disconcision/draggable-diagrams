@@ -1,21 +1,24 @@
 import { produce } from "immer";
 import { amb, produceAmb, require } from "../amb";
 import { demoData } from "../demos";
-import { free } from "../DragSpec";
+import { floating } from "../DragSpec";
 import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 export namespace Hanoi {
   export type State = {
     pegs: number[][]; // Each peg holds disk IDs (smallest to largest from top to bottom)
+    numDisks: number;
   };
 
   export const state3: State = {
     pegs: [[1, 2, 3], [], []],
+    numDisks: 3,
   };
 
   export const state4: State = {
     pegs: [[1, 2, 3, 4], [], []],
+    numDisks: 4,
   };
 
   const PEG_WIDTH = 10;
@@ -29,19 +32,9 @@ export namespace Hanoi {
     return MIN_DISK_WIDTH + (diskId - 1) * DISK_WIDTH_INCREMENT;
   }
 
-  export const manipulable: Manipulable<State> = ({
-    state,
-    drag,
-    draggedId,
-    ghostId,
-  }) => {
-    const allDisks = state.pegs.flat();
-    const maxDiskId = Math.max(
-      ...allDisks,
-      draggedId ? parseInt(draggedId) : 0
-    );
-    const PEG_HEIGHT = (maxDiskId + 1) * DISK_HEIGHT;
-    const BASE_WIDTH = diskWidth(maxDiskId + 1);
+  export const manipulable: Manipulable<State> = ({ state, drag }) => {
+    const PEG_HEIGHT = (state.numDisks + 1) * DISK_HEIGHT;
+    const BASE_WIDTH = diskWidth(state.numDisks + 1);
     const PEG_SPACING = BASE_WIDTH + 40;
 
     return (
@@ -78,9 +71,6 @@ export namespace Hanoi {
         {/* Draw disks */}
         {state.pegs.map((peg, pegIdx) =>
           peg.map((diskId, positionOnPeg) => {
-            const isDragged = diskId.toString() === draggedId;
-            const isGhost = diskId.toString() === ghostId;
-
             const isTopDisk = positionOnPeg === 0;
             const width = diskWidth(diskId);
             const x = X_OFFSET + pegIdx * PEG_SPACING - width / 2;
@@ -100,24 +90,26 @@ export namespace Hanoi {
               <g
                 id={diskId.toString()}
                 transform={translate(x, y)}
-                data-z-index={isDragged ? 2 : 1}
                 data-on-drag={
                   isTopDisk &&
                   drag(() => {
-                    const detached = produce(state, (draft) => {
+                    const stateWithout = produce(state, (draft) => {
                       draft.pegs[pegIdx].shift();
                     });
 
-                    const reattached = produceAmb(detached, (draft) => {
+                    const statesWith = produceAmb(stateWithout, (draft) => {
                       const newPeg = draft.pegs[amb([0, 1, 2])];
                       newPeg.unshift(diskId);
                       require(newPeg.length === 1 || newPeg[0] < newPeg[1]);
                     });
 
-                    return free(reattached, {});
+                    return floating(statesWith, {
+                      ghost: { opacity: 0.5 },
+                      // background: stateWithout,
+                    });
                   })
                 }
-                opacity={isGhost ? 0.5 : 1}
+                data-z-index={1}
               >
                 <rect
                   x={0}
@@ -153,7 +145,7 @@ export namespace Hanoi {
     title: "Towers of Hanoi",
     notes: (
       <>
-        Uses <span className="font-mono">free</span>. Only top disks can be
+        Uses <span className="font-mono">floating</span>. Only top disks can be
         dragged.
       </>
     ),

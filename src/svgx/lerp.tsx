@@ -1,7 +1,7 @@
 import { rgb } from "d3-color";
 import { interpolateHcl } from "d3-interpolate";
 import { interpolatePath } from "d3-interpolate-path";
-import React from "react";
+import React, { cloneElement } from "react";
 import { shouldRecurseIntoChildren, Svgx } from ".";
 import { ErrorWithJSX } from "../ErrorBoundary";
 import { prettyLog, PrettyPrint } from "../pretty-print";
@@ -24,6 +24,10 @@ const COLOR_PROPS = new Set([
 ]);
 
 const NO_LERP_PROPS = new Set(["pointerEvents"]);
+
+const DEFAULT_VALUE_FOR_KEY: { [key: string]: any } = {
+  opacity: 1,
+};
 
 /**
  * Parses a points string (e.g., "0,0 10,5 20,10") into an array of [x, y] pairs.
@@ -78,7 +82,12 @@ function lerpValue(key: string, valA: any, valB: any, t: number): any {
   // Check equality first before attempting interpolation
   if (valA === valB) {
     return valA;
-  } else if (valA !== undefined && valB === undefined) {
+  }
+
+  valA ??= DEFAULT_VALUE_FOR_KEY[key];
+  valB ??= DEFAULT_VALUE_FOR_KEY[key];
+
+  if (valA !== undefined && valB === undefined) {
     return valA;
   } else if (valA === undefined && valB !== undefined) {
     return valB;
@@ -304,9 +313,12 @@ export function lerpHoisted(
       // console.log("lerpHoisted is lerping key:", key);
       result.set(key, lerpSvgx(aVal, bVal, t));
     } else if (aVal) {
-      result.set(key, aVal);
+      // TODO: we're hard-coding "enter/exit by fading"
+      const opacity = +(aVal.props.opacity ?? 1) * (1 - t);
+      if (opacity > 1e-3) result.set(key, cloneElement(aVal, { opacity }));
     } else if (bVal) {
-      result.set(key, bVal);
+      const opacity = +(bVal.props.opacity ?? 1) * t;
+      if (opacity > 1e-3) result.set(key, cloneElement(bVal, { opacity }));
     }
   }
 

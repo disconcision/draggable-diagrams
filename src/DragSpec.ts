@@ -1,4 +1,5 @@
 import { isObject } from "lodash";
+import { SVGProps } from "react";
 import { PathIn } from "./paths";
 import { assert, hasKey, Many, manyToArray } from "./utils";
 
@@ -12,19 +13,18 @@ import { assert, hasKey, Many, manyToArray } from "./utils";
 export type DragSpec<T> =
   | Many<DragSpecManifold<T>>
   | DragSpecParams<T>
-  | DragSpecDetachReattach<T>
-  | DragSpecFree<T>;
+  | DragSpecFloating<T>;
 
 // TODO: more sophisticated combos
 
 export type DragSpecManifold<T> =
   | {
       type: "manifold";
-      states: TargetState<T>[];
+      states: Exit<T>[];
     }
   | {
       type: "straight-to";
-      state: TargetState<T>;
+      state: Exit<T>;
     };
 
 export type DragSpecParams<T> =
@@ -35,54 +35,48 @@ export type DragSpecParams<T> =
       stateFromParams: (...params: number[]) => T;
     };
 
-export type DragSpecDetachReattach<T> = {
-  type: "detach-reattach";
-  detachedState: T;
-  reattachedStates: TargetState<T>[];
+export type DragSpecFloating<T> = {
+  type: "floating";
+  states: Exit<T>[];
+  backdropExit: Exit<T> | undefined;
+  ghost: "invisible" | SVGProps<SVGElement> | undefined;
+  onTop: boolean;
 };
 
 export type DragSpecFree<T> = {
   type: "free";
-  states: TargetState<T>[];
+  states: Exit<T>[];
   animate: boolean;
 };
 
-// # TargetState
-
-const targetStateSymbol: unique symbol = Symbol("TargetState");
+// # Exit
 
 /**
- * A TargetState is a state you want to be able to drag towards. It
- * optionally includes "what to do when you get there" via `andThen`.
+ * An Exit is a state you want to be able to transition into by
+ * dragging towards it. It optionally includes "what to do when you
+ * get there" via `andThen`.
  */
-export type TargetState<T> = {
-  type: typeof targetStateSymbol;
+export type Exit<T> = {
   state: T;
+  /**
+   * If defined, a state to immediately transition to after reaching
+   * this state.
+   */
   andThen: T | undefined;
 };
 
-export type TargetStateLike<T> = T | TargetState<T>;
-export function isTargetState<T>(
-  state: TargetStateLike<T>
-): state is TargetState<T> {
-  return (
-    isObject(state) && hasKey(state, "type") && state.type === targetStateSymbol
-  );
+export type ExitLike<T> = T | Exit<T>;
+export function isExit<T>(state: ExitLike<T>): state is Exit<T> {
+  return isObject(state) && hasKey(state, "state") && hasKey(state, "andThen");
 }
-export function toTargetState<T>(state: TargetStateLike<T>): TargetState<T> {
-  return isTargetState(state)
-    ? state
-    : {
-        type: targetStateSymbol,
-        state,
-        andThen: undefined,
-      };
+export function toExit<T>(state: ExitLike<T>): Exit<T> {
+  return isExit(state) ? state : { state, andThen: undefined };
 }
 
 // # Constructors
 
 export function span<T>(
-  ...manyStates: Many<TargetStateLike<T>>[]
+  ...manyStates: Many<ExitLike<T>>[]
 ): DragSpecManifold<T> {
   const states = manyToArray(manyStates);
   assert(
@@ -91,35 +85,70 @@ export function span<T>(
   );
   return {
     type: "manifold",
-    states: states.map(toTargetState),
+    states: states.map(toExit),
   };
 }
 
-export function straightTo<T>(state: TargetStateLike<T>): DragSpecManifold<T> {
-  return { type: "straight-to", state: toTargetState(state) };
+export function straightTo<T>(state: ExitLike<T>): DragSpecManifold<T> {
+  return { type: "straight-to", state: toExit(state) };
 }
 
-export function detachReattach<T>(
-  detachedState: T,
-  reattachedStates: Many<TargetStateLike<T>>
-): DragSpecDetachReattach<T> {
+/**
+ * A "floating" drag-spec says that the dragged item should be freely
+ * draggable, "floating" over the diagram.
+ */
+export function floating<T>(
+  /**
+   * States that can be accessed by moving the dragged item to their
+   * position.
+   */
+  states: Many<ExitLike<T>>,
+  options?: {
+    /**
+     * If provided, drags to locations far from `states` will access
+     * this state.
+     */
+    backdrop?: T;
+    /**
+     * If a state from `states` is shown during the drag, the dragged
+     * item will appear twice on the screen: floating and as part of
+     * the background. The version in the background is called the
+     * "ghost" because it represents a hypothetical future position
+     * of the dragged item. By default, it is shown normally (and we
+     * signal it to the render function via `ghostId` for arbitrary
+     * custom display). This option provides a shortcut: if set to
+     * "invisible", the ghost will be removed, and if set to SVG
+     * attributes, those attributes will be applied to the ghost
+     * element.
+     */
+    ghost?: "invisible" | SVGProps<SVGElement>;
+    /**
+     * If true (default), the floating item will be rendered on top
+     * of all other elements during the drag.
+     */
+    onTop?: boolean;
+    // TODO: various animation options
+  }
+): DragSpecFloating<T> {
   return {
-    type: "detach-reattach",
-    detachedState,
-    reattachedStates: manyToArray(reattachedStates).map(toTargetState),
+    type: "floating",
+    states: manyToArray(states).map(toExit),
+    backdropExit: options?.backdrop ? toExit(options.backdrop) : undefined,
+    ghost: options?.ghost,
+    onTop: options?.onTop ?? true,
   };
 }
 
-export function free<T>(
-  states: Many<TargetStateLike<T>>,
-  options?: { animate?: boolean }
-): DragSpecFree<T> {
-  return {
-    type: "free",
-    states: manyToArray(states).map(toTargetState),
-    animate: options?.animate ?? false,
-  };
-}
+// export function detachReattach<T>(
+//   detachedState: T,
+//   reattachedStates: Many<TargetStateLike<T>>
+// ): DragSpecDetachReattach<T> {
+//   return {
+//     type: "detach-reattach",
+//     detachedState,
+//     reattachedStates: manyToArray(reattachedStates).map(toTargetState),
+//   };
+// }
 
 export function params<T>(
   initParams: number[],
@@ -138,10 +167,6 @@ export function numAtPath<T>(paramPath: PathIn<T, number>): DragSpecParams<T> {
   return { type: "param-paths", paramPaths: [paramPath] };
 }
 
-export function andThen<T>(state: T, andThen: T): TargetState<T> {
-  return {
-    type: targetStateSymbol,
-    state,
-    andThen,
-  };
+export function andThen<T>(state: T, andThen: T): Exit<T> {
+  return { state, andThen };
 }

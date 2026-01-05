@@ -1,6 +1,7 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { detachReattach } from "../DragSpec";
+import { amb, produceAmb } from "../amb";
+import { floating } from "../DragSpec";
 import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
@@ -17,6 +18,7 @@ export namespace PermDetach {
     state,
     drag,
     draggedId,
+    ghostId,
   }) => {
     const TILE_SIZE = 50;
 
@@ -24,6 +26,7 @@ export namespace PermDetach {
       <g>
         {state.perm.map((p, idx) => {
           const isDragged = p === draggedId;
+          const isGhost = p === ghostId;
           return (
             <g
               id={p}
@@ -31,17 +34,17 @@ export namespace PermDetach {
               data-z-index={isDragged ? 1 : 0}
               data-on-drag={drag(() => {
                 const draggedIdx = state.perm.indexOf(p);
-                const detached = produce(state, (draft) => {
+                const stateWithout = produce(state, (draft) => {
                   draft.perm.splice(draggedIdx, 1);
                 });
-                return detachReattach(
-                  detached,
-                  _.range(detached.perm.length + 1).map((idx) =>
-                    produce(detached, (draft) => {
-                      draft.perm.splice(idx, 0, p);
-                    })
-                  )
-                );
+                const statesWith = produceAmb(stateWithout, (draft) => {
+                  const idx = amb(_.range(stateWithout.perm.length + 1));
+                  draft.perm.splice(idx, 0, p);
+                });
+                return floating(statesWith, {
+                  backdrop: stateWithout,
+                  ghost: "invisible",
+                });
               })}
             >
               <rect

@@ -1,7 +1,7 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { amb, produceAmb } from "../amb";
-import { andThen, detachReattach } from "../DragSpec";
+import { andThen, floating } from "../DragSpec";
 import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
@@ -103,19 +103,20 @@ export namespace InsertAndRemove {
               const storeItemIdx = idx;
               const storeItem = tile;
 
-              const detachedState = produce(state, (draft) => {
+              const stateWithout = produce(state, (draft) => {
                 draft.store[storeItemIdx].key += "-1";
               });
 
               // Drag spec for store: insert anywhere
-              const insertStates = _.range(state.items.length + 1).map(
-                (insertIdx) =>
-                  produce(detachedState, (draft) => {
-                    draft.items.splice(insertIdx, 0, storeItem);
-                  })
-              );
+              const statesWith = produceAmb(stateWithout, (draft) => {
+                const insertIdx = amb(_.range(state.items.length + 1));
+                draft.items.splice(insertIdx, 0, storeItem);
+              });
 
-              return detachReattach(detachedState, insertStates);
+              return floating(statesWith, {
+                backdrop: stateWithout,
+                ghost: "invisible",
+              });
             }),
           })
         )}
@@ -129,16 +130,16 @@ export namespace InsertAndRemove {
               const itemIdx = idx;
               const draggedItem = tile;
 
-              const detachedState = produce(state, (draft) => {
+              const stateWithout = produce(state, (draft) => {
                 draft.items.splice(itemIdx, 1);
               });
 
-              const rearrangeStates = produceAmb(detachedState, (draft) => {
+              const rearrangeStates = produceAmb(stateWithout, (draft) => {
                 const insertIdx = amb(_.range(draft.items.length + 1));
                 draft.items.splice(insertIdx, 0, draggedItem);
               });
 
-              const deleteState = produce(detachedState, (draft) => {
+              const deleteState = produce(stateWithout, (draft) => {
                 draft.items.splice(itemIdx, 1);
                 draft.deleted = draggedItem;
               });
@@ -146,10 +147,13 @@ export namespace InsertAndRemove {
                 draft.deleted = undefined;
               });
 
-              return detachReattach(detachedState, [
-                rearrangeStates,
-                andThen(deleteState, postDeleteState),
-              ]);
+              return floating(
+                [rearrangeStates, andThen(deleteState, postDeleteState)],
+                {
+                  backdrop: stateWithout,
+                  ghost: "invisible",
+                }
+              );
             }),
           })
         )}

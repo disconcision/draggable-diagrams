@@ -2,10 +2,10 @@ import { produce } from "immer";
 import _ from "lodash";
 import { ConfigCheckbox, ConfigPanelProps } from "../configurable";
 import { configurableManipulable } from "../demos";
-import { detachReattach, span } from "../DragSpec";
+import { floating, span } from "../DragSpec";
 import { SetState } from "../manipulable";
-import { translate } from "../svgx/helpers";
 import { Svgx } from "../svgx";
+import { translate } from "../svgx/helpers";
 
 export namespace Todo {
   type TodoItem = {
@@ -104,18 +104,20 @@ export namespace Todo {
               opacity: 1,
               setState,
               "data-on-drag": drag(() => {
-                const detachedState = produce(state, (s) => {
+                const stateWithout = produce(state, (s) => {
                   s.todos.splice(idx, 1);
                 });
-                const reattachedStates = _.range(state.todos.length).map(
-                  (newIdx) =>
-                    produce(detachedState, (s) => {
-                      s.todos.splice(newIdx, 0, todo);
-                    })
+                const statesWith = _.range(state.todos.length).map((newIdx) =>
+                  produce(stateWithout, (s) => {
+                    s.todos.splice(newIdx, 0, todo);
+                  })
                 );
                 return config.useDetachReattach
-                  ? detachReattach(detachedState, reattachedStates)
-                  : span(reattachedStates);
+                  ? floating(statesWith, {
+                      backdrop: stateWithout,
+                      ghost: "invisible",
+                    })
+                  : span(statesWith);
               }),
             });
           })}

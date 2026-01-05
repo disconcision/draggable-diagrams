@@ -1,6 +1,6 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { detachReattach } from "../DragSpec";
+import { floating } from "../DragSpec";
 import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
@@ -82,16 +82,18 @@ export namespace ListOfLists {
               )}
               data-z-index={isDraggedRow ? 2 : 0}
               data-on-drag={drag(() => {
-                const detachedState = produce(state, (draft) => {
+                const stateWithout = produce(state, (draft) => {
                   draft.rows.splice(rowIdx, 1);
                 });
-                const reattachedStates = _.range(state.rows.length).map(
-                  (newIdx) =>
-                    produce(detachedState, (draft) => {
-                      draft.rows.splice(newIdx, 0, row);
-                    })
+                const statesWith = _.range(state.rows.length).map((newIdx) =>
+                  produce(stateWithout, (draft) => {
+                    draft.rows.splice(newIdx, 0, row);
+                  })
                 );
-                return detachReattach(detachedState, reattachedStates);
+                return floating(statesWith, {
+                  backdrop: stateWithout,
+                  ghost: "invisible",
+                });
               })}
             >
               <rect
@@ -141,21 +143,24 @@ export namespace ListOfLists {
                       (item) => item.id === p.id
                     );
 
-                    const detachedState = produce(state, (draft) => {
+                    const stateWithout = produce(state, (draft) => {
                       draft.rows[draggedRowIdx].items.splice(draggedColIdx, 1);
                     });
-                    const reattachedStates: State[] = [];
-                    detachedState.rows.forEach((row, rowIdx) => {
+                    const statesWith: State[] = [];
+                    stateWithout.rows.forEach((row, rowIdx) => {
                       for (const colIdx of _.range(row.items.length + 1)) {
-                        reattachedStates.push(
-                          produce(detachedState, (draft) => {
+                        statesWith.push(
+                          produce(stateWithout, (draft) => {
                             draft.rows[rowIdx].items.splice(colIdx, 0, p);
                           })
                         );
                       }
                     });
 
-                    return detachReattach(detachedState, reattachedStates);
+                    return floating(statesWith, {
+                      backdrop: stateWithout,
+                      ghost: "invisible",
+                    });
                   })}
                 >
                   <rect

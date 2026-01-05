@@ -5,8 +5,8 @@ import {
   DragState,
   getManifoldPointPosition,
   Manifold,
-  ManifoldPoint,
   ManipulableDrawer,
+  RenderedExitWithDragged,
 } from "./ManipulableDrawer";
 import { Vec2 } from "./math/vec2";
 import { PrettyPrint } from "./pretty-print";
@@ -38,8 +38,6 @@ export function InspectPage({
     if (dragState.type === "idle") {
       setCurrentState(dragState.state);
     } else if (dragState.type === "drag-manifolds") {
-      setCurrentState(dragState.startingPoint.state);
-    } else if (dragState.type === "drag-detach-reattach") {
       setCurrentState(dragState.startingPoint.state);
     }
   }, [dragState]);
@@ -116,8 +114,8 @@ export function InspectPage({
                   demoHeight={demo.height}
                   demoPadding={demo.padding}
                 />
-              ) : dragState.type === "drag-detach-reattach" ? (
-                <RHSDragDetachReattachMode
+              ) : dragState.type === "drag-floating" ? (
+                <RHSDragFloatingMode
                   dragState={dragState}
                   demoHeight={demo.height}
                   demoPadding={demo.padding}
@@ -153,7 +151,7 @@ function RHSDragManifoldsMode({
       <h2 className="text-lg font-semibold mb-2">
         Manifold Points (
         {dragState.manifolds.reduce(
-          (sum: number, m: Manifold<unknown>) => sum + m.points.length,
+          (sum: number, m: Manifold<unknown>) => sum + m.exits.length,
           0
         )}{" "}
         total)
@@ -163,11 +161,14 @@ function RHSDragManifoldsMode({
           (manifold: Manifold<unknown>, manifoldIdx: number) => (
             <Fragment key={manifoldIdx}>
               <div className="text-xs font-medium text-gray-600 mt-2">
-                Manifold {manifoldIdx} ({manifold.points.length} points)
+                Manifold {manifoldIdx} ({manifold.exits.length} points)
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-                {manifold.points.map(
-                  (point: ManifoldPoint<unknown>, pointIdx: number) => (
+                {manifold.exits.map(
+                  (
+                    point: RenderedExitWithDragged<unknown>,
+                    pointIdx: number
+                  ) => (
                     <ManifoldPointCard
                       key={pointIdx}
                       point={point}
@@ -187,12 +188,12 @@ function RHSDragManifoldsMode({
   );
 }
 
-function RHSDragDetachReattachMode({
+function RHSDragFloatingMode({
   dragState,
   demoHeight,
   demoPadding,
 }: {
-  dragState: DragState<unknown> & { type: "drag-detach-reattach" };
+  dragState: DragState<unknown> & { type: "drag-floating" };
   demoHeight: number;
   demoPadding?: number;
 }) {
@@ -200,7 +201,7 @@ function RHSDragDetachReattachMode({
     <>
       <div className="flex gap-4 mb-4">
         <div className="flex-1">
-          <h2 className="text-lg font-semibold mb-2">Dragged Element</h2>
+          <h2 className="text-lg font-semibold mb-2">Floating Element</h2>
           <div className="border border-gray-200 rounded p-2 bg-white">
             <div style={{ padding: demoPadding }}>
               <svg
@@ -209,35 +210,37 @@ function RHSDragDetachReattachMode({
                 viewBox={`0 0 ${demoHeight * 1.5} ${demoHeight}`}
                 style={{ border: "1px solid black" }}
               >
-                {drawHoisted(dragState.draggedHoisted)}
+                {drawHoisted(dragState.floatHoisted)}
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="flex-1">
-          <h2 className="text-lg font-semibold mb-2">Detached Background</h2>
-          <div className="border border-gray-200 rounded p-2 bg-white">
-            <div style={{ padding: demoPadding }}>
-              <svg
-                width="100%"
-                height="100"
-                viewBox={`0 0 ${demoHeight * 1.5} ${demoHeight}`}
-                style={{ border: "1px solid black" }}
-              >
-                {drawHoisted(dragState.detachedHoisted)}
-              </svg>
+        {dragState.backdropExit && (
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold mb-2">Backdrop</h2>
+            <div className="border border-gray-200 rounded p-2 bg-white">
+              <div style={{ padding: demoPadding }}>
+                <svg
+                  width="100%"
+                  height="100"
+                  viewBox={`0 0 ${demoHeight * 1.5} ${demoHeight}`}
+                  style={{ border: "1px solid black" }}
+                >
+                  {drawHoisted(dragState.backdropExit.hoisted)}
+                </svg>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <h2 className="text-lg font-semibold mb-2">
-        Reattachment Points ({dragState.reattachedPoints.length} total)
+        Exits ({dragState.exits.length} total)
       </h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto overflow-x-hidden">
-        {dragState.reattachedPoints.map(
-          (point: ManifoldPoint<unknown>, pointIdx: number) => (
+        {dragState.exits.map(
+          (point: RenderedExitWithDragged<unknown>, pointIdx: number) => (
             <ManifoldPointCard
               key={pointIdx}
               point={point}
@@ -260,7 +263,7 @@ function ManifoldPointCard({
   demoPadding,
   pointerLocal,
 }: {
-  point: ManifoldPoint<any>;
+  point: RenderedExitWithDragged<any>;
   pointIdx: number;
   demoHeight: number;
   demoPadding?: number;

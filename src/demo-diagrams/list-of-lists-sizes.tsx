@@ -1,6 +1,6 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { detachReattach, TargetStateLike } from "../DragSpec";
+import { ExitLike, floating } from "../DragSpec";
 import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 import { assertDefined } from "../utils";
@@ -87,16 +87,18 @@ export namespace ListOfListsSizes {
               transform={translate(0, origY)}
               data-z-index={isDraggedRow ? 2 : 0}
               data-on-drag={drag(() => {
-                const detachedState = produce(state, (draft) => {
+                const stateWithout = produce(state, (draft) => {
                   draft.rows.splice(rowIdx, 1);
                 });
-                const reattachedStates = _.range(state.rows.length).map(
-                  (newIdx) =>
-                    produce(detachedState, (draft) => {
-                      draft.rows.splice(newIdx, 0, row);
-                    })
+                const statesWith = _.range(state.rows.length).map((newIdx) =>
+                  produce(stateWithout, (draft) => {
+                    draft.rows.splice(newIdx, 0, row);
+                  })
                 );
-                return detachReattach(detachedState, reattachedStates);
+                return floating(statesWith, {
+                  backdrop: stateWithout,
+                  ghost: "invisible",
+                });
               })}
             >
               <rect
@@ -146,14 +148,14 @@ export namespace ListOfListsSizes {
                         (item) => item.id === p.id
                       );
 
-                      const detachedState = produce(state, (draft) => {
+                      const stateWithout = produce(state, (draft) => {
                         draft.rows[draggedRowIdx].items.splice(
                           draggedColIdx,
                           1
                         );
                       });
-                      const reattachedStates: TargetStateLike<State>[] = [];
-                      detachedState.rows.forEach((row, rowIdx) => {
+                      const statesWith: ExitLike<State>[] = [];
+                      stateWithout.rows.forEach((row, rowIdx) => {
                         for (const colIdx of _.range(row.items.length + 1)) {
                           // const dropTargetState = produce(
                           //   detachedState,
@@ -169,15 +171,18 @@ export namespace ListOfListsSizes {
                           //     );
                           //   }
                           // );
-                          reattachedStates.push(
-                            produce(detachedState, (draft) => {
+                          statesWith.push(
+                            produce(stateWithout, (draft) => {
                               draft.rows[rowIdx].items.splice(colIdx, 0, p);
                             })
                           );
                         }
                       });
 
-                      return detachReattach(detachedState, reattachedStates);
+                      return floating(statesWith, {
+                        backdrop: stateWithout,
+                        ghost: "invisible",
+                      });
                     })}
                   >
                     <rect

@@ -1,9 +1,9 @@
 import { ConfigCheckbox, ConfigPanelProps } from "../configurable";
 import { configurableManipulable } from "../demos";
-import { detachReattach, span } from "../DragSpec";
+import { floating, span } from "../DragSpec";
 import { Drag } from "../manipulable";
-import { translate } from "../svgx/helpers";
 import { Svgx } from "../svgx";
+import { translate } from "../svgx/helpers";
 
 export namespace Outline {
   export type Tree = {
@@ -272,7 +272,7 @@ export namespace Outline {
           id={tree.id}
           data-z-index={zIndex}
           data-on-drag={drag(() => {
-            const detachedState = structuredClone(rootState);
+            const stateWithout = structuredClone(rootState);
             // Remove the dragged node from its current location
             let foundNode: Tree | null = null;
             function removeKey(node: Tree): boolean {
@@ -288,20 +288,20 @@ export namespace Outline {
               }
               return false;
             }
-            removeKey(detachedState);
+            removeKey(stateWithout);
             if (!foundNode) {
               return [];
             }
 
-            const reattachedStates = insertAtAllPositions(
-              detachedState,
-              foundNode
-            );
+            const statesWith = insertAtAllPositions(stateWithout, foundNode);
 
             if (config.useDetachReattach) {
-              return detachReattach(detachedState, reattachedStates);
+              return floating(statesWith, {
+                backdrop: stateWithout,
+                ghost: "invisible",
+              });
             } else {
-              return span(reattachedStates);
+              return span(statesWith);
             }
           })}
         >
