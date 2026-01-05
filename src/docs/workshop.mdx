@@ -108,12 +108,12 @@ With this knowledge we can take on a more involved example: reordering objects.
               data-z-index={isDragged ? 1 : 0}
               data-on-drag={drag(() =>
                 span(
-                  _.range(state.perm.length).map((newIdx) =>
-                    produce(state, (draft) => {
-                      draft.perm.splice(idx, 1);
-                      draft.perm.splice(newIdx, 0, p);
-                    }),
-                  ),
+                  _.range(state.perm.length).map((newIdx) => {
+                    const draft = structuredClone(state);
+                    draft.perm.splice(idx, 1);
+                    draft.perm.splice(newIdx, 0, p);
+                    return draft;
+                  }),
                 )
               )}
             >
@@ -154,7 +154,7 @@ Some important aspects, top to bottom:
 
 - SVG doesn't have z-index. But because elements with `id`s end up "ripped out" of the SVG structure, we can put z-indices on them (with `data-z-index`) to determine their ultimate ordering. Here, we use that to make sure the dragged tile is on top of the others.
 
-- Now the important part: the drag spec attached to `data-on-drag`! Dragging an element of the array should be able to bring you to every possible version of the array where the dragged element is removed and then inserted in a different location. We compute all these possible arrays in the drag spec callback. Specifically, we do so with [Immer](https://immerjs.github.io/immer/)'s `produce` function, which lets you apply mutations to a "draft" to immutably produce a new value. You could also just `structuredClone` the original value and mutate it, or painstakingly use a bunch of `{ ...oldState, newKey: ...}`-type expressions.
+- Now the important part: the drag spec attached to `data-on-drag`! Dragging an element of the array should be able to bring you to every possible version of the array where the dragged element is removed and then inserted in a different location. We compute all these possible arrays in the drag spec callback. Specifically, for each possible insertion index, we make a copy of the starting state (with `structuredClone`) before mutating and returning it. Alternatively, you could use [Immer](https://immerjs.github.io/immer/)'s `produce` function, or painstakingly use a bunch of `{ ...oldState, newKey: ...}`-type expressions. (Or you could even use `produceAmb` -- search the codebase for examples of that.)
 
 I think those are the basics. Hope they make sense.
 
