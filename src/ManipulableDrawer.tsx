@@ -678,107 +678,6 @@ function dragStateFromSpec<T extends object>(
   }
 }
 
-function debugForDragManifoldsMode(
-  dragState: DragState<any> & { type: "drag-manifolds" }
-): Svgx {
-  const debugRender: React.ReactElement[] = [];
-
-  dragState.byproducts.manifoldProjections.forEach((proj, manifoldIdx) => {
-    const { manifold, projectedPt } = proj;
-
-    // Draw red circles at manifold points
-    manifold.exits.forEach((pt, ptIdx) => {
-      debugRender.push(
-        <circle
-          key={`manifold-${manifoldIdx}-point-${ptIdx}`}
-          {...getManifoldPointPosition(pt, dragState.pointerLocal).cxy()}
-          r={dragState.byproducts.snapRadius}
-          fill="red"
-          opacity={0.3}
-        />
-      );
-    });
-
-    // Draw red triangulation edges
-    manifold.delaunay.triangles().forEach((tri) => {
-      const [a, b, c] = tri;
-      debugRender.push(
-        <path
-          d={path("M", a.x, a.y, "L", b.x, b.y, "L", c.x, c.y, "Z")}
-          stroke="red"
-          strokeWidth={2}
-          fill="none"
-        />
-      );
-    });
-
-    // Draw blue circle at projected point
-    debugRender.push(
-      <circle
-        {...projectedPt.cxy()}
-        r={10}
-        stroke="blue"
-        strokeWidth={2}
-        fill="none"
-      />
-    );
-
-    // Draw blue line from draggable dest to projected point
-    debugRender.push(
-      <line
-        {...dragState.byproducts.pointer.xy1()}
-        {...projectedPt.xy2()}
-        stroke="blue"
-        strokeWidth={2}
-      />
-    );
-  });
-
-  return <>{debugRender}</>;
-}
-
-function debugForDragParamsMode(
-  dragState: DragState<any> & { type: "drag-params" }
-): Svgx {
-  const debugRender: React.ReactElement[] = [];
-
-  const processedContent = pipe(
-    dragState.byproducts.content,
-    assignPaths,
-    accumulateTransforms
-  );
-  const element = findByPath(dragState.draggedPath, processedContent);
-  if (element) {
-    const accumulateTransform = getAccumulatedTransform(element);
-    const transforms = parseTransform(accumulateTransform || "");
-    const achievedPos = localToGlobal(transforms, dragState.pointerLocal);
-
-    debugRender.push(
-      <circle
-        key="drag-params-achieved"
-        {...achievedPos.cxy()}
-        r={5}
-        fill="green"
-        stroke="darkgreen"
-        strokeWidth={2}
-      />
-    );
-
-    debugRender.push(
-      <line
-        key="drag-params-line"
-        {...achievedPos.xy1()}
-        {...dragState.byproducts.pointer.xy2()}
-        stroke="orange"
-        strokeWidth={2}
-        strokeDasharray="4 4"
-      />
-    );
-  }
-
-  return <>{debugRender}</>;
-}
-
 type DragContext<T extends object> = {
   // pointer: Vec2;
   drawerConfig: DrawerConfig;
@@ -1179,6 +1078,65 @@ const DrawDragManifoldsMode = memoGeneric(
   }
 );
 
+function debugForDragManifoldsMode(
+  dragState: DragState<any> & { type: "drag-manifolds" }
+): Svgx {
+  const debugRender: React.ReactElement[] = [];
+
+  dragState.byproducts.manifoldProjections.forEach((proj, manifoldIdx) => {
+    const { manifold, projectedPt } = proj;
+
+    // Draw red circles at manifold points
+    manifold.exits.forEach((pt, ptIdx) => {
+      debugRender.push(
+        <circle
+          key={`manifold-${manifoldIdx}-point-${ptIdx}`}
+          {...getManifoldPointPosition(pt, dragState.pointerLocal).cxy()}
+          r={dragState.byproducts.snapRadius}
+          fill="red"
+          opacity={0.3}
+        />
+      );
+    });
+
+    // Draw red triangulation edges
+    manifold.delaunay.triangles().forEach((tri) => {
+      const [a, b, c] = tri;
+      debugRender.push(
+        <path
+          d={path("M", a.x, a.y, "L", b.x, b.y, "L", c.x, c.y, "Z")}
+          stroke="red"
+          strokeWidth={2}
+          fill="none"
+        />
+      );
+    });
+
+    // Draw blue circle at projected point
+    debugRender.push(
+      <circle
+        {...projectedPt.cxy()}
+        r={10}
+        stroke="blue"
+        strokeWidth={2}
+        fill="none"
+      />
+    );
+
+    // Draw blue line from draggable dest to projected point
+    debugRender.push(
+      <line
+        {...dragState.byproducts.pointer.xy1()}
+        {...projectedPt.xy2()}
+        stroke="blue"
+        strokeWidth={2}
+      />
+    );
+  });
+
+  return <>{debugRender}</>;
+}
+
 const DrawDragFloatingMode = memoGeneric(
   <T extends object>({ dragState }: DrawModeProps<T, "drag-floating">) => {
     return drawHoisted(dragState.byproducts.hoistedToRender);
@@ -1195,6 +1153,48 @@ const DrawDragParamsMode = memoGeneric(
     );
   }
 );
+
+function debugForDragParamsMode(
+  dragState: DragState<any> & { type: "drag-params" }
+): Svgx {
+  const debugRender: React.ReactElement[] = [];
+
+  const processedContent = pipe(
+    dragState.byproducts.content,
+    assignPaths,
+    accumulateTransforms
+  );
+  const element = findByPath(dragState.draggedPath, processedContent);
+  if (element) {
+    const accumulateTransform = getAccumulatedTransform(element);
+    const transforms = parseTransform(accumulateTransform || "");
+    const achievedPos = localToGlobal(transforms, dragState.pointerLocal);
+
+    debugRender.push(
+      <circle
+        key="drag-params-achieved"
+        {...achievedPos.cxy()}
+        r={5}
+        fill="green"
+        stroke="darkgreen"
+        strokeWidth={2}
+      />
+    );
+
+    debugRender.push(
+      <line
+        key="drag-params-line"
+        {...achievedPos.xy1()}
+        {...dragState.byproducts.pointer.xy2()}
+        stroke="orange"
+        strokeWidth={2}
+        strokeDasharray="4 4"
+      />
+    );
+  }
+
+  return <>{debugRender}</>;
+}
 
 export type DrawerConfig = {
   snapRadius: number;
