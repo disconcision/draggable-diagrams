@@ -216,11 +216,11 @@ export namespace Outline {
   };
 
   type Config = {
-    useDetachReattach: boolean;
+    useFloating: boolean;
   };
 
   const defaultConfig: Config = {
-    useDetachReattach: true,
+    useFloating: true,
   };
 
   const HEIGHT = 25;
@@ -295,7 +295,7 @@ export namespace Outline {
 
             const statesWith = insertAtAllPositions(stateWithout, foundNode);
 
-            if (config.useDetachReattach) {
+            if (config.useFloating) {
               return floating(statesWith, { backdrop: stateWithout });
             } else {
               return span(statesWith);
@@ -381,12 +381,11 @@ export namespace Outline {
   function ConfigPanel({ config, setConfig }: ConfigPanelProps<Config>) {
     return (
       <ConfigCheckbox
-        label="Detach/reattach"
-        value={config.useDetachReattach}
-        onChange={(newValue) =>
-          setConfig({ ...config, useDetachReattach: newValue })
-        }
-      />
+        value={config.useFloating}
+        onChange={(newValue) => setConfig({ ...config, useFloating: newValue })}
+      >
+        Use <span className="font-mono">floating</span>
+      </ConfigCheckbox>
     );
   }
 }

@@ -29,11 +29,11 @@ export namespace Todo {
   };
 
   export type Config = {
-    useDetachReattach: boolean;
+    useFloating: boolean;
   };
 
   const defaultConfig: Config = {
-    useDetachReattach: false,
+    useFloating: false,
   };
 
   const TILE_SIZE = 55;
@@ -97,7 +97,7 @@ export namespace Todo {
             return drawTodoItem({
               todo,
               transform: translate(
-                10 - (isDragged && !config.useDetachReattach ? 5 : 0),
+                10 - (isDragged && !config.useFloating ? 5 : 0),
                 80 + idx * TILE_SIZE
               ),
               "data-z-index": isDragged ? 1 : 0,
@@ -112,7 +112,7 @@ export namespace Todo {
                     s.todos.splice(newIdx, 0, todo);
                   })
                 );
-                return config.useDetachReattach
+                return config.useFloating
                   ? floating(statesWith, { backdrop: stateWithout })
                   : span(statesWith);
               }),
@@ -178,12 +178,11 @@ export namespace Todo {
   function ConfigPanel({ config, setConfig }: ConfigPanelProps<Config>) {
     return (
       <ConfigCheckbox
-        label="Detach/reattach"
-        value={config.useDetachReattach}
-        onChange={(newValue) =>
-          setConfig({ ...config, useDetachReattach: newValue })
-        }
-      />
+        value={config.useFloating}
+        onChange={(newValue) => setConfig({ ...config, useFloating: newValue })}
+      >
+        Use <span className="font-mono">floating</span>
+      </ConfigCheckbox>
     );
   }
 }

@@ -143,17 +143,6 @@ export function floating<T>(
   };
 }
 
-// export function detachReattach<T>(
-//   detachedState: T,
-//   reattachedStates: Many<TargetStateLike<T>>
-// ): DragSpecDetachReattach<T> {
-//   return {
-//     type: "detach-reattach",
-//     detachedState,
-//     reattachedStates: manyToArray(reattachedStates).map(toTargetState),
-//   };
-// }
-
 export function params<T>(
   initParams: number[],
   stateFromParams: (...params: number[]) => T

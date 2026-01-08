@@ -81,6 +81,7 @@ The Edit and Write tools require reading the file first. Always use Read tool be
 ### Basic Structure
 
 1. **Define your state type** - Must be an object. This represents all possible configurations of your diagram:
+
    ```typescript
    export type State = {
      items: string[];
@@ -89,6 +90,7 @@ The Edit and Write tools require reading the file first. Always use Read tool be
    ```
 
 2. **Export initial states** - Provide one or more starting configurations:
+
    ```typescript
    export const state1: State = {
      items: ["A", "B", "C"],
@@ -97,7 +99,11 @@ The Edit and Write tools require reading the file first. Always use Read tool be
 
 3. **Write the manipulable** - A function that renders SVG based on state:
    ```typescript
-   export const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
+   export const manipulable: Manipulable<State> = ({
+     state,
+     drag,
+     draggedId,
+   }) => {
      return <g>{/* your SVG elements */}</g>;
    };
    ```
@@ -115,23 +121,23 @@ The Edit and Write tools require reading the file first. Always use Read tool be
 - Use `numAtPath(["path", "to", "number"])` to control a numeric value
 - Use `numsAtPaths([["x"], ["y"]])` for multiple values
 
-**Detach-reattach pattern** (moving items between containers):
+**Floating pattern** (moving items between containers):
 
 ```typescript
 data-on-drag={drag(() => {
   // Remove item from current location
-  const detached = produce(state, (draft) => {
+  const stateWithout = produce(state, (draft) => {
     draft.items.splice(currentIdx, 1);
   });
 
   // Generate all valid placement states
-  const validStates = possiblePositions.map(pos =>
-    produce(detached, (draft) => {
+  const statesWith = possiblePositions.map(pos =>
+    produce(stateWithout, (draft) => {
       draft.items.splice(pos, 0, item);
     })
   );
 
-  return detachReattach(detached, validStates);
+  return floating(statesWith, { backdrop: stateWithout });
 })}
 ```
 
@@ -159,5 +165,5 @@ demoData({
   height: 200,
   padding: 20,
   sourceFile: "your-diagram.tsx",
-})
+});
 ```

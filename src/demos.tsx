@@ -20,8 +20,8 @@ import { NoolTree } from "./demo-diagrams/nool-tree";
 import { OrderPreserving } from "./demo-diagrams/order-preserving";
 import { Outline } from "./demo-diagrams/outline";
 import { Perm } from "./demo-diagrams/perm";
-import { PermDetach } from "./demo-diagrams/perm-detach";
 import { PermDouble } from "./demo-diagrams/perm-double";
+import { PermFloating } from "./demo-diagrams/perm-floating";
 import { RushHour } from "./demo-diagrams/rush-hour";
 import { SecondSimplest } from "./demo-diagrams/second-simplest";
 import { Simplest } from "./demo-diagrams/simplest";
@@ -151,13 +151,13 @@ export const demos: SomeDemoData[] = [
     sourceFile: "perm.tsx",
   }),
   demoData({
-    id: "perm-detach",
-    title: "Permutation (detach-reattach)",
-    manipulable: PermDetach.manipulable,
-    initialStates: [PermDetach.state1],
+    id: "perm-floating",
+    title: "Permutation (floating)",
+    manipulable: PermFloating.manipulable,
+    initialStates: [PermFloating.state1],
     height: 100,
     padding: 15,
-    sourceFile: "perm-detach.tsx",
+    sourceFile: "perm-floating.tsx",
   }),
   demoData({
     id: "perm-double",
@@ -170,7 +170,11 @@ export const demos: SomeDemoData[] = [
   demoData({
     id: "list-of-lists",
     title: "List of lists",
-    notes: <>Uses detach-reattach.</>,
+    notes: (
+      <>
+        Uses <span className="font-mono">floating</span>.
+      </>
+    ),
     manipulable: ListOfLists.manipulable,
     initialStates: [ListOfLists.state1],
     height: 220,
@@ -179,7 +183,11 @@ export const demos: SomeDemoData[] = [
   demoData({
     id: "list-of-lists-sizes",
     title: "List of lists (different sizes)",
-    notes: <>Uses detach-reattach.</>,
+    notes: (
+      <>
+        Uses <span className="font-mono">floating</span>.
+      </>
+    ),
     manipulable: ListOfListsSizes.manipulable,
     initialStates: [ListOfListsSizes.state1],
     height: 360,

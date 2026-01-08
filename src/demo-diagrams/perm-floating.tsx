@@ -5,7 +5,7 @@ import { floating } from "../DragSpec";
 import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
-export namespace PermDetach {
+export namespace PermFloating {
   export type State = {
     perm: string[];
   };
