@@ -6,7 +6,7 @@ PatternContents
   / $[A-Za-z0-9_]+
 
 Op
-  = $[+×-] Integer?
+  = $[+×\-0] Integer?
 
 Integer
   = x:$[0-9]+ { return Number(x) }

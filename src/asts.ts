@@ -140,19 +140,47 @@ function matchHelper(
   }
 }
 
+// Global counter for generating unique IDs in expanding rewrites
+let globalIdCounter = 0;
+
 /**
  * If a tree has matched the LHS of a rewrite, resulting in a match,
  * this function applies the rewrite to produce a new tree.
+ *
+ * For "expanding" rewrites where the RHS has operators that don't exist
+ * in the LHS (e.g., `A → (+ (0) A)`), new IDs are generated based on
+ * the triggerId. New nodes "emerge from" the trigger conceptually.
  */
-export function applyRewrite(match: Match, rewriteTo: Pattern): Tree {
+export function applyRewrite(
+  match: Match,
+  rewriteTo: Pattern,
+  triggerId: string
+): Tree {
+  function generateId(patternId: string): string {
+    // Generate a globally unique ID for a new node, based on the trigger
+    // and the pattern's operator label. Uses a global counter to ensure
+    // uniqueness even if the same rewrite is applied multiple times.
+    globalIdCounter++;
+    return `${triggerId}-${patternId}-${globalIdCounter}`;
+  }
+
   function build(pattern: Pattern): Tree {
     const subtree = match.get(pattern.id);
-    assert(subtree !== undefined);
     if (isWildcard(pattern)) {
+      // Wildcards must have been matched
+      assert(subtree !== undefined);
       return subtree;
-    } else {
+    } else if (subtree !== undefined) {
+      // Op node was matched - use its ID (structure-preserving rewrite)
       return {
         id: subtree.id,
+        label: pattern.label,
+        children: pattern.children.map(build),
+      };
+    } else {
+      // Op node wasn't matched - generate a new ID (expanding rewrite)
+      return {
+        id: generateId(pattern.id),
         label: pattern.label,
         children: pattern.children.map(build),
       };
@@ -177,7 +205,7 @@ export function allPossibleRewrites(
   for (const rewrite of rewrites) {
     const matchResult = match(rewrite.from, tree, triggerId);
     if (matchResult !== null) {
-      results.push(applyRewrite(matchResult, rewrite.to));
+      results.push(applyRewrite(matchResult, rewrite.to, triggerId));
     }
   }
 

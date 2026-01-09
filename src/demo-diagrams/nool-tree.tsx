@@ -91,6 +91,30 @@ export namespace NoolTree {
     ],
   };
 
+  // State with zeros to test identity rule: 0 + a → a
+  export const state3: State = {
+    id: "+1",
+    label: "+",
+    children: [
+      {
+        id: "+2",
+        label: "+",
+        children: [
+          { id: "zero1", label: "0", children: [] },
+          { id: "A", label: "🌟", children: [] },
+        ],
+      },
+      {
+        id: "+3",
+        label: "+",
+        children: [
+          { id: "B", label: "🎈", children: [] },
+          { id: "zero2", label: "0", children: [] },
+        ],
+      },
+    ],
+  };
+
   type RewriteSet = {
     rewrites: Rewrite[];
     title: ReactNode;
@@ -99,6 +123,22 @@ export namespace NoolTree {
   };
 
   const rewriteSets: RewriteSet[] = [
+    {
+      title: <>Identity</>,
+      subtitle: <>0 + a → a</>,
+      rewrites: [
+        rewr("(+ (0) #A)", "A"),
+        rewr("(+ #A (0))", "A"),
+      ],
+      defaultEnabled: true,
+    },
+    {
+      title: <>Identity (reverse)</>,
+      subtitle: <>a → 0 + a</>,
+      rewrites: [
+        rewr("#A", "(+ (0) A)"),
+      ],
+    },
     {
       title: <>Commutativity</>,
       rewrites: [
@@ -314,6 +354,9 @@ export namespace NoolTree {
     let contents;
     if (isWildcard(pattern)) {
       contents = pattern.id;
+    } else if (pattern.id === "0") {
+      // Zero is a nullary "operator" representing the constant 0
+      contents = <span className="text-blue-600 font-bold">0</span>;
     } else {
       const opById: Record<string, ReactNode> = {
         "+": <span className="text-red-600 font-bold">+</span>,

@@ -238,7 +238,7 @@ export const demos: SomeDemoData[] = [
     id: "nool-tree",
     title: "Nool tree",
     manipulable: NoolTree.manipulable,
-    initialStates: [NoolTree.state1, NoolTree.state2],
+    initialStates: [NoolTree.state1, NoolTree.state2, NoolTree.state3],
     height: 350,
     padding: 20,
     initialDrawerConfig: { snapRadius: 1, relativePointerMotion: true },

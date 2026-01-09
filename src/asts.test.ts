@@ -126,7 +126,7 @@ describe("rewrites", () => {
     matchMap.set("A", tree.children[0]);
     matchMap.set("B", tree.children[1]);
 
-    expect(applyRewrite(matchMap, toPattern)).toEqual({
+    expect(applyRewrite(matchMap, toPattern, "a")).toEqual({
       id: "root",
       label: "+",
       children: [
