@@ -313,12 +313,35 @@ export function lerpHoisted(
       // console.log("lerpHoisted is lerping key:", key);
       result.set(key, lerpSvgx(aVal, bVal, t));
     } else if (aVal) {
+      // Element disappearing: fade out at current position
       // TODO: we're hard-coding "enter/exit by fading"
       const opacity = +(aVal.props.opacity ?? 1) * (1 - t);
       if (opacity > 1e-3) result.set(key, cloneElement(aVal, { opacity }));
     } else if (bVal) {
+      // Element appearing: check if it has an origin to emerge from
+      const emergeFromId = (bVal.props as any)["data-emerge-from"];
+      const originElement = emergeFromId ? a.byId.get(emergeFromId) : undefined;
+
       const opacity = +(bVal.props.opacity ?? 1) * t;
-      if (opacity > 1e-3) result.set(key, cloneElement(bVal, { opacity }));
+      if (opacity > 1e-3) {
+        if (originElement) {
+          // Animate from origin's transform to final transform while fading in
+          const originTransform = (originElement.props as any).transform || "";
+          const finalTransform = (bVal.props as any).transform || "";
+          const interpolatedTransform = lerpTransformString(
+            originTransform,
+            finalTransform,
+            t
+          );
+          result.set(
+            key,
+            cloneElement(bVal, { opacity, transform: interpolatedTransform })
+          );
+        } else {
+          // No origin - just fade in at final position
+          result.set(key, cloneElement(bVal, { opacity }));
+        }
+      }
     }
   }
 

@@ -6,6 +6,8 @@ export type Tree = {
   id: string;
   label: string;
   children: Tree[];
+  /** For new nodes created by expanding rewrites, the ID of the element they emerge from */
+  emergeFrom?: string;
 };
 
 export function isOp(node: Tree): boolean {
@@ -179,10 +181,12 @@ export function applyRewrite(
       };
     } else {
       // Op node wasn't matched - generate a new ID (expanding rewrite)
+      // Mark this node as emerging from the trigger element for animation
       return {
         id: generateId(pattern.id),
         label: pattern.label,
         children: pattern.children.map(build),
+        emergeFrom: triggerId,
       };
     }
   }

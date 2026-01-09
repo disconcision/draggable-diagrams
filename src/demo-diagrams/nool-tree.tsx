@@ -266,7 +266,7 @@ export namespace NoolTree {
         : LABEL_MIN_HEIGHT;
 
     const element = (
-      <g id={tree.id}>
+      <g id={tree.id} data-emerge-from={tree.emergeFrom}>
         {/* Background */}
         <rect
           x={0}
