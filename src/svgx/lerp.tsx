@@ -297,6 +297,79 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+/**
+ * Info about an element's visual bounds for emerge animation.
+ */
+type EmergeBounds = {
+  rectWidth: number;
+  rectHeight: number;
+  textY: number | null;
+};
+
+/**
+ * Finds the first <rect> dimensions and first <text> y position.
+ * Only looks at direct children (depth 1).
+ */
+function findEmergeBounds(element: Svgx): EmergeBounds | null {
+  const children = React.Children.toArray(
+    (element.props as any).children
+  ) as Svgx[];
+
+  let rectWidth: number | null = null;
+  let rectHeight: number | null = null;
+  let textY: number | null = null;
+
+  for (const child of children) {
+    if (React.isValidElement(child)) {
+      if (child.type === "rect" && rectWidth === null) {
+        const props = child.props as any;
+        rectWidth = parseFloat(props.width);
+        rectHeight = parseFloat(props.height);
+      } else if (child.type === "text" && textY === null) {
+        const props = child.props as any;
+        textY = parseFloat(props.y);
+      }
+    }
+  }
+
+  if (rectWidth !== null && rectHeight !== null && !isNaN(rectWidth) && !isNaN(rectHeight)) {
+    return { rectWidth, rectHeight, textY: textY !== null && !isNaN(textY) ? textY : null };
+  }
+  return null;
+}
+
+/**
+ * Clones an element but modifies the first <rect>'s dimensions
+ * and optionally the first <text>'s y position.
+ * Only modifies direct children (depth 1).
+ */
+function cloneWithEmergeBounds(
+  element: Svgx,
+  width: number,
+  height: number,
+  textY: number | null
+): Svgx {
+  const props = element.props as any;
+  const children = React.Children.toArray(props.children) as Svgx[];
+
+  let foundRect = false;
+  let foundText = false;
+  const newChildren = children.map((child) => {
+    if (React.isValidElement(child)) {
+      if (!foundRect && child.type === "rect") {
+        foundRect = true;
+        return cloneElement(child, { width, height });
+      } else if (!foundText && child.type === "text" && textY !== null) {
+        foundText = true;
+        return cloneElement(child, { y: textY });
+      }
+    }
+    return child;
+  });
+
+  return cloneElement(element, { children: newChildren });
+}
+
 export function lerpHoisted(
   a: HoistedSvgx,
   b: HoistedSvgx,
@@ -331,14 +404,47 @@ export function lerpHoisted(
           // Animate from origin's position to final position while fading in
           const originTransform = (originElement.props as any).transform || "";
           const finalTransform = (bVal.props as any).transform || "";
+
           const interpolatedTransform = lerpTransformString(
             originTransform,
             finalTransform,
             t
           );
+
+          // Also interpolate size and text position if both elements have rects
+          const originBounds = findEmergeBounds(originElement);
+          const finalBounds = findEmergeBounds(bVal);
+
+          let interpolatedElement = bVal;
+          if (originBounds && finalBounds) {
+            const interpolatedWidth = lerp(
+              originBounds.rectWidth,
+              finalBounds.rectWidth,
+              t
+            );
+            const interpolatedHeight = lerp(
+              originBounds.rectHeight,
+              finalBounds.rectHeight,
+              t
+            );
+            const interpolatedTextY =
+              originBounds.textY !== null && finalBounds.textY !== null
+                ? lerp(originBounds.textY, finalBounds.textY, t)
+                : null;
+            interpolatedElement = cloneWithEmergeBounds(
+              bVal,
+              interpolatedWidth,
+              interpolatedHeight,
+              interpolatedTextY
+            );
+          }
+
           result.set(
             key,
-            cloneElement(bVal, { opacity, transform: interpolatedTransform })
+            cloneElement(interpolatedElement, {
+              opacity,
+              transform: interpolatedTransform,
+            })
           );
         } else {
           // No origin - just fade in at final position
