@@ -320,12 +320,15 @@ export function lerpHoisted(
     } else if (bVal) {
       // Element appearing: check if it has an origin to emerge from
       const emergeFromId = (bVal.props as any)["data-emerge-from"];
-      const originElement = emergeFromId ? a.byId.get(emergeFromId) : undefined;
+      const originElement =
+        emergeFromId && typeof emergeFromId === "string"
+          ? a.byId.get(emergeFromId)
+          : undefined;
 
       const opacity = +(bVal.props.opacity ?? 1) * t;
       if (opacity > 1e-3) {
         if (originElement) {
-          // Animate from origin's transform to final transform while fading in
+          // Animate from origin's position to final position while fading in
           const originTransform = (originElement.props as any).transform || "";
           const finalTransform = (bVal.props as any).transform || "";
           const interpolatedTransform = lerpTransformString(

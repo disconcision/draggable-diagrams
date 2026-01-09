@@ -138,6 +138,7 @@ export namespace NoolTree {
       rewrites: [
         rewr("#A", "(+ (0) A)"),
       ],
+      defaultEnabled: true,
     },
     {
       title: <>Commutativity</>,
@@ -177,7 +178,6 @@ export namespace NoolTree {
         rewr("(×2 (×1 #A B) C)", "(×1 A (×2 B C))"),
         rewr("(×1 A (×2 #B C))", "(×2 (×1 A B) C)"),
       ],
-      defaultEnabled: true,
     },
     {
       title: <>Associativity</>,
@@ -188,7 +188,6 @@ export namespace NoolTree {
         rewr("(×1 #A (×2 B C))", "(×2 (×1 A B) C)"),
         rewr("(×2 (×1 A B) #C)", "(×1 A (×2 B C))"),
       ],
-      defaultEnabled: true,
     },
     {
       title: <>Associativity</>,
