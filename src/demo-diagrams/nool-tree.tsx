@@ -211,10 +211,12 @@ export namespace NoolTree {
 
   type Config = {
     activeRewriteSets: boolean[];
+    forceTransformScale: boolean;
   };
 
   const defaultConfig: Config = {
     activeRewriteSets: rewriteSets.map((rs) => rs.defaultEnabled ?? false),
+    forceTransformScale: false,
   };
 
   export const manipulable = configurableManipulable<State, Config>(
@@ -265,7 +267,11 @@ export namespace NoolTree {
         : LABEL_MIN_HEIGHT;
 
     const element = (
-      <g id={tree.id} data-emerge-from={tree.emergeFrom}>
+      <g
+        id={tree.id}
+        data-emerge-from={tree.emergeFrom}
+        data-emerge-mode={config.forceTransformScale ? "scale" : undefined}
+      >
         {/* Background */}
         <rect
           x={0}
@@ -383,26 +389,37 @@ export namespace NoolTree {
   };
 
   function ConfigPanel({ config, setConfig }: ConfigPanelProps<Config>) {
-    return rewriteSets.map((rewriteSet, i) => (
-      <ConfigCheckbox
-        key={i}
-        value={config.activeRewriteSets[i]}
-        onChange={(v) => {
-          const newActive = [...config.activeRewriteSets];
-          newActive[i] = v;
-          setConfig({ ...config, activeRewriteSets: newActive });
-        }}
-      >
-        <b>{rewriteSet.title}</b>
-        {rewriteSet.subtitle && (
-          <>
+    return (
+      <>
+        {rewriteSets.map((rewriteSet, i) => (
+          <ConfigCheckbox
+            key={i}
+            value={config.activeRewriteSets[i]}
+            onChange={(v) => {
+              const newActive = [...config.activeRewriteSets];
+              newActive[i] = v;
+              setConfig({ ...config, activeRewriteSets: newActive });
+            }}
+          >
+            <b>{rewriteSet.title}</b>
+            {rewriteSet.subtitle && (
+              <>
+                <br />
+                {rewriteSet.subtitle}
+              </>
+            )}
             <br />
-            {rewriteSet.subtitle}
-          </>
-        )}
-        <br />
-        {rewriteSet.rewrites.length > 0 && drawRewrite(rewriteSet.rewrites[0])}
-      </ConfigCheckbox>
-    ));
+            {rewriteSet.rewrites.length > 0 && drawRewrite(rewriteSet.rewrites[0])}
+          </ConfigCheckbox>
+        ))}
+        <hr className="my-2 border-gray-300" />
+        <ConfigCheckbox
+          value={config.forceTransformScale}
+          onChange={(v) => setConfig({ ...config, forceTransformScale: v })}
+        >
+          Force <span className="font-mono">transform: scale()</span> for emerge
+        </ConfigCheckbox>
+      </>
+    );
   }
 }

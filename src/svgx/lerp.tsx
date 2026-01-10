@@ -299,6 +299,7 @@ function lerp(a: number, b: number, t: number): number {
 
 /**
  * Info about an element's visual bounds for emerge animation.
+ * Used when the element has rect+text structure (like nool-tree nodes).
  */
 type EmergeBounds = {
   rectWidth: number;
@@ -309,6 +310,7 @@ type EmergeBounds = {
 /**
  * Finds the first <rect> dimensions and first <text> y position.
  * Only looks at direct children (depth 1).
+ * Returns null if no rect is found.
  */
 function findEmergeBounds(element: Svgx): EmergeBounds | null {
   const children = React.Children.toArray(
@@ -343,10 +345,7 @@ function findEmergeBounds(element: Svgx): EmergeBounds | null {
  * and optionally the first <text>'s y position.
  * Only modifies direct children (depth 1).
  */
-function cloneWithBounds(
-  element: Svgx,
-  bounds: EmergeBounds
-): Svgx {
+function cloneWithBounds(element: Svgx, bounds: EmergeBounds): Svgx {
   const props = element.props as any;
   const children = React.Children.toArray(props.children) as Svgx[];
 
@@ -373,24 +372,36 @@ function cloneWithBounds(
 
 /**
  * Creates a synthetic "before" version of an emerging element.
- * Takes the structure of the new element but with visual properties
- * (transform, bounds) from its origin element, plus opacity 0.
- * This allows normal lerpSvgx to handle the interpolation.
+ *
+ * Strategy:
+ * 1. If data-emerge-mode="scale", always use transform scale(0)
+ * 2. If both elements have rect+text structure, use bounds interpolation
+ *    (rect resizes, text repositions, looks nicer for tree nodes)
+ * 3. Otherwise, fall back to transform scale(0)
+ *    (generic, works for any SVG structure)
  */
 function createSyntheticBefore(newElement: Svgx, originElement: Svgx): Svgx {
   const originTransform = (originElement.props as any).transform || "";
-  const originBounds = findEmergeBounds(originElement);
+  const emergeMode = (newElement.props as any)["data-emerge-mode"];
 
-  let synthetic = newElement;
+  // If forced to use scale, skip bounds detection
+  if (emergeMode !== "scale") {
+    const originBounds = findEmergeBounds(originElement);
+    const newBounds = findEmergeBounds(newElement);
 
-  // Apply origin's bounds if both elements have rect/text structure
-  if (originBounds && findEmergeBounds(newElement)) {
-    synthetic = cloneWithBounds(synthetic, originBounds);
+    // If both have rect+text structure, use bounds-based interpolation
+    if (originBounds && newBounds) {
+      const synthetic = cloneWithBounds(newElement, originBounds);
+      return cloneElement(synthetic, {
+        transform: originTransform || undefined,
+        opacity: 0,
+      });
+    }
   }
 
-  // Apply origin's transform and start with opacity 0
-  return cloneElement(synthetic, {
-    transform: originTransform || undefined,
+  // Fallback: use transform scale(0)
+  return cloneElement(newElement, {
+    transform: originTransform + " scale(0)",
     opacity: 0,
   });
 }
