@@ -88,7 +88,7 @@ export class Delaunay {
     // Special case: If there's just one point, the "triangles" have
     // -1s and are bad; just handle it here
     if (this.numPoints() === 1) {
-      console.log("this._inner.points", this._inner.points);
+      // console.log("this._inner.points", this._inner.points);
       const onlyPt = Vec2(this._inner.points[0], this._inner.points[1]);
       return {
         type: "vertex",
@@ -120,13 +120,13 @@ export class Delaunay {
         assert(edgeLen2 > 0);
         const t = pt.sub(pt0).dot(edge) / edgeLen2;
         assertWarning(t >= 0 && t <= 1, () => {
-          console.log("t", t);
-          console.log("pt", pt);
-          console.log("pt0", pt0);
-          console.log("pt1", pt1);
-          console.log("edge", edge);
-          console.log("edgeLen2", edgeLen2);
-          console.log("delaunay", this._inner);
+          // console.log("t", t);
+          // console.log("pt", pt);
+          // console.log("pt0", pt0);
+          // console.log("pt1", pt1);
+          // console.log("edge", edge);
+          // console.log("edgeLen2", edgeLen2);
+          // console.log("delaunay", this._inner);
         });
         return { type: "edge", ptIdx0, ptIdx1, t, projectedPt: pt, dist: 0 };
       } else {

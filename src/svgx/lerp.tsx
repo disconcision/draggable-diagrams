@@ -343,11 +343,9 @@ function findEmergeBounds(element: Svgx): EmergeBounds | null {
  * and optionally the first <text>'s y position.
  * Only modifies direct children (depth 1).
  */
-function cloneWithEmergeBounds(
+function cloneWithBounds(
   element: Svgx,
-  width: number,
-  height: number,
-  textY: number | null
+  bounds: EmergeBounds
 ): Svgx {
   const props = element.props as any;
   const children = React.Children.toArray(props.children) as Svgx[];
@@ -358,10 +356,13 @@ function cloneWithEmergeBounds(
     if (React.isValidElement(child)) {
       if (!foundRect && child.type === "rect") {
         foundRect = true;
-        return cloneElement(child, { width, height });
-      } else if (!foundText && child.type === "text" && textY !== null) {
+        return cloneElement(child, {
+          width: bounds.rectWidth,
+          height: bounds.rectHeight,
+        });
+      } else if (!foundText && child.type === "text" && bounds.textY !== null) {
         foundText = true;
-        return cloneElement(child, { y: textY });
+        return cloneElement(child, { y: bounds.textY });
       }
     }
     return child;
@@ -370,87 +371,88 @@ function cloneWithEmergeBounds(
   return cloneElement(element, { children: newChildren });
 }
 
+/**
+ * Creates a synthetic "before" version of an emerging element.
+ * Takes the structure of the new element but with visual properties
+ * (transform, bounds) from its origin element, plus opacity 0.
+ * This allows normal lerpSvgx to handle the interpolation.
+ */
+function createSyntheticBefore(newElement: Svgx, originElement: Svgx): Svgx {
+  const originTransform = (originElement.props as any).transform || "";
+  const originBounds = findEmergeBounds(originElement);
+
+  let synthetic = newElement;
+
+  // Apply origin's bounds if both elements have rect/text structure
+  if (originBounds && findEmergeBounds(newElement)) {
+    synthetic = cloneWithBounds(synthetic, originBounds);
+  }
+
+  // Apply origin's transform and start with opacity 0
+  return cloneElement(synthetic, {
+    transform: originTransform || undefined,
+    opacity: 0,
+  });
+}
+
 export function lerpHoisted(
   a: HoistedSvgx,
   b: HoistedSvgx,
   t: number
 ): HoistedSvgx {
+  // Preprocessing: inject synthetic versions of emerging elements in BOTH directions
+  // This handles edge flipping where the interpolation direction reverses
+  const augmentedA = new Map(a.byId);
+  const augmentedB = new Map(b.byId);
+
+  // Forward direction: elements in B that emerge from elements in A
+  for (const [key, bVal] of b.byId) {
+    if (!augmentedA.has(key)) {
+      const emergeFromId = (bVal.props as any)["data-emerge-from"];
+      if (emergeFromId && typeof emergeFromId === "string") {
+        const originElement = a.byId.get(emergeFromId);
+        if (originElement) {
+          // Create synthetic "before" version with origin's visual properties
+          augmentedA.set(key, createSyntheticBefore(bVal, originElement));
+        }
+      }
+    }
+  }
+
+  // Reverse direction: elements in A that emerge from elements in B
+  // This handles when the edge vertices are flipped (interpolating "backwards")
+  for (const [key, aVal] of a.byId) {
+    if (!augmentedB.has(key)) {
+      const emergeFromId = (aVal.props as any)["data-emerge-from"];
+      if (emergeFromId && typeof emergeFromId === "string") {
+        const originElement = b.byId.get(emergeFromId);
+        if (originElement) {
+          // Create synthetic "after" version at origin's position (element collapses back)
+          augmentedB.set(key, createSyntheticBefore(aVal, originElement));
+        }
+      }
+    }
+  }
+
+  // Main lerp loop - now simplified since emerging elements are in both maps
   const result = new Map<string, Svgx>();
-  const allKeys = new Set([...a.byId.keys(), ...b.byId.keys()]);
+  const allKeys = new Set([...augmentedA.keys(), ...augmentedB.keys()]);
 
   for (const key of allKeys) {
-    const aVal = a.byId.get(key);
-    const bVal = b.byId.get(key);
+    const aVal = augmentedA.get(key);
+    const bVal = augmentedB.get(key);
 
     if (aVal && bVal) {
-      // console.log("lerpHoisted is lerping key:", key);
+      // Element exists in both (including synthetic "before" versions)
       result.set(key, lerpSvgx(aVal, bVal, t));
     } else if (aVal) {
       // Element disappearing: fade out at current position
-      // TODO: we're hard-coding "enter/exit by fading"
       const opacity = +(aVal.props.opacity ?? 1) * (1 - t);
       if (opacity > 1e-3) result.set(key, cloneElement(aVal, { opacity }));
     } else if (bVal) {
-      // Element appearing: check if it has an origin to emerge from
-      const emergeFromId = (bVal.props as any)["data-emerge-from"];
-      const originElement =
-        emergeFromId && typeof emergeFromId === "string"
-          ? a.byId.get(emergeFromId)
-          : undefined;
-
+      // Element appearing without origin: just fade in
       const opacity = +(bVal.props.opacity ?? 1) * t;
-      if (opacity > 1e-3) {
-        if (originElement) {
-          // Animate from origin's position to final position while fading in
-          const originTransform = (originElement.props as any).transform || "";
-          const finalTransform = (bVal.props as any).transform || "";
-
-          const interpolatedTransform = lerpTransformString(
-            originTransform,
-            finalTransform,
-            t
-          );
-
-          // Also interpolate size and text position if both elements have rects
-          const originBounds = findEmergeBounds(originElement);
-          const finalBounds = findEmergeBounds(bVal);
-
-          let interpolatedElement = bVal;
-          if (originBounds && finalBounds) {
-            const interpolatedWidth = lerp(
-              originBounds.rectWidth,
-              finalBounds.rectWidth,
-              t
-            );
-            const interpolatedHeight = lerp(
-              originBounds.rectHeight,
-              finalBounds.rectHeight,
-              t
-            );
-            const interpolatedTextY =
-              originBounds.textY !== null && finalBounds.textY !== null
-                ? lerp(originBounds.textY, finalBounds.textY, t)
-                : null;
-            interpolatedElement = cloneWithEmergeBounds(
-              bVal,
-              interpolatedWidth,
-              interpolatedHeight,
-              interpolatedTextY
-            );
-          }
-
-          result.set(
-            key,
-            cloneElement(interpolatedElement, {
-              opacity,
-              transform: interpolatedTransform,
-            })
-          );
-        } else {
-          // No origin - just fade in at final position
-          result.set(key, cloneElement(bVal, { opacity }));
-        }
-      }
+      if (opacity > 1e-3) result.set(key, cloneElement(bVal, { opacity }));
     }
   }
 

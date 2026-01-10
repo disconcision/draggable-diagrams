@@ -465,7 +465,7 @@ function renderExitWithDragged<T extends object>({
     ghostId,
   });
   // prettyLog(hoisted, { label: "hoisted in makeManifoldPoint" });
-  console.log("gonna find", draggedPath, "in hoisted:");
+  // console.log("gonna find", draggedPath, "in hoisted:");
   // prettyLog(hoisted);
   const draggedElement = findByPathInHoisted(draggedPath, renderedExit.hoisted);
   assertWithJSX(
@@ -523,7 +523,7 @@ function dragStateFromSpec<T extends object>(
   pointerStart: Vec2,
   manipulable: Manipulable<T>
 ): DOmit<DragState<T>, "byproducts"> {
-  console.log("enterDraggingMode", prevState, draggedPath);
+  // console.log("enterDraggingMode", prevState, draggedPath);
 
   if (hasKey(dragSpec, "type") && dragSpec.type === "params") {
     return {
@@ -661,9 +661,9 @@ function dragStateFromSpec<T extends object>(
       const positions = exits.map((pt) =>
         getManifoldPointPosition(pt, pointerLocal).arr()
       );
-      console.log("triangulating manifold with points:", positions);
+      // console.log("triangulating manifold with points:", positions);
       const delaunay = new Delaunay(positions);
-      console.log("created delaunay:", delaunay);
+      // console.log("created delaunay:", delaunay);
       return { exits, delaunay };
     });
 
