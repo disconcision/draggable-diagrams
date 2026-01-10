@@ -211,11 +211,13 @@ export namespace NoolTree {
 
   type Config = {
     activeRewriteSets: boolean[];
+    enableEmergeAnimation: boolean;
     forceTransformScale: boolean;
   };
 
   const defaultConfig: Config = {
     activeRewriteSets: rewriteSets.map((rs) => rs.defaultEnabled ?? false),
+    enableEmergeAnimation: true,
     forceTransformScale: false,
   };
 
@@ -269,7 +271,7 @@ export namespace NoolTree {
     const element = (
       <g
         id={tree.id}
-        data-emerge-from={tree.emergeFrom}
+        data-emerge-from={config.enableEmergeAnimation ? tree.emergeFrom : undefined}
         data-emerge-mode={config.forceTransformScale ? "scale" : undefined}
       >
         {/* Background */}
@@ -414,8 +416,15 @@ export namespace NoolTree {
         ))}
         <hr className="my-2 border-gray-300" />
         <ConfigCheckbox
+          value={config.enableEmergeAnimation}
+          onChange={(v) => setConfig({ ...config, enableEmergeAnimation: v })}
+        >
+          Enable emerge animation for new nodes
+        </ConfigCheckbox>
+        <ConfigCheckbox
           value={config.forceTransformScale}
           onChange={(v) => setConfig({ ...config, forceTransformScale: v })}
+          disabled={!config.enableEmergeAnimation}
         >
           Force <span className="font-mono">transform: scale()</span> for emerge
         </ConfigCheckbox>

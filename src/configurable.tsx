@@ -32,19 +32,22 @@ export function ConfigCheckbox({
   value,
   onChange,
   children,
+  disabled,
 }: {
   label?: string;
   value: boolean;
   onChange: (newValue: boolean) => void;
   children?: React.ReactNode;
+  disabled?: boolean;
 }) {
   assert(!(label && children), "Provide either label or children, not both");
   return (
-    <label className="flex items-start gap-2 text-xs">
+    <label className={`flex items-start gap-2 text-xs ${disabled ? "opacity-50" : ""}`}>
       <input
         type="checkbox"
         checked={value}
         onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
       />
       <span>{label ?? children}</span>
     </label>
