@@ -1,7 +1,7 @@
 import { ReactElement, SetStateAction } from "react";
 import { DragSpec } from "./DragSpec";
 import { ErrorWithJSX } from "./ErrorBoundary";
-import { PrettyPrint } from "./pretty-print";
+import { PrettyPrint } from "@joshuahhh/pretty-print";
 import { Svgx } from "./svgx";
 import { isObject } from "./utils";
 

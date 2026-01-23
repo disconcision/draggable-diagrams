@@ -34,7 +34,7 @@ import {
 import { minimize } from "./math/minimize";
 import { Vec2 } from "./math/vec2";
 import { getAtPath, setAtPath } from "./paths";
-import { PrettyPrint } from "./pretty-print";
+import { PrettyPrint } from "@joshuahhh/pretty-print";
 import { Svgx, updatePropsDownTree } from "./svgx";
 import { path, translate } from "./svgx/helpers";
 import {

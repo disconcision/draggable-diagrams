@@ -9,7 +9,7 @@ import {
   RenderedExitWithDragged,
 } from "./ManipulableDrawer";
 import { Vec2 } from "./math/vec2";
-import { PrettyPrint } from "./pretty-print";
+import { PrettyPrint } from "@joshuahhh/pretty-print";
 import { drawHoisted } from "./svgx/hoist";
 
 export function InspectPage({

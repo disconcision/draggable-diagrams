@@ -4,7 +4,7 @@ import { interpolatePath } from "d3-interpolate-path";
 import React, { cloneElement } from "react";
 import { shouldRecurseIntoChildren, Svgx } from ".";
 import { ErrorWithJSX } from "../ErrorBoundary";
-import { prettyLog, PrettyPrint } from "../pretty-print";
+import { prettyLog, PrettyPrint } from "@joshuahhh/pretty-print";
 import { emptyToUndefined } from "../utils";
 import { HoistedSvgx } from "./hoist";
 import { lerpTransformString } from "./transform";
