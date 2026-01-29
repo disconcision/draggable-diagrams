@@ -7,6 +7,7 @@ import { BluefishPerm } from "./demo-diagrams/bluefish-perm";
 import { BluefishStatic } from "./demo-diagrams/bluefish-static";
 import { Braid } from "./demo-diagrams/braid";
 import { CanvasOfLists } from "./demo-diagrams/canvas-of-lists";
+import { CanvasOfListsNested } from "./demo-diagrams/canvas-of-lists-nested";
 import { Carousel } from "./demo-diagrams/carousel";
 import { Clock } from "./demo-diagrams/clock";
 import { Dragon } from "./demo-diagrams/dragon";
@@ -207,6 +208,20 @@ export const demos: SomeDemoData[] = [
     initialStates: [CanvasOfLists.state1],
     height: 360,
     sourceFile: "canvas-of-lists.tsx",
+  }),
+  demoData({
+    id: "canvas-of-lists-nested",
+    title: "Canvas of lists (nested)",
+    notes: (
+      <>
+        Like canvas of lists, but with recursively nested rows. Tiles and rows
+        can be dragged between any level.
+      </>
+    ),
+    manipulable: CanvasOfListsNested.manipulable,
+    initialStates: [CanvasOfListsNested.state1],
+    height: 360,
+    sourceFile: "canvas-of-lists-nested.tsx",
   }),
   demoData({
     id: "inserting-removing-items",
