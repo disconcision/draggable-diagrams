@@ -1,7 +1,7 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { amb, produceAmb } from "../amb";
-import { andThen, closest, detach, withBackground } from "../DragSpec2";
+import { andThen, closest, floating, withBackground } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -79,8 +79,8 @@ export namespace ListOfLists {
                   })
                 );
                 return withBackground(
-                  closest(statesWith.map(detach)),
-                  detach(stateWithout)
+                  closest(statesWith.map(floating)),
+                  floating(stateWithout)
                 );
               })}
             >
@@ -132,8 +132,8 @@ export namespace ListOfLists {
                       newRow.items.splice(newColIdx, 0, p);
                     });
                     return withBackground(
-                      closest(statesWith.map(detach)),
-                      andThen(detach(stateWithout), state)
+                      closest(statesWith.map(floating)),
+                      andThen(floating(stateWithout), state)
                     );
                   })}
                 >

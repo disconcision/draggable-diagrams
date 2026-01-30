@@ -1,7 +1,23 @@
 import _ from "lodash";
+import { Manipulable, unsafeDrag } from "./manipulable2";
+import { Vec2 } from "./math/vec2";
 import { PathIn } from "./paths";
-import { HoistedSvgx } from "./svgx/hoist";
-import { assertNever } from "./utils";
+import { translate } from "./svgx/helpers";
+import {
+  HoistedSvgx,
+  accumulateTransforms,
+  findByPathInHoisted,
+  getAccumulatedTransform,
+  hoistSvg,
+  hoistedExtract,
+  hoistedMerge,
+  hoistedPrefixIds,
+  hoistedShiftZIndices,
+  hoistedTransform,
+} from "./svgx/hoist";
+import { assignPaths } from "./svgx/path";
+import { localToGlobal, parseTransform } from "./svgx/transform";
+import { assertNever, pipe, throwError } from "./utils";
 
 // # DragSpec
 //
@@ -13,14 +29,14 @@ import { assertNever } from "./utils";
 // ## Data representation
 
 export type DragSpec<T> =
-  | DragSpecDetach<T>
+  | DragSpecFloating<T>
   | DragSpecClosest<T>
   | DragSpecWithBackground<T>
   | DragSpecAndThen<T>;
 // | DragSpecVary<T>;
 
-export type DragSpecDetach<T> = {
-  type: "detach";
+export type DragSpecFloating<T> = {
+  type: "floating";
   state: T;
 };
 
@@ -56,8 +72,8 @@ export type DragSpecVary<T> =
 
 // ## Constructors
 
-export function detach<T>(state: T): DragSpec<T> {
-  return { type: "detach", state };
+export function floating<T>(state: T): DragSpec<T> {
+  return { type: "floating", state };
 }
 
 export function closest<T>(specs: DragSpec<T>[]): DragSpec<T> {
@@ -97,48 +113,109 @@ export function andThen<T>(spec: DragSpec<T>, andThen: T): DragSpec<T> {
 
 // # Behavior
 
-type DragState<T> = {};
-
-type DragResult<T> = {
-  rendered: HoistedSvgx;
-  dropState: T;
+export type DragFrame = {
+  pointer: Vec2;
+  pointerStart: Vec2;
 };
 
-type DragBehavior<T> = (state: DragState<T>) => DragResult<T>;
+export type DragResult<T> = {
+  rendered: HoistedSvgx;
+  dropState: T;
+  distance: number;
+};
 
-export function dragSpecToBehavior<T>(spec: DragSpec<T>): DragBehavior<T> {
-  if (spec.type === "detach") {
-    // TODO: render backdrop and floating
-    return () => ({
-      rendered: undefined as any, // TODO: composite backdrop and floating
-      dropState: spec.state,
-    });
+export type DragBehavior<T> = (frame: DragFrame) => DragResult<T>;
+
+export type BehaviorContext<T extends object> = {
+  manipulable: Manipulable<T>;
+  draggedPath: string;
+  draggedId: string;
+  pointerLocal: Vec2;
+  floatHoisted: HoistedSvgx;
+};
+
+function renderStateReadOnly<T extends object>(
+  ctx: BehaviorContext<T>,
+  state: T
+): HoistedSvgx {
+  return pipe(
+    ctx.manipulable({
+      state,
+      drag: unsafeDrag,
+      draggedId: ctx.draggedId,
+      ghostId: null,
+      setState: throwError,
+    }),
+    assignPaths,
+    accumulateTransforms,
+    hoistSvg
+  );
+}
+
+function getElementPosition<T extends object>(
+  ctx: BehaviorContext<T>,
+  hoisted: HoistedSvgx
+): Vec2 {
+  const element = findByPathInHoisted(ctx.draggedPath, hoisted);
+  if (!element) return Vec2(Infinity, Infinity);
+  const accTransform = getAccumulatedTransform(element);
+  const transforms = parseTransform(accTransform || "");
+  return localToGlobal(transforms, ctx.pointerLocal);
+}
+
+export function dragSpecToBehavior<T extends object>(
+  spec: DragSpec<T>,
+  ctx: BehaviorContext<T>
+): DragBehavior<T> {
+  if (spec.type === "floating") {
+    const hoisted = renderStateReadOnly(ctx, spec.state);
+    const elementPos = getElementPosition(ctx, hoisted);
+    const hasElement = hoisted.byId.has(ctx.draggedId);
+    const backdrop = hasElement
+      ? hoistedExtract(hoisted, ctx.draggedId).remaining
+      : hoisted;
+
+    return (frame) => {
+      const floatPositioned = hoistedTransform(
+        ctx.floatHoisted,
+        translate(frame.pointer.sub(frame.pointerStart))
+      );
+      const rendered = hoistedMerge(
+        backdrop,
+        pipe(
+          floatPositioned,
+          (h) => hoistedPrefixIds(h, "floating-"),
+          (h) => hoistedShiftZIndices(h, 1000000)
+        )
+      );
+      return {
+        rendered,
+        dropState: spec.state,
+        distance: frame.pointer.dist(elementPos),
+      };
+    };
   } else if (spec.type === "closest") {
-    const subBehaviors = spec.specs.map((subSpec) =>
-      dragSpecToBehavior(subSpec)
-    );
-    return (state) => {
-      const subResults = subBehaviors.map((subBehavior) => subBehavior(state));
-      return _.minBy(subResults, (subResult) => {
-        return undefined as any as number; // TODO
-      })!;
+    const subBehaviors = spec.specs.map((s) => dragSpecToBehavior(s, ctx));
+    return (frame) => {
+      const subResults = subBehaviors.map((b) => b(frame));
+      return _.minBy(subResults, (r) => r.distance)!;
     };
   } else if (spec.type === "with-background") {
-    const foregroundBehavior = dragSpecToBehavior(spec.foreground);
-    const backgroundBehavior = dragSpecToBehavior(spec.background);
-    return (state) => {
-      const foregroundResult = foregroundBehavior(state);
-      const distance = undefined as any as number; // TODO
-      if (distance > 50) {
-        // TODO
-        return backgroundBehavior(state);
-      } else {
-        return foregroundResult;
+    const foregroundBehavior = dragSpecToBehavior(spec.foreground, ctx);
+    const backdropBehavior = dragSpecToBehavior(spec.background, ctx);
+    return (frame) => {
+      const foregroundResult = foregroundBehavior(frame);
+      if (foregroundResult.distance > 50) {
+        return backdropBehavior(frame);
       }
+      return foregroundResult;
     };
   } else if (spec.type === "and-then") {
-    const subBehavior = dragSpecToBehavior(spec.spec);
-    return (state) => ({ ...subBehavior(state), dropState: spec.andThen });
+    const subBehavior = dragSpecToBehavior(spec.spec, ctx);
+    return (frame) => {
+      const result = subBehavior(frame);
+      return { ...result, dropState: spec.andThen };
+    };
   } else {
     assertNever(spec);
   }
