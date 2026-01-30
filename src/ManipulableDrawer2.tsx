@@ -46,6 +46,13 @@ import {
 
 // # Engine state machine
 
+const SPRING_DURATION = 200; // ms
+
+type SpringState = {
+  snapshot: HoistedSvgx;
+  startTime: number;
+};
+
 type DragState<T> =
   | { type: "idle"; state: T }
   | {
@@ -54,6 +61,7 @@ type DragState<T> =
       pointerStart: Vec2;
       draggedId: string;
       result: DragResult<T>;
+      spring: SpringState | null;
     }
   | {
       type: "animating";
@@ -113,7 +121,27 @@ export function ManipulableDrawer<T extends object>({
         if (!pointer) return;
         const frame: DragFrame = { pointer, pointerStart: ds.pointerStart };
         const result = ds.behavior(frame);
-        const newState: DragState<T> = { ...ds, result };
+
+        let spring = ds.spring;
+
+        // Detect activePath change → start new spring from current display
+        if (result.activePath !== ds.result.activePath) {
+          const currentDisplayed = blendWithSpring(
+            ds.result.rendered,
+            spring
+          );
+          spring = {
+            snapshot: currentDisplayed,
+            startTime: performance.now(),
+          };
+        }
+
+        // Clear expired spring
+        if (spring && performance.now() - spring.startTime >= SPRING_DURATION) {
+          spring = null;
+        }
+
+        const newState: DragState<T> = { ...ds, result, spring };
         dragStateRef.current = newState;
         setDragState(newState);
       } else if (ds.type === "animating") {
@@ -160,7 +188,8 @@ export function ManipulableDrawer<T extends object>({
         const result = ds.behavior(frame);
         const dropState = result.dropState;
 
-        // Animate from current rendered to the idle target
+        // Animate from what's currently displayed (with spring blending)
+        const startHoisted = blendWithSpring(result.rendered, ds.spring);
         const targetHoisted = renderReadOnly(manipulable, {
           state: dropState,
           draggedId: null,
@@ -168,7 +197,7 @@ export function ManipulableDrawer<T extends object>({
         });
         const newState: DragState<T> = {
           type: "animating",
-          startHoisted: result.rendered,
+          startHoisted,
           targetHoisted,
           easing: d3Ease.easeCubicInOut,
           startTime: performance.now(),
@@ -230,6 +259,20 @@ export function ManipulableDrawer<T extends object>({
 }
 
 // # Helpers
+
+function springProgress(spring: SpringState): number {
+  const elapsed = performance.now() - spring.startTime;
+  const t = Math.min(elapsed / SPRING_DURATION, 1);
+  return d3Ease.easeCubicOut(t);
+}
+
+function blendWithSpring(
+  rendered: HoistedSvgx,
+  spring: SpringState | null
+): HoistedSvgx {
+  if (!spring) return rendered;
+  return lerpHoisted(spring.snapshot, rendered, springProgress(spring));
+}
 
 function renderReadOnly<T extends object>(
   manipulable: Manipulable<T>,
@@ -311,6 +354,7 @@ function postProcessForInteraction<T extends object>(
                 pointerStart: pointer,
                 draggedId,
                 result,
+                spring: null,
               });
             }
           ),
@@ -359,7 +403,11 @@ const DrawDraggingMode = memoGeneric(
   }: {
     dragState: DragState<T> & { type: "dragging" };
   }) => {
-    return drawHoisted(dragState.result.rendered);
+    const rendered = blendWithSpring(
+      dragState.result.rendered,
+      dragState.spring
+    );
+    return drawHoisted(rendered);
   }
 );
 

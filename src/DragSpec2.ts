@@ -104,6 +104,7 @@ export type DragResult<T> = {
   rendered: HoistedSvgx;
   dropState: T;
   distance: number;
+  activePath: string;
 };
 
 export type DragBehavior<T> = (frame: DragFrame) => DragResult<T>;
@@ -174,13 +175,16 @@ export function dragSpecToBehavior<T extends object>(
         rendered,
         dropState: spec.state,
         distance: frame.pointer.dist(elementPos),
+        activePath: "floating",
       };
     };
   } else if (spec.type === "closest") {
     const subBehaviors = spec.specs.map((s) => dragSpecToBehavior(s, ctx));
     return (frame) => {
       const subResults = subBehaviors.map((b) => b(frame));
-      return _.minBy(subResults, (r) => r.distance)!;
+      const best = _.minBy(subResults, (r) => r.distance)!;
+      const bestIdx = subResults.indexOf(best);
+      return { ...best, activePath: `closest/${bestIdx}/${best.activePath}` };
     };
   } else if (spec.type === "with-background") {
     const foregroundBehavior = dragSpecToBehavior(spec.foreground, ctx);
@@ -188,15 +192,20 @@ export function dragSpecToBehavior<T extends object>(
     return (frame) => {
       const foregroundResult = foregroundBehavior(frame);
       if (foregroundResult.distance > 50) {
-        return backdropBehavior(frame);
+        const bgResult = backdropBehavior(frame);
+        return { ...bgResult, activePath: `bg/${bgResult.activePath}` };
       }
-      return foregroundResult;
+      return {
+        ...foregroundResult,
+        activePath: `fg/${foregroundResult.activePath}`,
+      };
     };
   } else if (spec.type === "and-then") {
     const subBehavior = dragSpecToBehavior(spec.spec, ctx);
     return (frame) => {
       const result = subBehavior(frame);
       return { ...result, dropState: spec.andThen };
+      // activePath passes through from child
     };
   } else if (spec.type === "vary") {
     let curParams = spec.paramPaths.map((path) =>
@@ -242,6 +251,7 @@ export function dragSpecToBehavior<T extends object>(
         rendered,
         dropState: newState,
         distance: Math.sqrt(r.f),
+        activePath: "vary",
       };
     };
   } else {
