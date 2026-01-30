@@ -879,10 +879,11 @@ function updateDragState<T extends object>(
     // compute background target based on proximity to positions
     const closestPoint = _.minBy(dragState.exits, (pt) =>
       pointer.dist(pos(pt))
-    )!;
-    let exitPointless: RenderedExit<T> = closestPoint;
+    );
+    let exitPointless: RenderedExit<T> | undefined = closestPoint;
     // TODO: figure out how to control this radius (overlap?)
-    const useBackdrop = pointer.dist(pos(closestPoint)) > 50;
+    const useBackdrop =
+      !closestPoint || pointer.dist(pos(closestPoint)) > 50;
     // Both paths render in the same structure: spring on background
     // (element extracted) + "floating-" prefixed dragged element on
     // top. This keeps the hoisted trees structurally compatible so
@@ -907,7 +908,7 @@ function updateDragState<T extends object>(
       const stateFromParams: (...params: number[]) => T =
         bParams.type === "param-paths"
           ? (...params: number[]) => {
-              let newState = (bParams.baseState ?? closestPoint.state) as T;
+              let newState = (bParams.baseState ?? closestPoint?.state) as T;
               bParams.paramPaths.forEach((path, idx) => {
                 newState = setAtPath(newState, path, params[idx]);
               });
@@ -959,12 +960,12 @@ function updateDragState<T extends object>(
       floatForFrame = extracted;
       exit = { state: computedState, andThen: undefined };
     } else {
-      backgroundTarget = closestPoint.hoisted;
+      backgroundTarget = closestPoint!.hoisted;
       floatForFrame = hoistedTransform(
         dragState.floatHoisted,
         translate(pointer.sub(dragState.pointerStart))
       );
-      exit = closestPoint;
+      exit = closestPoint!;
     }
 
     // Track when we enter params mode. Spring the background for a
