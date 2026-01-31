@@ -1,4 +1,4 @@
-import { closest, vary, withDistance } from "../DragSpec2";
+import { closest, vary, withBackground } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -74,36 +74,31 @@ export namespace OrbitingPlanetWithBackground {
           data-z-index={1}
           data-on-drag={drag(() => {
             const angle = state.mode === "orbiting" ? state.angle : 0;
-            return closest([
-              ...STARS.map((_, starIdx) =>
-                vary<State>({ mode: "orbiting", currentStar: starIdx, angle }, [
-                  "angle",
-                ])
+            return withBackground<State>(
+              closest(
+                STARS.map((_, starIdx) =>
+                  vary({ mode: "orbiting", currentStar: starIdx, angle }, [
+                    "angle",
+                  ])
+                )
               ),
-              withDistance(
-                vary<State>(
-                  { mode: "free", x: planetX, y: planetY },
-                  ["x"],
-                  ["y"]
-                ),
-                () => 200
-              ),
-            ]);
-            // return withBackground(
-            //   closest(
-            //     STARS.map((_, starIdx) =>
-            //       vary<State>(
-            //         { mode: "orbiting", currentStar: starIdx, angle },
-            //         ["angle"]
-            //       )
-            //     )
+              vary({ mode: "free", x: planetX, y: planetY }, ["x"], ["y"])
+            );
+            // return closest([
+            //   ...STARS.map((_, starIdx) =>
+            //     vary<State>({ mode: "orbiting", currentStar: starIdx, angle }, [
+            //       "angle",
+            //     ])
             //   ),
-            //   vary<State>(
-            //     { mode: "free", x: planetX, y: planetY },
-            //     ["x"],
-            //     ["y"]
-            //   )
-            // );
+            //   withDistance(
+            //     vary<State>(
+            //       { mode: "free", x: planetX, y: planetY },
+            //       ["x"],
+            //       ["y"]
+            //     ),
+            //     () => 200
+            //   ),
+            // ]);
           })}
         >
           <circle
