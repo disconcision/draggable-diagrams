@@ -4,13 +4,15 @@ import { assertNever } from "./utils";
 export function DragSpecTreeView<T>({
   spec,
   activePath,
+  colorMap,
 }: {
   spec: DragSpec<T>;
   activePath: string | null;
+  colorMap?: Map<string, string>;
 }) {
   return (
     <div className="text-xs font-mono">
-      <SpecNode spec={spec} activePath={activePath} />
+      <SpecNode spec={spec} activePath={activePath} pathPrefix="" colorMap={colorMap ?? null} />
     </div>
   );
 }
@@ -21,35 +23,43 @@ const INACTIVE_BG = "rgba(148, 163, 184, 0.08)";
 const INACTIVE_BORDER = "rgb(203, 213, 225)";
 
 /**
- * Each node knows its own path prefix and checks if activePath starts with it.
+ * pathPrefix tracks the full activePath prefix built top-down, so leaves
+ * can look up their color in the spatial overlay's colorMap.
  *
  * Path rules:
  *   floating        → "floating"
  *   vary            → "vary"
  *   closest         → "closest/{i}/{childPath}"
  *   with-background → "fg/{childPath}" or "bg/{childPath}"
- *   and-then        → passthrough (child gets same activePath)
- *   with-distance   → passthrough (child gets same activePath)
+ *   and-then        → passthrough
+ *   with-distance   → passthrough
  */
 function SpecNode<T>({
   spec,
   activePath,
+  pathPrefix,
+  colorMap,
 }: {
   spec: DragSpec<T>;
   activePath: string | null;
+  pathPrefix: string;
+  colorMap: Map<string, string> | null;
 }) {
   if (spec.type === "floating") {
     const active = activePath === "floating";
-    return <Box label="floating" active={active} />;
+    const fullPath = pathPrefix + "floating";
+    return <Box label="floating" active={active} color={colorMap?.get(fullPath)} />;
   } else if (spec.type === "vary") {
     const active = activePath === "vary";
+    const fullPath = pathPrefix + "vary";
     const paramNames = spec.paramPaths.map((p) => {
       const last = p[p.length - 1];
       return typeof last === "string" ? last : String(last);
     });
-    return <Box label={`vary [${paramNames.join(", ")}]`} active={active} />;
+    return (
+      <Box label={`vary [${paramNames.join(", ")}]`} active={active} color={colorMap?.get(fullPath)} />
+    );
   } else if (spec.type === "closest") {
-    // activePath: "closest/{idx}/{rest}"
     let activeIdx: number | null = null;
     let childPath: string | null = null;
     if (activePath !== null && activePath.startsWith("closest/")) {
@@ -69,7 +79,12 @@ function SpecNode<T>({
               <div style={{ fontSize: 9, color: "rgb(148, 163, 184)", paddingLeft: 2 }}>
                 {i}
               </div>
-              <SpecNode spec={child} activePath={i === activeIdx ? childPath : null} />
+              <SpecNode
+                spec={child}
+                activePath={i === activeIdx ? childPath : null}
+                pathPrefix={pathPrefix + `closest/${i}/`}
+                colorMap={colorMap}
+              />
             </div>
           ))}
         </div>
@@ -87,26 +102,24 @@ function SpecNode<T>({
       <Box label="withBackground" active={active}>
         <div style={{ display: "flex", flexDirection: "row", gap: 4 }}>
           <Slot label="fg">
-            <SpecNode spec={spec.foreground} activePath={fgPath} />
+            <SpecNode spec={spec.foreground} activePath={fgPath} pathPrefix={pathPrefix + "fg/"} colorMap={colorMap} />
           </Slot>
           <Slot label="bg">
-            <SpecNode spec={spec.background} activePath={bgPath} />
+            <SpecNode spec={spec.background} activePath={bgPath} pathPrefix={pathPrefix + "bg/"} colorMap={colorMap} />
           </Slot>
         </div>
       </Box>
     );
   } else if (spec.type === "and-then") {
-    const childActive = activePath !== null;
     return (
-      <Box label="andThen" active={childActive}>
-        <SpecNode spec={spec.spec} activePath={activePath} />
+      <Box label="andThen" active={activePath !== null}>
+        <SpecNode spec={spec.spec} activePath={activePath} pathPrefix={pathPrefix} colorMap={colorMap} />
       </Box>
     );
   } else if (spec.type === "with-distance") {
-    const childActive = activePath !== null;
     return (
-      <Box label="withDistance" active={childActive}>
-        <SpecNode spec={spec.spec} activePath={activePath} />
+      <Box label="withDistance" active={activePath !== null}>
+        <SpecNode spec={spec.spec} activePath={activePath} pathPrefix={pathPrefix} colorMap={colorMap} />
       </Box>
     );
   } else {
@@ -117,19 +130,35 @@ function SpecNode<T>({
 function Box({
   label,
   active,
+  color,
   children,
 }: {
   label: string;
   active: boolean;
+  color?: string;
   children?: React.ReactNode;
 }) {
   const isLeaf = !children;
   const highlighted = active && isLeaf;
+
+  // If a color from the spatial overlay is provided, use it for the leaf
+  const bg = color
+    ? colorToAlpha(color, 0.25)
+    : highlighted
+      ? ACTIVE_BG
+      : INACTIVE_BG;
+  const border = color
+    ? color
+    : highlighted
+      ? ACTIVE_BORDER
+      : INACTIVE_BORDER;
+  const borderWidth = highlighted ? 2 : 1;
+
   return (
     <div
       style={{
-        background: highlighted ? ACTIVE_BG : INACTIVE_BG,
-        border: `${highlighted ? 2 : 1}px solid ${highlighted ? ACTIVE_BORDER : INACTIVE_BORDER}`,
+        background: bg,
+        border: `${borderWidth}px solid ${border}`,
         borderRadius: 6,
         padding: "4px 6px",
         transition: "background 150ms, border-color 150ms",
@@ -159,4 +188,11 @@ function Slot({ label, children }: { label: string; children: React.ReactNode })
       {children}
     </div>
   );
+}
+
+/** Convert "rgb(r, g, b)" to "rgba(r, g, b, a)" */
+function colorToAlpha(rgb: string, alpha: number): string {
+  const match = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (!match) return rgb;
+  return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${alpha})`;
 }

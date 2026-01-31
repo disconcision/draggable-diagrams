@@ -1,10 +1,10 @@
 import { useState } from "react";
+import { DebugManipulableDrawer } from "./DebugManipulableDrawer";
 import { CanvasOfLists } from "./demo-diagrams-2/canvas-of-lists";
 import { ListOfLists } from "./demo-diagrams-2/list-of-lists";
-import { ManipulableDrawer } from "./ManipulableDrawer2";
 import { OrbitingPlanet } from "./demo-diagrams-2/orbiting-planet";
 import { OrbitingPlanetWithBackground } from "./demo-diagrams-2/orbiting-planet-with-background";
-import { DebugManipulableDrawer } from "./DebugManipulableDrawer";
+import { ManipulableDrawer } from "./ManipulableDrawer2";
 
 export function V2DemoPage() {
   const [debug, setDebug] = useState(false);
@@ -12,7 +12,7 @@ export function V2DemoPage() {
   const Drawer = debug ? DebugManipulableDrawer : ManipulableDrawer;
 
   return (
-    <div className="p-8">
+    <div className="p-8 pb-64">
       <div className="flex items-center gap-4 mb-4">
         <h1 className="text-2xl font-bold">v2 Demos</h1>
         <label className="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer select-none">
