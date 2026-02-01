@@ -18,7 +18,7 @@ import {
 } from "./svgx/hoist";
 import { assignPaths, findByPath } from "./svgx/path";
 import { localToGlobal, parseTransform } from "./svgx/transform";
-import { assertNever, pipe, throwError } from "./utils";
+import { assert, assertNever, pipe, throwError } from "./utils";
 
 // # DragSpec
 //
@@ -125,9 +125,9 @@ export type DragBehavior<T> = (frame: DragFrame) => DragResult<T>;
 export type BehaviorContext<T extends object> = {
   manipulable: Manipulable<T>;
   draggedPath: string;
-  draggedId: string;
+  draggedId: string | null;
   pointerLocal: Vec2;
-  floatHoisted: HoistedSvgx;
+  floatHoisted: HoistedSvgx | null;
 };
 
 function renderStateReadOnly<T extends object>(
@@ -164,16 +164,25 @@ export function dragSpecToBehavior<T extends object>(
   ctx: BehaviorContext<T>
 ): DragBehavior<T> {
   if (spec.type === "floating") {
+    const { draggedId, floatHoisted } = ctx;
+    assert(
+      draggedId !== null,
+      "Floating drags require the dragged element to have an id"
+    );
+    assert(
+      floatHoisted !== null,
+      "Floating drags require floatHoisted"
+    );
     const hoisted = renderStateReadOnly(ctx, spec.state);
     const elementPos = getElementPosition(ctx, hoisted);
-    const hasElement = hoisted.byId.has(ctx.draggedId);
+    const hasElement = hoisted.byId.has(draggedId);
     const backdrop = hasElement
-      ? hoistedExtract(hoisted, ctx.draggedId).remaining
+      ? hoistedExtract(hoisted, draggedId).remaining
       : hoisted;
 
     return (frame) => {
       const floatPositioned = hoistedTransform(
-        ctx.floatHoisted,
+        floatHoisted,
         translate(frame.pointer.sub(frame.pointerStart))
       );
       const rendered = hoistedMerge(

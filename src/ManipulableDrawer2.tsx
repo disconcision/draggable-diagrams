@@ -61,7 +61,7 @@ type DragState<T extends object> =
       spec: DragSpec<T>;
       behaviorCtx: BehaviorContext<T>;
       pointerStart: Vec2;
-      draggedId: string;
+      draggedId: string | null;
       result: DragResult<T>;
       spring: SpringState | null;
     }
@@ -86,7 +86,7 @@ export type DebugDragInfo<T extends object> =
       behaviorCtx: BehaviorContext<T>;
       activePath: string;
       pointerStart: Vec2;
-      draggedId: string;
+      draggedId: string | null;
     };
 
 // # Component
@@ -348,8 +348,7 @@ function postProcessForInteraction<T extends object>(
               const pointer = ctx.setPointerFromEvent(e.nativeEvent);
 
               const dragSpec: DragSpec<T> = dragSpecCallback();
-              const draggedId = el.props.id;
-              assert(!!draggedId, "Dragged element must have an id");
+              const draggedId = el.props.id ?? null;
               const draggedPath = getPath(el);
               assert(!!draggedPath, "Dragged element must have a path");
 
@@ -357,16 +356,19 @@ function postProcessForInteraction<T extends object>(
               const transforms = parseTransform(accTransform || "");
               const pointerLocal = globalToLocal(transforms, pointer);
 
-              // Render the starting state and extract the float element
-              const startHoisted = renderReadOnly(ctx.manipulable, {
-                state,
-                draggedId,
-                ghostId: null,
-              });
-              const { extracted: floatHoisted } = hoistedExtract(
-                startHoisted,
-                draggedId
-              );
+              // Extract the float element (only possible when the element has an id)
+              let floatHoisted: HoistedSvgx | null = null;
+              if (draggedId) {
+                const startHoisted = renderReadOnly(ctx.manipulable, {
+                  state,
+                  draggedId,
+                  ghostId: null,
+                });
+                floatHoisted = hoistedExtract(
+                  startHoisted,
+                  draggedId
+                ).extracted;
+              }
 
               const behaviorCtx: BehaviorContext<T> = {
                 manipulable: ctx.manipulable,
@@ -426,9 +428,34 @@ const DrawIdleMode = memoGeneric(
           newState: SetStateAction<T>,
           { immediate = false } = {}
         ) => {
-          // TODO: animate setState transitions
-          void newState;
-          void immediate;
+          const resolved =
+            typeof newState === "function"
+              ? (newState as (prev: T) => T)(dragState.state)
+              : newState;
+          if (immediate) {
+            ctx.setDragState({ type: "idle", state: resolved });
+          } else {
+            const startHoisted = renderReadOnly(ctx.manipulable, {
+              state: dragState.state,
+              draggedId: null,
+              ghostId: null,
+            });
+            const targetHoisted = renderReadOnly(ctx.manipulable, {
+              state: resolved,
+              draggedId: null,
+              ghostId: null,
+            });
+            ctx.setDragState({
+              type: "animating",
+              startHoisted,
+              targetHoisted,
+              easing: d3Ease.easeCubicInOut,
+              startTime: performance.now(),
+              duration: 300,
+              nextState: resolved,
+              easedProgress: 0,
+            });
+          }
         }
       ),
     });
