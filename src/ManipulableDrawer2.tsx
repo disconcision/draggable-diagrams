@@ -31,6 +31,9 @@ import {
   getAccumulatedTransform,
   hoistSvg,
   hoistedExtract,
+  hoistedMerge,
+  hoistedPrefixIds,
+  hoistedShiftZIndices,
 } from "./svgx/hoist";
 import { lerpHoisted } from "./svgx/lerp";
 import { assignPaths, getPath } from "./svgx/path";
@@ -218,11 +221,29 @@ export function ManipulableDrawer<T extends object>({
 
         // Animate from what's currently displayed (with spring blending)
         const startHoisted = blendWithSpring(result.rendered, ds.spring);
-        const targetHoisted = renderReadOnly(manipulable, {
+        let targetHoisted = renderReadOnly(manipulable, {
           state: dropState,
           draggedId: null,
           ghostId: null,
         });
+
+        // If the dragged element has an id, re-prefix it with "floating-"
+        // in the target so that lerpHoisted can match ids and interpolate
+        // position instead of crossfading.
+        if (ds.draggedId && targetHoisted.byId.has(ds.draggedId)) {
+          const { extracted, remaining } = hoistedExtract(
+            targetHoisted,
+            ds.draggedId
+          );
+          targetHoisted = hoistedMerge(
+            remaining,
+            pipe(
+              extracted,
+              (h) => hoistedPrefixIds(h, "floating-"),
+              (h) => hoistedShiftZIndices(h, 1000000)
+            )
+          );
+        }
         const newState: DragState<T> = {
           type: "animating",
           startHoisted,
