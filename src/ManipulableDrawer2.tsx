@@ -42,7 +42,7 @@ import { assertNever, memoGeneric, pipe, throwError } from "./utils";
 
 // # Engine state machine
 
-const SPRING_DURATION = 300; // ms
+const SPRING_DURATION = 200; // ms
 
 type SpringingFrom = {
   hoisted: HoistedSvgx;
