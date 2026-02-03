@@ -13,7 +13,6 @@ import {
   hoistSvg,
   hoistedExtract,
   hoistedMerge,
-  hoistedPrefixIds,
   hoistedSetAttributes,
   hoistedShiftZIndices,
   hoistedTransform,
@@ -211,11 +210,15 @@ export function dragSpecToBehavior<T extends object>(
     if (!hasElement) {
       backdrop = hoisted;
     } else if (spec.ghost !== undefined) {
-      const ghost = cloneElement(hoisted.byId.get(draggedId)!, spec.ghost);
-      backdrop = {
-        byId: new Map(hoisted.byId).set(draggedId, ghost),
-        descendents: hoisted.descendents,
-      };
+      const ghostId = "ghost-" + draggedId;
+      const ghost = cloneElement(hoisted.byId.get(draggedId)!, {
+        ...spec.ghost,
+        id: ghostId,
+      });
+      const byId = new Map(hoisted.byId);
+      byId.delete(draggedId);
+      byId.set(ghostId, ghost);
+      backdrop = { byId, descendents: hoisted.descendents };
     } else {
       backdrop = hoistedExtract(hoisted, draggedId).remaining;
     }
@@ -229,7 +232,6 @@ export function dragSpecToBehavior<T extends object>(
         backdrop,
         pipe(
           floatPositioned,
-          (h) => hoistedPrefixIds(h, "floating-"),
           (h) => hoistedSetAttributes(h, { "data-transition": false }),
           (h) => hoistedShiftZIndices(h, 1000000)
         )

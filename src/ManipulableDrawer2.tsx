@@ -31,7 +31,6 @@ import {
   getAccumulatedTransform,
   hoistSvg,
   hoistedExtract,
-  hoistedStripIdPrefix,
 } from "./svgx/hoist";
 import { lerpHoisted } from "./svgx/lerp";
 import { assignPaths, getPath } from "./svgx/path";
@@ -197,13 +196,8 @@ export function ManipulableDrawer<T extends object>({
       const result = ds.behavior(frame);
       const dropState = result.dropState;
 
-      const startHoisted = pipe(
-        // Capture the current display as the spring snapshot
-        runSpring(ds.springingFrom, result.rendered),
-        // Strip "floating-" prefix from ids so they match the idle render
-        // for positional interpolation (not crossfade).
-        (h) => hoistedStripIdPrefix(h, "floating-")
-      );
+      // Capture the current display as the spring snapshot
+      const startHoisted = runSpring(ds.springingFrom, result.rendered);
 
       const newState: DragState<T> = {
         type: "idle",
@@ -268,7 +262,7 @@ export function ManipulableDrawer<T extends object>({
  * Blends a target render with a spring's startHoisted.
  * The target is used as the base (first arg to lerpHoisted) so its
  * non-interpolatable props (like event handlers) are preserved.
- * Floating elements (prefixed "floating-") are never sprung — they
+ * Elements with data-transition={false} are never sprung — they
  * always show the target's version so they track the cursor.
  */
 function runSpring(
