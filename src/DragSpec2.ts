@@ -31,12 +31,18 @@ import { assert, assertNever, pipe, throwError } from "./utils";
 // ## Data representation
 
 export type DragSpec<T> =
+  | DragSpecJust<T>
   | DragSpecFloating<T>
   | DragSpecClosest<T>
   | DragSpecWithBackground<T>
   | DragSpecAndThen<T>
   | DragSpecVary<T>
   | DragSpecWithDistance<T>;
+
+export type DragSpecJust<T> = {
+  type: "just";
+  state: T;
+};
 
 export type DragSpecFloating<T> = {
   type: "floating";
@@ -75,6 +81,10 @@ export type DragSpecWithDistance<T> = {
 };
 
 // ## Constructors
+
+export function just<T>(state: T): DragSpec<T> {
+  return { type: "just", state };
+}
 
 export function floating<T>(
   state: T,
@@ -177,7 +187,16 @@ export function dragSpecToBehavior<T extends object>(
   spec: DragSpec<T>,
   ctx: BehaviorContext<T>
 ): DragBehavior<T> {
-  if (spec.type === "floating") {
+  if (spec.type === "just") {
+    const rendered = renderStateReadOnly(ctx, spec.state);
+    const elementPos = getElementPosition(ctx, rendered);
+    return (frame) => ({
+      rendered,
+      dropState: spec.state,
+      distance: frame.pointer.dist(elementPos),
+      activePath: "just",
+    });
+  } else if (spec.type === "floating") {
     const { draggedId, floatHoisted } = ctx;
     assert(
       draggedId !== null,

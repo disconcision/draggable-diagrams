@@ -43,7 +43,11 @@ function SpecNode<T>({
   path: string;
   colorMap: Map<string, string> | null;
 }) {
-  if (spec.type === "floating") {
+  if (spec.type === "just") {
+    const fullPath = path + "just";
+    const active = activePath === fullPath;
+    return <Box label="just" active={active} color={colorMap?.get(fullPath)} />;
+  } else if (spec.type === "floating") {
     const fullPath = path + "floating";
     const active = activePath === fullPath;
     return (

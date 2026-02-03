@@ -1,7 +1,7 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { amb, produceAmb } from "../amb";
-import { closest, floating, withBackground } from "../DragSpec2";
+import { closest, floating, just, withBackground } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -35,7 +35,7 @@ export namespace PermFloating {
                 });
                 return withBackground(
                   closest(statesWith.map((s) => floating(s))),
-                  floating(stateWithout)
+                  just(state)
                 );
               })}
             >
