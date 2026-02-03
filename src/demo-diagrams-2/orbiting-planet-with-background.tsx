@@ -83,7 +83,7 @@ export namespace OrbitingPlanetWithBackground {
                 )
               ),
               vary({ mode: "free", x: planetX, y: planetY }, ["x"], ["y"]),
-              { radius: 20 }
+              { radius: 50 }
             );
             // return closest([
             //   ...STARS.map((_, starIdx) =>
