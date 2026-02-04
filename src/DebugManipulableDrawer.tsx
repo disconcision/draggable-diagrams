@@ -27,7 +27,7 @@ export function DebugManipulableDrawer<T extends object>({
     type: "idle",
   });
 
-  const overlayData = useOverlayData(
+  const { data: overlayData, computing: overlayComputing } = useOverlayData(
     showOverlay && debugInfo.type === "dragging" ? debugInfo.spec : null,
     showOverlay && debugInfo.type === "dragging" ? debugInfo.behaviorCtx : null,
     showOverlay && debugInfo.type === "dragging"
@@ -56,6 +56,33 @@ export function DebugManipulableDrawer<T extends object>({
               width={width}
               height={height}
             />
+          )}
+          {showOverlay && overlayComputing && (
+            <svg
+              width={20}
+              height={20}
+              className="absolute top-1.5 left-1.5 pointer-events-none"
+              viewBox="0 0 20 20"
+            >
+              <circle
+                cx={10}
+                cy={10}
+                r={7}
+                fill="none"
+                stroke="#94a3b8"
+                strokeWidth={2}
+                strokeDasharray="11 33"
+              >
+                <animateTransform
+                  attributeName="transform"
+                  type="rotate"
+                  from="0 10 10"
+                  to="360 10 10"
+                  dur="0.8s"
+                  repeatCount="indefinite"
+                />
+              </circle>
+            </svg>
           )}
         </div>
         {showTree && (

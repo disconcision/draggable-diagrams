@@ -49,22 +49,28 @@ const COARSE_FACTOR = 4; // coarse = 32px
 // Edges: 0=top, 1=right, 2=bottom, 3=left.
 // Corner bits: TL=8, TR=4, BR=2, BL=1.
 const MS_SEGMENTS: [number, number][][] = [
-  [],              // 0:  0000
-  [[3, 2]],        // 1:  0001
-  [[2, 1]],        // 2:  0010
-  [[3, 1]],        // 3:  0011
-  [[1, 0]],        // 4:  0100
-  [[3, 0], [1, 2]], // 5:  0101 (saddle)
-  [[2, 0]],        // 6:  0110
-  [[3, 0]],        // 7:  0111
-  [[0, 3]],        // 8:  1000
-  [[0, 2]],        // 9:  1001
-  [[0, 1], [2, 3]], // 10: 1010 (saddle)
-  [[0, 1]],        // 11: 1011
-  [[1, 3]],        // 12: 1100
-  [[1, 2]],        // 13: 1101
-  [[2, 3]],        // 14: 1110
-  [],              // 15: 1111
+  [], // 0:  0000
+  [[3, 2]], // 1:  0001
+  [[2, 1]], // 2:  0010
+  [[3, 1]], // 3:  0011
+  [[1, 0]], // 4:  0100
+  [
+    [3, 0],
+    [1, 2],
+  ], // 5:  0101 (saddle)
+  [[2, 0]], // 6:  0110
+  [[3, 0]], // 7:  0111
+  [[0, 3]], // 8:  1000
+  [[0, 2]], // 9:  1001
+  [
+    [0, 1],
+    [2, 3],
+  ], // 10: 1010 (saddle)
+  [[0, 1]], // 11: 1011
+  [[1, 3]], // 12: 1100
+  [[1, 2]], // 13: 1101
+  [[2, 3]], // 14: 1110
+  [], // 15: 1111
 ];
 
 // For contour tracing: given a case and the edge we entered through,
@@ -302,7 +308,130 @@ export function OverlayLegend({ data }: { data: OverlayData }) {
   );
 }
 
-// # Hook for async overlay computation
+// # Cooperative overlay generator
+//
+// Yields periodically so the main thread stays responsive during computation.
+// Uses a time budget: checks performance.now() every few samples and yields
+// when the chunk has exceeded CHUNK_BUDGET_MS.
+
+const CHUNK_BUDGET_MS = 8;
+const CHECK_EVERY = 4;
+
+function* computeOverlay(
+  sample: (x: number, y: number) => string,
+  width: number,
+  height: number
+): Generator<void, OverlayData, void> {
+  let chunkStart = performance.now();
+  let sinceCheck = 0;
+
+  function* maybePause() {
+    if (++sinceCheck >= CHECK_EVERY) {
+      sinceCheck = 0;
+      if (performance.now() - chunkStart >= CHUNK_BUDGET_MS) {
+        yield;
+        chunkStart = performance.now();
+      }
+    }
+  }
+
+  const fineCols = Math.ceil(width / FINE_CELL);
+  const fineRows = Math.ceil(height / FINE_CELL);
+  const coarseCols = Math.ceil(fineCols / COARSE_FACTOR);
+  const coarseRows = Math.ceil(fineRows / COARSE_FACTOR);
+
+  const totalV = (fineRows + 1) * (fineCols + 1);
+  const vertices: string[] = new Array(totalV).fill("");
+  const needsFine: boolean[] = new Array(totalV).fill(false);
+  const vi = (r: number, c: number) => r * (fineCols + 1) + c;
+
+  // --- Phase 1: Coarse sampling ---
+  for (let cr = 0; cr <= coarseRows; cr++) {
+    const fr = Math.min(cr * COARSE_FACTOR, fineRows);
+    for (let cc = 0; cc <= coarseCols; cc++) {
+      const fc = Math.min(cc * COARSE_FACTOR, fineCols);
+      vertices[vi(fr, fc)] = sample(fc * FINE_CELL, fr * FINE_CELL);
+      yield* maybePause();
+    }
+  }
+
+  // --- Phase 2: Analyze coarse cells ---
+  const mixed = new Set<number>();
+  for (let cr = 0; cr < coarseRows; cr++) {
+    for (let cc = 0; cc < coarseCols; cc++) {
+      const fr0 = cr * COARSE_FACTOR;
+      const fc0 = cc * COARSE_FACTOR;
+      const fr1 = Math.min((cr + 1) * COARSE_FACTOR, fineRows);
+      const fc1 = Math.min((cc + 1) * COARSE_FACTOR, fineCols);
+
+      const tl = vertices[vi(fr0, fc0)];
+      const tr = vertices[vi(fr0, fc1)];
+      const bl = vertices[vi(fr1, fc0)];
+      const br = vertices[vi(fr1, fc1)];
+
+      if (tl === tr && tr === bl && bl === br) {
+        for (let fr = fr0; fr <= fr1; fr++)
+          for (let fc = fc0; fc <= fc1; fc++) vertices[vi(fr, fc)] = tl;
+      } else {
+        mixed.add(cr * coarseCols + cc);
+      }
+    }
+  }
+
+  for (const key of mixed) {
+    const cr = Math.floor(key / coarseCols);
+    const cc = key % coarseCols;
+    const fr0 = cr * COARSE_FACTOR;
+    const fc0 = cc * COARSE_FACTOR;
+    const fr1 = Math.min((cr + 1) * COARSE_FACTOR, fineRows);
+    const fc1 = Math.min((cc + 1) * COARSE_FACTOR, fineCols);
+
+    for (let fr = fr0; fr <= fr1; fr++)
+      for (let fc = fc0; fc <= fc1; fc++) needsFine[vi(fr, fc)] = true;
+  }
+
+  yield;
+  chunkStart = performance.now();
+
+  // --- Phase 3: Fine sampling ---
+  for (let fr = 0; fr <= fineRows; fr++) {
+    for (let fc = 0; fc <= fineCols; fc++) {
+      if (needsFine[vi(fr, fc)]) {
+        vertices[vi(fr, fc)] = sample(fc * FINE_CELL, fr * FINE_CELL);
+        yield* maybePause();
+      }
+    }
+  }
+
+  // --- Phase 4: Contour tracing + smoothing ---
+  const pathSet = new Set<string>();
+  for (const v of vertices) {
+    if (v) pathSet.add(v);
+  }
+
+  const colorMap = assignColors([...pathSet]);
+
+  const regions: { activePath: string; svgPath: string; color: string }[] = [];
+  for (const path of pathSet) {
+    const polygons = traceContours(
+      vertices,
+      fineCols,
+      fineRows,
+      FINE_CELL,
+      path
+    );
+    if (polygons.length === 0) continue;
+    const smoothed = polygons.map((p) => smoothPolygon(p));
+    const svgPath = smoothed.map(polygonToSvgPath).join(" ");
+    regions.push({ activePath: path, color: colorMap.get(path)!, svgPath });
+    yield;
+    chunkStart = performance.now();
+  }
+
+  return { regions, colorMap };
+}
+
+// # Hook: drives the generator cooperatively
 
 export function useOverlayData<T extends object>(
   spec: DragSpec<T> | null,
@@ -310,9 +439,9 @@ export function useOverlayData<T extends object>(
   pointerStart: Vec2 | null,
   width: number,
   height: number
-): OverlayData | null {
+): { data: OverlayData | null; computing: boolean } {
   const [data, setData] = useState<OverlayData | null>(null);
-  const computeIdRef = useRef(0);
+  const [computing, setComputing] = useState(false);
   const specRef = useRef(spec);
   const dataRef = useRef(data);
   dataRef.current = data;
@@ -320,6 +449,7 @@ export function useOverlayData<T extends object>(
   useEffect(() => {
     if (!spec || !behaviorCtx || !pointerStart) {
       setData(null);
+      setComputing(false);
       return;
     }
 
@@ -327,8 +457,8 @@ export function useOverlayData<T extends object>(
     if (spec === specRef.current && dataRef.current !== null) return;
     specRef.current = spec;
 
-    const id = ++computeIdRef.current;
-    const ps = pointerStart; // narrow for closure
+    setComputing(true);
+    const ps = pointerStart;
 
     // Create a separate behavior instance for sampling (doesn't interfere
     // with the drag's own behavior's mutable curParams).
@@ -343,133 +473,27 @@ export function useOverlayData<T extends object>(
       }
     }
 
-    const fineCols = Math.ceil(width / FINE_CELL);
-    const fineRows = Math.ceil(height / FINE_CELL);
-    const coarseCols = Math.ceil(fineCols / COARSE_FACTOR);
-    const coarseRows = Math.ceil(fineRows / COARSE_FACTOR);
+    const gen = computeOverlay(sample, width, height);
+    let cancelled = false;
 
-    const totalV = (fineRows + 1) * (fineCols + 1);
-    const vertices: string[] = new Array(totalV).fill("");
-    const needsFine: boolean[] = new Array(totalV).fill(false);
-    const vi = (r: number, c: number) => r * (fineCols + 1) + c;
-
-    // --- Phase 1: Coarse sampling (synchronous) ---
-    // Sample at every COARSE_FACTOR-th fine vertex, in raster order
-    // for vary's warm-starting.
-    for (let cr = 0; cr <= coarseRows; cr++) {
-      const fr = Math.min(cr * COARSE_FACTOR, fineRows);
-      for (let cc = 0; cc <= coarseCols; cc++) {
-        const fc = Math.min(cc * COARSE_FACTOR, fineCols);
-        vertices[vi(fr, fc)] = sample(fc * FINE_CELL, fr * FINE_CELL);
-      }
-    }
-
-    if (id !== computeIdRef.current) return;
-
-    // --- Phase 2: Analyze coarse cells (synchronous) ---
-    // Uniform cells: fill fine vertices. Mixed cells: mark for fine sampling.
-    const mixed = new Set<number>();
-    for (let cr = 0; cr < coarseRows; cr++) {
-      for (let cc = 0; cc < coarseCols; cc++) {
-        const fr0 = cr * COARSE_FACTOR;
-        const fc0 = cc * COARSE_FACTOR;
-        const fr1 = Math.min((cr + 1) * COARSE_FACTOR, fineRows);
-        const fc1 = Math.min((cc + 1) * COARSE_FACTOR, fineCols);
-
-        const tl = vertices[vi(fr0, fc0)];
-        const tr = vertices[vi(fr0, fc1)];
-        const bl = vertices[vi(fr1, fc0)];
-        const br = vertices[vi(fr1, fc1)];
-
-        if (tl === tr && tr === bl && bl === br) {
-          // Uniform: propagate coarse value to all fine vertices
-          for (let fr = fr0; fr <= fr1; fr++)
-            for (let fc = fc0; fc <= fc1; fc++)
-              vertices[vi(fr, fc)] = tl;
-        } else {
-          mixed.add(cr * coarseCols + cc);
-        }
-      }
-    }
-
-    // Mark fine vertices in mixed coarse cells for sampling.
-    // We mark ALL vertices (even those already set by uniform neighbors)
-    // to ensure accurate boundaries.
-    for (const key of mixed) {
-      const cr = Math.floor(key / coarseCols);
-      const cc = key % coarseCols;
-      const fr0 = cr * COARSE_FACTOR;
-      const fc0 = cc * COARSE_FACTOR;
-      const fr1 = Math.min((cr + 1) * COARSE_FACTOR, fineRows);
-      const fc1 = Math.min((cc + 1) * COARSE_FACTOR, fineCols);
-
-      for (let fr = fr0; fr <= fr1; fr++)
-        for (let fc = fc0; fc <= fc1; fc++) needsFine[vi(fr, fc)] = true;
-    }
-
-    // --- Phase 3: Fine sampling (progressive, raster order) ---
-    let fineRow = 0;
-    const ROWS_PER_BATCH = 5;
-
-    function processBatch() {
-      if (id !== computeIdRef.current) return;
-
-      const endRow = Math.min(fineRow + ROWS_PER_BATCH, fineRows + 1);
-      for (; fineRow < endRow; fineRow++) {
-        for (let fc = 0; fc <= fineCols; fc++) {
-          if (needsFine[vi(fineRow, fc)]) {
-            vertices[vi(fineRow, fc)] = sample(
-              fc * FINE_CELL,
-              fineRow * FINE_CELL
-            );
-          }
-        }
-      }
-
-      if (fineRow > fineRows) {
-        finalize();
+    function step() {
+      if (cancelled) return;
+      const result = gen.next();
+      if (result.done) {
+        setData(result.value);
+        setComputing(false);
       } else {
-        requestAnimationFrame(processBatch);
+        setTimeout(step, 0);
       }
     }
 
-    function finalize() {
-      if (id !== computeIdRef.current) return;
+    step();
 
-      // Collect unique paths
-      const pathSet = new Set<string>();
-      for (const v of vertices) {
-        if (v) pathSet.add(v);
-      }
-
-      const colorMap = assignColors([...pathSet]);
-
-      // Marching squares + smoothing for each region
-      const regions: { activePath: string; svgPath: string; color: string }[] =
-        [];
-      for (const path of pathSet) {
-        const polygons = traceContours(
-          vertices,
-          fineCols,
-          fineRows,
-          FINE_CELL,
-          path
-        );
-        if (polygons.length === 0) continue;
-        const smoothed = polygons.map((p) => smoothPolygon(p));
-        const svgPath = smoothed.map(polygonToSvgPath).join(" ");
-        regions.push({
-          activePath: path,
-          color: colorMap.get(path)!,
-          svgPath,
-        });
-      }
-
-      setData({ regions, colorMap });
-    }
-
-    requestAnimationFrame(processBatch);
+    return () => {
+      cancelled = true;
+      setComputing(false);
+    };
   }, [spec, behaviorCtx, pointerStart, width, height]);
 
-  return data;
+  return { data, computing };
 }
