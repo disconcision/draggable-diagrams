@@ -74,7 +74,7 @@ export namespace OrbitingPlanetWithBackground {
           data-z-index={1}
           data-on-drag={drag(() => {
             const angle = state.mode === "orbiting" ? state.angle : 0;
-            return withBackground<State>(
+            return withBackground(
               closest(
                 STARS.map((_, starIdx) =>
                   vary({ mode: "orbiting", currentStar: starIdx, angle }, [

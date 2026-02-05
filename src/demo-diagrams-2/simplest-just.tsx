@@ -18,7 +18,7 @@ export namespace SimplestJust {
       width={100}
       height={100}
       data-on-drag={drag(() =>
-        closest<State>([
+        closest([
           just({ value: 0 }),
           floating({ value: 1 }, { ghost: { opacity: 0.5 } }),
           just({ value: 2 }),

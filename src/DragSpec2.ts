@@ -21,7 +21,14 @@ import {
 import { lerpLayered, lerpLayered3 } from "./svgx/lerp";
 import { assignPaths, findByPath } from "./svgx/path";
 import { localToGlobal, parseTransform } from "./svgx/transform";
-import { Many, assert, assertNever, manyToArray, pipe, throwError } from "./utils";
+import {
+  Many,
+  assert,
+  assertNever,
+  manyToArray,
+  pipe,
+  throwError,
+} from "./utils";
 
 // # DragSpec
 //
@@ -71,13 +78,15 @@ export type DragSpecAndThen<T> = {
   andThen: T;
 };
 
-export type DragSpecVary<T> = {
+// Interface (not type) so constraint can use method syntax, which is bivariant.
+// This allows DragSpec<NarrowType> to be assignable to DragSpec<WideType>.
+export interface DragSpecVary<T> {
   type: "vary";
   state: T;
   paramPaths: PathIn<T, number>[];
-  constraint?: (state: T) => Many<number>;
+  constraint?(state: T): Many<number>;
   constrainByParams?: boolean;
-};
+}
 
 export type DragSpecWithDistance<T> = {
   type: "with-distance";
@@ -114,11 +123,12 @@ export function closest<T>(specs: DragSpec<T>[]): DragSpec<T> {
   return { type: "closest", specs };
 }
 
-export function withBackground<T>(
-  foreground: DragSpec<T>,
-  background: DragSpec<T>,
+// Two type params so specs with different narrow types can combine into a union.
+export function withBackground<F, B>(
+  foreground: DragSpec<F>,
+  background: DragSpec<B>,
   { radius = 50 }: { radius?: number } = {}
-): DragSpec<T> {
+): DragSpec<F | B> {
   return { type: "with-background", foreground, background, radius };
 }
 
@@ -132,6 +142,28 @@ export type VaryOptions<T> = {
   constrainByParams?: boolean;
 };
 
+type VaryArgs<T> =
+  | PathIn<T, number>[]
+  | [...PathIn<T, number>[], VaryOptions<T>];
+function parseVaryArgs<T>(args: VaryArgs<T>): {
+  paramPaths: PathIn<T, number>[];
+  options: VaryOptions<T>;
+} {
+  const last = args[args.length - 1];
+  if (
+    args.length > 0 &&
+    last &&
+    !Array.isArray(last) &&
+    typeof last === "object"
+  ) {
+    return {
+      paramPaths: args.slice(0, -1) as PathIn<T, number>[],
+      options: last as VaryOptions<T>,
+    };
+  }
+  return { paramPaths: args as PathIn<T, number>[], options: {} };
+}
+
 export function vary<T>(
   state: T,
   ...paramPaths: PathIn<T, number>[]
@@ -140,24 +172,9 @@ export function vary<T>(
   state: T,
   ...args: [...PathIn<T, number>[], VaryOptions<T>]
 ): DragSpec<T>;
-export function vary(state: unknown, ...args: unknown[]): DragSpec<any> {
-  const last = args[args.length - 1];
-  if (
-    args.length > 0 &&
-    last &&
-    !Array.isArray(last) &&
-    typeof last === "object"
-  ) {
-    const { constraint, constrainByParams } = last as VaryOptions<any>;
-    return {
-      type: "vary",
-      state,
-      paramPaths: args.slice(0, -1) as any,
-      constraint,
-      constrainByParams,
-    };
-  }
-  return { type: "vary", state, paramPaths: args as any };
+export function vary<T>(state: T, ...args: VaryArgs<T>): DragSpec<T> {
+  const { paramPaths, options } = parseVaryArgs(args);
+  return { type: "vary", state, paramPaths, ...options };
 }
 
 export function withDistance<T>(
@@ -373,7 +390,9 @@ export function dragSpecToBehavior<T extends object>(
       // distance term finds the closest feasible point to the optimum.
       if (spec.constraint && evalConstraint(resultParams) > 0) {
         const x0 = resultParams.slice();
-        const pos0 = spec.constrainByParams ? null : getElementPos(resultParams);
+        const pos0 = spec.constrainByParams
+          ? null
+          : getElementPos(resultParams);
         const pullbackFn = (params: number[]) => {
           const g = evalConstraint(params);
           const penalty = g > 0 ? g : 0;
