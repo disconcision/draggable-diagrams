@@ -7,6 +7,8 @@ import { Braid } from "./demo-diagrams-2/braid";
 import { CanvasOfLists } from "./demo-diagrams-2/canvas-of-lists";
 import { CanvasOfListsNested } from "./demo-diagrams-2/canvas-of-lists-nested";
 import { Carousel } from "./demo-diagrams-2/carousel";
+import { ConstrainedPoint } from "./demo-diagrams-2/constrained-point";
+import { ConstrainedSlider } from "./demo-diagrams-2/constrained-slider";
 import { Clock } from "./demo-diagrams-2/clock";
 import { Dragon } from "./demo-diagrams-2/dragon";
 import { GridPoly } from "./demo-diagrams-2/grid-poly";
@@ -293,6 +295,23 @@ export function V2DemoPage() {
         width={450}
         height={400}
       />
+
+      <h2 className="text-xl font-semibold mt-8 mb-2">constrained-slider</h2>
+      <Drawer
+        manipulable={ConstrainedSlider.manipulable}
+        initialState={ConstrainedSlider.state1}
+        width={300}
+        height={100}
+      />
+
+      <h2 className="text-xl font-semibold mt-8 mb-2">constrained-point</h2>
+      <Drawer
+        manipulable={ConstrainedPoint.manipulable}
+        initialState={ConstrainedPoint.state1}
+        width={300}
+        height={300}
+      />
+
     </div>
   );
 }

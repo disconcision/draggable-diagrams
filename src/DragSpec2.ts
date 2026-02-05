@@ -75,6 +75,7 @@ export type DragSpecVary<T> = {
   type: "vary";
   state: T;
   paramPaths: PathIn<T, number>[];
+  constraint?: (state: T) => boolean;
 };
 
 export type DragSpecWithDistance<T> = {
@@ -124,11 +125,35 @@ export function andThen<T>(spec: DragSpec<T>, andThen: T): DragSpec<T> {
   return { type: "and-then", spec, andThen };
 }
 
+export type VaryOptions<T> = {
+  constraint?: (state: T) => boolean;
+};
+
 export function vary<T>(
   state: T,
   ...paramPaths: PathIn<T, number>[]
-): DragSpec<T> {
-  return { type: "vary", state, paramPaths };
+): DragSpec<T>;
+export function vary<T>(
+  state: T,
+  ...args: [...PathIn<T, number>[], VaryOptions<T>]
+): DragSpec<T>;
+export function vary(state: unknown, ...args: unknown[]): DragSpec<any> {
+  const last = args[args.length - 1];
+  if (
+    args.length > 0 &&
+    last &&
+    !Array.isArray(last) &&
+    typeof last === "object"
+  ) {
+    const { constraint } = last as VaryOptions<any>;
+    return {
+      type: "vary",
+      state,
+      paramPaths: args.slice(0, -1) as any,
+      constraint,
+    };
+  }
+  return { type: "vary", state, paramPaths: args as any };
 }
 
 export function withDistance<T>(
@@ -297,7 +322,7 @@ export function dragSpecToBehavior<T extends object>(
     };
 
     return (frame) => {
-      const objectiveFn = (params: number[]) => {
+      const baseObjectiveFn = (params: number[]) => {
         const candidateState = stateFromParams(params);
         const content = pipe(
           ctx.manipulable({
@@ -318,15 +343,42 @@ export function dragSpecToBehavior<T extends object>(
         return pos.dist2(frame.pointer);
       };
 
-      const r = minimize(objectiveFn, curParams);
-      curParams = r.solution;
+      const r = minimize(baseObjectiveFn, curParams);
+      let resultParams = r.solution;
 
-      const newState = stateFromParams(curParams);
+      // If the unconstrained optimum violates the constraint,
+      // binary-search along the step from curParams to find the boundary.
+      const isFeasible = (params: number[]) => {
+        if (!spec.constraint) return true;
+        return spec.constraint(stateFromParams(params));
+      };
+
+      if (!isFeasible(resultParams)) {
+        let lo = 0,
+          hi = 1;
+        for (let i = 0; i < 20; i++) {
+          const mid = (lo + hi) / 2;
+          const midParams = curParams.map(
+            (c, j) => c + mid * (r.solution[j] - c)
+          );
+          if (isFeasible(midParams)) {
+            lo = mid;
+          } else {
+            hi = mid;
+          }
+        }
+        resultParams = curParams.map(
+          (c, j) => c + lo * (r.solution[j] - c)
+        );
+      }
+
+      curParams = resultParams;
+      const newState = stateFromParams(resultParams);
       const rendered = renderStateReadOnly(ctx, newState);
       return {
         rendered,
         dropState: newState,
-        distance: Math.sqrt(r.f),
+        distance: Math.sqrt(baseObjectiveFn(resultParams)),
         activePath: "vary",
       };
     };

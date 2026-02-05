@@ -60,12 +60,31 @@ function SpecNode<T>({
       const last = p[p.length - 1];
       return typeof last === "string" ? last : String(last);
     });
+    const constraintSrc = spec.constraint
+      ? truncate(spec.constraint.toString(), 60)
+      : null;
     return (
       <Box
         label={`vary [${paramNames.join(", ")}]`}
         active={active}
         color={colorMap?.get(fullPath)}
-      />
+      >
+        {constraintSrc && (
+          <div
+            style={{
+              fontSize: 9,
+              color: "rgb(120, 113, 108)",
+              background: "rgba(0,0,0,0.04)",
+              borderRadius: 3,
+              padding: "2px 4px",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-all",
+            }}
+          >
+            constraint: {constraintSrc}
+          </div>
+        )}
+      </Box>
     );
   } else if (spec.type === "closest") {
     return (
@@ -225,6 +244,10 @@ function Slot({
       {children}
     </div>
   );
+}
+
+function truncate(s: string, maxLen: number): string {
+  return s.length <= maxLen ? s : s.slice(0, maxLen - 1) + "\u2026";
 }
 
 /** Convert "rgb(r, g, b)" to "rgba(r, g, b, a)" */
