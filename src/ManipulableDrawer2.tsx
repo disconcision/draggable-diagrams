@@ -33,7 +33,7 @@ import {
   layeredExtract,
 } from "./svgx/layers";
 import { lerpLayered } from "./svgx/lerp";
-import { assignPaths, getPath } from "./svgx/path";
+import { assignPaths, findByPath, getPath } from "./svgx/path";
 import { globalToLocal, parseTransform } from "./svgx/transform";
 import { useAnimationLoop } from "./useAnimationLoop";
 import { CatchToRenderError, useCatchToRenderError } from "./useRenderError";
@@ -129,6 +129,48 @@ export function ManipulableDrawer<T extends object>({
 
         let springingFrom = ds.springingFrom;
 
+        // Handle chaining: restart drag from new state
+        if (result.chainNow) {
+          const newState = result.dropState;
+          // Render the new state and find the dragged element
+          const content = pipe(
+            manipulable({
+              state: newState,
+              drag: unsafeDrag,
+              draggedId: ds.draggedId,
+              ghostId: null,
+              setState: throwError,
+            }),
+            assignPaths,
+            accumulateTransforms
+          );
+          const element = findByPath(ds.behaviorCtx.draggedPath, content);
+          if (element) {
+            const dragSpecCallback = getDragSpecCallbackOnElement<T>(element);
+            if (dragSpecCallback) {
+              const newDragSpec = dragSpecCallback();
+
+              // Start spring from current display
+              const layered = runSpring(springingFrom, result.rendered);
+              const newSpringingFrom = { layered, time: performance.now() };
+
+              const { floatLayered: _, ...behaviorCtxWithoutFloat } = ds.behaviorCtx;
+              const { dragState: chainedState, debugInfo } = initDrag(
+                newDragSpec,
+                behaviorCtxWithoutFloat,
+                newState,
+                frame,
+                ds.pointerStart,
+                newSpringingFrom
+              );
+              dragStateRef.current = chainedState;
+              setDragState(chainedState);
+              onDebugDragInfoRef.current?.(debugInfo);
+              return;
+            }
+          }
+        }
+
         // Detect activePath change → start new spring from current display
         if (result.activePath !== ds.result.activePath) {
           const layered = runSpring(springingFrom, ds.result.rendered);
@@ -170,7 +212,7 @@ export function ManipulableDrawer<T extends object>({
           setDragState(newState);
         }
       }
-    }, [setDragState])
+    }, [manipulable, setDragState])
   );
 
   // Cursor style
@@ -298,6 +340,45 @@ function renderReadOnly<T extends object>(
   );
 }
 
+function initDrag<T extends object>(
+  spec: DragSpec<T>,
+  behaviorCtxWithoutFloat: Omit<BehaviorContext<T>, "floatLayered">,
+  state: T,
+  frame: DragFrame,
+  pointerStart: Vec2,
+  springingFrom: SpringingFrom | null
+): { dragState: DragState<T> & { type: "dragging" }; debugInfo: DebugDragInfo<T> } {
+  const { manipulable, draggedId } = behaviorCtxWithoutFloat;
+  let floatLayered: LayeredSvgx | null = null;
+  if (draggedId) {
+    const startLayered = renderReadOnly(manipulable, { state, draggedId, ghostId: null });
+    floatLayered = layeredExtract(startLayered, draggedId).extracted;
+  }
+  const behaviorCtx: BehaviorContext<T> = { ...behaviorCtxWithoutFloat, floatLayered };
+  const behavior = dragSpecToBehavior(spec, behaviorCtx);
+  const result = behavior(frame);
+  return {
+    dragState: {
+      type: "dragging",
+      behavior,
+      spec,
+      behaviorCtx,
+      pointerStart,
+      draggedId,
+      result,
+      springingFrom,
+    },
+    debugInfo: {
+      type: "dragging",
+      spec,
+      behaviorCtx,
+      activePath: result.activePath,
+      pointerStart,
+      draggedId,
+    },
+  };
+}
+
 // # Render context
 
 type RenderContext<T extends object> = {
@@ -338,47 +419,17 @@ function postProcessForInteraction<T extends object>(
             const transforms = parseTransform(accTransform || "");
             const pointerLocal = globalToLocal(transforms, pointer);
 
-            // Extract the float element (only possible when the element has an id)
-            let floatLayered: LayeredSvgx | null = null;
-            if (draggedId) {
-              const startLayered = renderReadOnly(ctx.manipulable, {
-                state,
-                draggedId,
-                ghostId: null,
-              });
-              floatLayered = layeredExtract(startLayered, draggedId).extracted;
-            }
-
-            const behaviorCtx: BehaviorContext<T> = {
-              manipulable: ctx.manipulable,
-              draggedPath,
-              draggedId,
-              pointerLocal,
-              floatLayered,
-            };
-
-            const behavior = dragSpecToBehavior(dragSpec, behaviorCtx);
             const frame: DragFrame = { pointer, pointerStart: pointer };
-            const result = behavior(frame);
-
-            ctx.setDragState({
-              type: "dragging",
-              behavior,
-              spec: dragSpec,
-              behaviorCtx,
-              pointerStart: pointer,
-              draggedId,
-              result,
-              springingFrom: null,
-            });
-            ctx.onDebugDragInfoRef.current?.({
-              type: "dragging",
-              spec: dragSpec,
-              behaviorCtx,
-              activePath: result.activePath,
-              pointerStart: pointer,
-              draggedId,
-            });
+            const { dragState, debugInfo } = initDrag(
+              dragSpec,
+              { manipulable: ctx.manipulable, draggedPath, draggedId, pointerLocal },
+              state,
+              frame,
+              pointer,
+              null
+            );
+            ctx.setDragState(dragState);
+            ctx.onDebugDragInfoRef.current?.(debugInfo);
           }),
         };
       }),

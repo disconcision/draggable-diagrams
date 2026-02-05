@@ -177,7 +177,11 @@ function SpecNode<T>({
     } else if (activePath?.startsWith("with-snap-radius/")) {
       childActivePath = activePath.slice("with-snap-radius/".length);
     }
-    let label = `withSnapRadius (${spec.radius})`;
+    const options = [
+      spec.transition && "transition",
+      spec.chain && "chain",
+    ].filter(Boolean);
+    let label = `withSnapRadius (${spec.radius}${options.length ? `, ${options.join(", ")}` : ""})`;
     if (spec.transition) {
       label += snapped ? " [snapped]" : " [not snapped]";
     }

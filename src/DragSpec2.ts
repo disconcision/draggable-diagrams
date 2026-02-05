@@ -78,6 +78,7 @@ export type DragSpecWithSnapRadius<T> = {
   spec: DragSpec<T>;
   radius: number;
   transition: boolean;
+  chain: boolean;
 };
 
 export type DragSpecAndThen<T> = {
@@ -195,13 +196,14 @@ export function withDistance<T>(
 export function withSnapRadius<T>(
   spec: DragSpec<T>,
   radius: number,
-  options: { transition?: boolean } = {}
+  options: { transition?: boolean; chain?: boolean } = {}
 ): DragSpec<T> {
   return {
     type: "with-snap-radius",
     spec,
     radius,
     transition: options.transition ?? false,
+    chain: options.chain ?? false,
   };
 }
 
@@ -227,6 +229,7 @@ export type DragResult<T> = {
   dropState: T;
   distance: number;
   activePath: string;
+  chainNow?: boolean;
 };
 
 export type DragBehavior<T> = (frame: DragFrame) => DragResult<T>;
@@ -482,6 +485,7 @@ export function dragSpecToBehavior<T extends object>(
         ...result,
         rendered,
         activePath,
+        chainNow: spec.chain && snapped,
       };
     };
   } else if (spec.type === "span") {
