@@ -25,14 +25,14 @@ import {
 import { Vec2 } from "./math/vec2";
 import { Svgx, updatePropsDownTree } from "./svgx";
 import {
-  HoistedSvgx,
+  LayeredSvgx,
   accumulateTransforms,
-  drawHoisted,
+  drawLayered,
   getAccumulatedTransform,
-  hoistSvg,
-  hoistedExtract,
-} from "./svgx/hoist";
-import { lerpHoisted } from "./svgx/lerp";
+  layerSvg,
+  layeredExtract,
+} from "./svgx/layers";
+import { lerpLayered } from "./svgx/lerp";
 import { assignPaths, getPath } from "./svgx/path";
 import { globalToLocal, parseTransform } from "./svgx/transform";
 import { useAnimationLoop } from "./useAnimationLoop";
@@ -44,7 +44,7 @@ import { assertNever, memoGeneric, pipe, throwError } from "./utils";
 const SPRING_DURATION = 200; // ms
 
 type SpringingFrom = {
-  hoisted: HoistedSvgx;
+  layered: LayeredSvgx;
   time: number;
 };
 
@@ -131,8 +131,8 @@ export function ManipulableDrawer<T extends object>({
 
         // Detect activePath change → start new spring from current display
         if (result.activePath !== ds.result.activePath) {
-          const hoisted = runSpring(springingFrom, ds.result.rendered);
-          springingFrom = { hoisted, time: performance.now() };
+          const layered = runSpring(springingFrom, ds.result.rendered);
+          springingFrom = { layered, time: performance.now() };
         }
 
         // Clear expired spring
@@ -197,12 +197,12 @@ export function ManipulableDrawer<T extends object>({
       const dropState = result.dropState;
 
       // Capture the current display as the spring snapshot
-      const startHoisted = runSpring(ds.springingFrom, result.rendered);
+      const startLayered = runSpring(ds.springingFrom, result.rendered);
 
       const newState: DragState<T> = {
         type: "idle",
         state: dropState,
-        springingFrom: { hoisted: startHoisted, time: performance.now() },
+        springingFrom: { layered: startLayered, time: performance.now() },
       };
       dragStateRef.current = newState;
       setDragState(newState);
@@ -259,20 +259,20 @@ export function ManipulableDrawer<T extends object>({
 // # Helpers
 
 /**
- * Blends a target render with a spring's startHoisted.
- * The target is used as the base (first arg to lerpHoisted) so its
+ * Blends a target render with a spring's startLayered.
+ * The target is used as the base (first arg to lerpLayered) so its
  * non-interpolatable props (like event handlers) are preserved.
  * Elements with data-transition={false} are never sprung — they
  * always show the target's version so they track the cursor.
  */
 function runSpring(
   springingFrom: SpringingFrom | null,
-  target: HoistedSvgx
-): HoistedSvgx {
+  target: LayeredSvgx
+): LayeredSvgx {
   if (!springingFrom) return target;
   const elapsed = performance.now() - springingFrom.time;
   const t = d3Ease.easeCubicOut(Math.min(elapsed / SPRING_DURATION, 1));
-  const lerped = lerpHoisted(target, springingFrom.hoisted, 1 - t);
+  const lerped = lerpLayered(target, springingFrom.layered, 1 - t);
   // Replace non-transitioning elements with the target's version so they
   // track the cursor without spring lag.
   for (const [key, element] of lerped.byId.entries()) {
@@ -289,12 +289,12 @@ function runSpring(
 function renderReadOnly<T extends object>(
   manipulable: Manipulable<T>,
   props: Omit<ManipulableProps<T>, "drag" | "setState">
-): HoistedSvgx {
+): LayeredSvgx {
   return pipe(
     manipulable({ ...props, drag: unsafeDrag, setState: throwError }),
     assignPaths,
     accumulateTransforms,
-    hoistSvg
+    layerSvg
   );
 }
 
@@ -314,7 +314,7 @@ function postProcessForInteraction<T extends object>(
   content: Svgx,
   state: T,
   ctx: RenderContext<T>
-): HoistedSvgx {
+): LayeredSvgx {
   return pipe(
     content,
     assignPaths,
@@ -339,14 +339,14 @@ function postProcessForInteraction<T extends object>(
             const pointerLocal = globalToLocal(transforms, pointer);
 
             // Extract the float element (only possible when the element has an id)
-            let floatHoisted: HoistedSvgx | null = null;
+            let floatLayered: LayeredSvgx | null = null;
             if (draggedId) {
-              const startHoisted = renderReadOnly(ctx.manipulable, {
+              const startLayered = renderReadOnly(ctx.manipulable, {
                 state,
                 draggedId,
                 ghostId: null,
               });
-              floatHoisted = hoistedExtract(startHoisted, draggedId).extracted;
+              floatLayered = layeredExtract(startLayered, draggedId).extracted;
             }
 
             const behaviorCtx: BehaviorContext<T> = {
@@ -354,7 +354,7 @@ function postProcessForInteraction<T extends object>(
               draggedPath,
               draggedId,
               pointerLocal,
-              floatHoisted,
+              floatLayered,
             };
 
             const behavior = dragSpecToBehavior(dragSpec, behaviorCtx);
@@ -382,7 +382,7 @@ function postProcessForInteraction<T extends object>(
           }),
         };
       }),
-    hoistSvg
+    layerSvg
   );
 }
 
@@ -422,15 +422,15 @@ const DrawIdleMode = memoGeneric(
             ctx.setDragState({
               type: "idle",
               state: resolved,
-              springingFrom: { hoisted: snapshot, time: performance.now() },
+              springingFrom: { layered: snapshot, time: performance.now() },
             });
           }
         }
       ),
     });
 
-    const hoisted = postProcessForInteraction(content, dragState.state, ctx);
-    return drawHoisted(runSpring(dragState.springingFrom, hoisted));
+    const layered = postProcessForInteraction(content, dragState.state, ctx);
+    return drawLayered(runSpring(dragState.springingFrom, layered));
   }
 );
 
@@ -444,6 +444,6 @@ const DrawDraggingMode = memoGeneric(
       dragState.springingFrom,
       dragState.result.rendered
     );
-    return drawHoisted(rendered);
+    return drawLayered(rendered);
   }
 );

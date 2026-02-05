@@ -8,7 +8,7 @@ export type Svgx = React.ReactElement<React.SVGProps<SVGElement>>;
 /**
  * Determines if we should recurse into an element's children when
  * walking the tree. Returns false for stuff that shouldn't get
- * processed or hoisted.
+ * processed or layered.
  */
 export function shouldRecurseIntoChildren(element: Svgx): boolean {
   return element.type !== "foreignObject" && element.type !== "defs";

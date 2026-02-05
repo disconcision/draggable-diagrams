@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { accumulateTransforms, hoistSvg, hoistedExtract } from "./hoist";
+import { accumulateTransforms, layerSvg, layeredExtract } from "./layers";
 
-describe("hoistSvg", () => {
+describe("layerSvg", () => {
   it("pulls nodes with IDs to the top level", () => {
     const tree = (
       <g>
@@ -10,7 +10,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "r1" => <rect
@@ -33,7 +33,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "r1" => <rect
@@ -60,7 +60,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "r1" => <rect
@@ -93,7 +93,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "r1" => <rect
@@ -128,7 +128,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "r1" => <rect
@@ -158,7 +158,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "c1" => <circle
@@ -184,7 +184,7 @@ describe("hoistSvg", () => {
       </>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "r1" => <rect
@@ -217,7 +217,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "group1" => <g
@@ -249,7 +249,7 @@ describe("hoistSvg", () => {
       </>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "inner" => <g
@@ -283,7 +283,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "r1" => <rect
@@ -320,7 +320,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "inner" => <rect
@@ -418,7 +418,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(hoistSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
+    expect(layerSvg(accumulateTransforms(tree))).toMatchInlineSnapshot(`
       {
         "byId": Map {
           "label1" => <text
@@ -452,7 +452,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(() => hoistSvg(accumulateTransforms(tree))).toThrow(
+    expect(() => layerSvg(accumulateTransforms(tree))).toThrow(
       /data-z-index can only be set on elements with an id attribute/
     );
   });
@@ -464,7 +464,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(() => hoistSvg(accumulateTransforms(tree))).not.toThrow();
+    expect(() => layerSvg(accumulateTransforms(tree))).not.toThrow();
   });
 
   it("throws error if duplicate IDs are found at same level", () => {
@@ -475,7 +475,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(() => hoistSvg(accumulateTransforms(tree))).toThrow(
+    expect(() => layerSvg(accumulateTransforms(tree))).toThrow(
       /Duplicate id "duplicate" found in SVG tree/
     );
   });
@@ -490,7 +490,7 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(() => hoistSvg(accumulateTransforms(tree))).toThrow(
+    expect(() => layerSvg(accumulateTransforms(tree))).toThrow(
       /Duplicate id "duplicate" found in SVG tree/
     );
   });
@@ -507,13 +507,13 @@ describe("hoistSvg", () => {
       </g>
     );
 
-    expect(() => hoistSvg(accumulateTransforms(tree))).toThrow(
+    expect(() => layerSvg(accumulateTransforms(tree))).toThrow(
       /Duplicate id "inner" found in SVG tree/
     );
   });
 });
 
-describe("hoistedExtract", () => {
+describe("layeredExtract", () => {
   it("extracts a single element with no descendants", () => {
     const tree = (
       <g>
@@ -522,8 +522,8 @@ describe("hoistedExtract", () => {
       </g>
     );
 
-    const hoisted = hoistSvg(accumulateTransforms(tree));
-    const { extracted, remaining } = hoistedExtract(hoisted, "r1");
+    const layered = layerSvg(accumulateTransforms(tree));
+    const { extracted, remaining } = layeredExtract(layered, "r1");
 
     expect(extracted).toMatchInlineSnapshot(`
       {
@@ -559,8 +559,8 @@ describe("hoistedExtract", () => {
       </g>
     );
 
-    const hoisted = hoistSvg(accumulateTransforms(tree));
-    const { extracted, remaining } = hoistedExtract(hoisted, "outer");
+    const layered = layerSvg(accumulateTransforms(tree));
+    const { extracted, remaining } = layeredExtract(layered, "outer");
 
     expect(extracted).toMatchInlineSnapshot(`
       {
@@ -618,8 +618,8 @@ describe("hoistedExtract", () => {
       </g>
     );
 
-    const hoisted = hoistSvg(accumulateTransforms(tree));
-    const { extracted, remaining } = hoistedExtract(hoisted, "a");
+    const layered = layerSvg(accumulateTransforms(tree));
+    const { extracted, remaining } = layeredExtract(layered, "a");
 
     expect(extracted).toMatchInlineSnapshot(`
       {

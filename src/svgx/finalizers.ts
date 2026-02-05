@@ -1,7 +1,7 @@
 import { findElement, Svgx } from ".";
 import { Vec2, Vec2able } from "../math/vec2";
 import { assert, assertDefined } from "../utils";
-import { accumulateTransforms } from "./hoist";
+import { accumulateTransforms } from "./layers";
 import { localToGlobal, parseTransform } from "./transform";
 
 /**

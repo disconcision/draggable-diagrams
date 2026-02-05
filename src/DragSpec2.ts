@@ -7,18 +7,18 @@ import { Vec2 } from "./math/vec2";
 import { PathIn, getAtPath, setAtPath } from "./paths";
 import { translate } from "./svgx/helpers";
 import {
-  HoistedSvgx,
+  LayeredSvgx,
   accumulateTransforms,
-  findByPathInHoisted,
+  findByPathInLayered,
   getAccumulatedTransform,
-  hoistSvg,
-  hoistedExtract,
-  hoistedMerge,
-  hoistedSetAttributes,
-  hoistedShiftZIndices,
-  hoistedTransform,
-} from "./svgx/hoist";
-import { lerpHoisted, lerpHoisted3 } from "./svgx/lerp";
+  layerSvg,
+  layeredExtract,
+  layeredMerge,
+  layeredSetAttributes,
+  layeredShiftZIndices,
+  layeredTransform,
+} from "./svgx/layers";
+import { lerpLayered, lerpLayered3 } from "./svgx/lerp";
 import { assignPaths, findByPath } from "./svgx/path";
 import { localToGlobal, parseTransform } from "./svgx/transform";
 import { assert, assertNever, pipe, throwError } from "./utils";
@@ -151,7 +151,7 @@ export type DragFrame = {
 };
 
 export type DragResult<T> = {
-  rendered: HoistedSvgx;
+  rendered: LayeredSvgx;
   dropState: T;
   distance: number;
   activePath: string;
@@ -164,13 +164,13 @@ export type BehaviorContext<T extends object> = {
   draggedPath: string;
   draggedId: string | null;
   pointerLocal: Vec2;
-  floatHoisted: HoistedSvgx | null;
+  floatLayered: LayeredSvgx | null;
 };
 
 function renderStateReadOnly<T extends object>(
   ctx: BehaviorContext<T>,
   state: T
-): HoistedSvgx {
+): LayeredSvgx {
   return pipe(
     ctx.manipulable({
       state,
@@ -181,15 +181,15 @@ function renderStateReadOnly<T extends object>(
     }),
     assignPaths,
     accumulateTransforms,
-    hoistSvg
+    layerSvg
   );
 }
 
 function getElementPosition<T extends object>(
   ctx: BehaviorContext<T>,
-  hoisted: HoistedSvgx
+  layered: LayeredSvgx
 ): Vec2 {
-  const element = findByPathInHoisted(ctx.draggedPath, hoisted);
+  const element = findByPathInLayered(ctx.draggedPath, layered);
   if (!element) return Vec2(Infinity, Infinity);
   const accTransform = getAccumulatedTransform(element);
   const transforms = parseTransform(accTransform || "");
@@ -210,43 +210,43 @@ export function dragSpecToBehavior<T extends object>(
       activePath: "just",
     });
   } else if (spec.type === "floating") {
-    const { draggedId, floatHoisted } = ctx;
+    const { draggedId, floatLayered } = ctx;
     assert(
       draggedId !== null,
       "Floating drags require the dragged element to have an id"
     );
-    assert(floatHoisted !== null, "Floating drags require floatHoisted");
-    const hoisted = renderStateReadOnly(ctx, spec.state);
-    const elementPos = getElementPosition(ctx, hoisted);
-    const hasElement = hoisted.byId.has(draggedId);
-    let backdrop: HoistedSvgx;
+    assert(floatLayered !== null, "Floating drags require floatLayered");
+    const layered = renderStateReadOnly(ctx, spec.state);
+    const elementPos = getElementPosition(ctx, layered);
+    const hasElement = layered.byId.has(draggedId);
+    let backdrop: LayeredSvgx;
     if (!hasElement) {
-      backdrop = hoisted;
+      backdrop = layered;
     } else if (spec.ghost !== undefined) {
       const ghostId = "ghost-" + draggedId;
-      const ghost = cloneElement(hoisted.byId.get(draggedId)!, {
+      const ghost = cloneElement(layered.byId.get(draggedId)!, {
         ...spec.ghost,
         id: ghostId,
       });
-      const byId = new Map(hoisted.byId);
+      const byId = new Map(layered.byId);
       byId.delete(draggedId);
       byId.set(ghostId, ghost);
-      backdrop = { byId, descendents: hoisted.descendents };
+      backdrop = { byId, descendents: layered.descendents };
     } else {
-      backdrop = hoistedExtract(hoisted, draggedId).remaining;
+      backdrop = layeredExtract(layered, draggedId).remaining;
     }
 
     return (frame) => {
-      const floatPositioned = hoistedTransform(
-        floatHoisted,
+      const floatPositioned = layeredTransform(
+        floatLayered,
         translate(frame.pointer.sub(frame.pointerStart))
       );
-      const rendered = hoistedMerge(
+      const rendered = layeredMerge(
         backdrop,
         pipe(
           floatPositioned,
-          (h) => hoistedSetAttributes(h, { "data-transition": false }),
-          (h) => hoistedShiftZIndices(h, 1000000)
+          (h) => layeredSetAttributes(h, { "data-transition": false }),
+          (h) => layeredShiftZIndices(h, 1000000)
         )
       );
       return {
@@ -340,30 +340,30 @@ export function dragSpecToBehavior<T extends object>(
   } else if (spec.type === "span") {
     const renderedStates = spec.states.map((state) => ({
       state,
-      hoisted: renderStateReadOnly(ctx, state),
+      layered: renderStateReadOnly(ctx, state),
     }));
     const positions = renderedStates.map((rs) =>
-      getElementPosition(ctx, rs.hoisted)
+      getElementPosition(ctx, rs.layered)
     );
     const delaunay = new Delaunay(positions);
 
     return (frame) => {
       const projection = delaunay.projectOntoConvexHull(frame.pointer);
 
-      let rendered: HoistedSvgx;
+      let rendered: LayeredSvgx;
       if (projection.type === "vertex") {
-        rendered = renderedStates[projection.ptIdx].hoisted;
+        rendered = renderedStates[projection.ptIdx].layered;
       } else if (projection.type === "edge") {
-        rendered = lerpHoisted(
-          renderedStates[projection.ptIdx0].hoisted,
-          renderedStates[projection.ptIdx1].hoisted,
+        rendered = lerpLayered(
+          renderedStates[projection.ptIdx0].layered,
+          renderedStates[projection.ptIdx1].layered,
           projection.t
         );
       } else {
-        rendered = lerpHoisted3(
-          renderedStates[projection.ptIdx0].hoisted,
-          renderedStates[projection.ptIdx1].hoisted,
-          renderedStates[projection.ptIdx2].hoisted,
+        rendered = lerpLayered3(
+          renderedStates[projection.ptIdx0].layered,
+          renderedStates[projection.ptIdx1].layered,
+          renderedStates[projection.ptIdx2].layered,
           projection.barycentric
         );
       }

@@ -10,7 +10,7 @@ import {
 } from "./ManipulableDrawer";
 import { Vec2 } from "./math/vec2";
 import { PrettyPrint } from "@joshuahhh/pretty-print";
-import { drawHoisted } from "./svgx/hoist";
+import { drawLayered } from "./svgx/layers";
 
 export function InspectPage({
   id,
@@ -210,7 +210,7 @@ function RHSDragFloatingMode({
                 viewBox={`0 0 ${demoHeight * 1.5} ${demoHeight}`}
                 style={{ border: "1px solid black" }}
               >
-                {drawHoisted(dragState.floatHoisted)}
+                {drawLayered(dragState.floatLayered)}
               </svg>
             </div>
           </div>
@@ -227,7 +227,7 @@ function RHSDragFloatingMode({
                   viewBox={`0 0 ${demoHeight * 1.5} ${demoHeight}`}
                   style={{ border: "1px solid black" }}
                 >
-                  {drawHoisted(dragState.backdropExit.hoisted)}
+                  {drawLayered(dragState.backdropExit.layered)}
                 </svg>
               </div>
             </div>
@@ -299,7 +299,7 @@ function ManifoldPointCard({
           className="overflow-visible select-none touch-none"
           style={{ border: "1px solid black" }}
         >
-          {drawHoisted(point.hoisted)}
+          {drawLayered(point.layered)}
           <circle
             {...getManifoldPointPosition(point, pointerLocal).cxy()}
             r={(5 * demoHeight) / 100}

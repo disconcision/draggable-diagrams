@@ -40,19 +40,19 @@ import { getAtPath, setAtPath } from "./paths";
 import { Svgx, updatePropsDownTree } from "./svgx";
 import { path, translate } from "./svgx/helpers";
 import {
-  HoistedSvgx,
+  LayeredSvgx,
   accumulateTransforms,
-  drawHoisted,
-  findByPathInHoisted,
+  drawLayered,
+  findByPathInLayered,
   getAccumulatedTransform,
-  hoistSvg,
-  hoistedExtract,
-  hoistedMerge,
-  hoistedPrefixIds,
-  hoistedShiftZIndices,
-  hoistedTransform,
-} from "./svgx/hoist";
-import { lerpHoisted, lerpHoisted3 } from "./svgx/lerp";
+  layerSvg,
+  layeredExtract,
+  layeredMerge,
+  layeredPrefixIds,
+  layeredShiftZIndices,
+  layeredTransform,
+} from "./svgx/layers";
+import { lerpLayered, lerpLayered3 } from "./svgx/lerp";
 import { assignPaths, findByPath, getPath } from "./svgx/path";
 import { globalToLocal, localToGlobal, parseTransform } from "./svgx/transform";
 import { useAnimationLoop } from "./useAnimationLoop";
@@ -282,9 +282,9 @@ export function ManipulableDrawer<T extends object>({
 
 export type RenderedExit<T> = Exit<T> & {
   /**
-   * A pre-rendered hoisted diagram of the state.
+   * A pre-rendered layered diagram of the state.
    */
-  hoisted: HoistedSvgx;
+  layered: LayeredSvgx;
 };
 
 export type RenderedExitWithDragged<T> = RenderedExit<T> & {
@@ -306,7 +306,7 @@ export type DragState<T> =
       startingPoint: RenderedExitWithDragged<T>;
       manifolds: Manifold<T>[];
       byproducts: {
-        hoistedToRender: HoistedSvgx;
+        layeredToRender: LayeredSvgx;
         pointer: Vec2;
         manifoldProjections: Array<{
           manifold: Manifold<T>;
@@ -351,18 +351,18 @@ export type DragState<T> =
        * Rendered floating representation of the dragged element;
        * stays fixed during drag.
        */
-      floatHoisted: HoistedSvgx;
+      floatLayered: LayeredSvgx;
       /**
        * Rendered background representation of the diagram (without
        * float, but with ghost!), as it springs from state to state.
        */
-      backgroundSpringState: LerpSpringState<HoistedSvgx>;
+      backgroundSpringState: LerpSpringState<LayeredSvgx>;
       byproducts: {
         /**
          * Composite of background and floating element that should
          * be rendered.
          */
-        hoistedToRender: HoistedSvgx;
+        layeredToRender: LayeredSvgx;
         /**
          * The active exit that should be used on pointer-up.
          */
@@ -383,8 +383,8 @@ export type DragState<T> =
     }
   | {
       type: "animating";
-      startHoisted: HoistedSvgx;
-      targetHoisted: HoistedSvgx;
+      startLayered: LayeredSvgx;
+      targetLayered: LayeredSvgx;
       easing: (t: number) => number;
       startTime: number;
       duration: number;
@@ -397,20 +397,20 @@ export type DragState<T> =
 function renderManipulableReadOnly<T extends object>(
   manipulable: Manipulable<T>,
   props: Omit<ManipulableProps<T>, "drag" | "setState">
-): HoistedSvgx {
+): LayeredSvgx {
   return postProcessReadOnly(
     manipulable({ ...props, drag: unsafeDrag, setState: throwError })
   );
 }
-function postProcessReadOnly(element: Svgx): HoistedSvgx {
-  return pipe(element, assignPaths, accumulateTransforms, hoistSvg);
+function postProcessReadOnly(element: Svgx): LayeredSvgx {
+  return pipe(element, assignPaths, accumulateTransforms, layerSvg);
 }
 
 function postProcessForInteraction<T extends object>(
   element: Svgx,
   state: T,
   ctx: RenderContext<T>
-): HoistedSvgx {
+): LayeredSvgx {
   return pipe(
     element,
     assignPaths,
@@ -444,7 +444,7 @@ function postProcessForInteraction<T extends object>(
           }),
         };
       }),
-    hoistSvg
+    layerSvg
   );
 }
 
@@ -463,13 +463,13 @@ function renderExit<T extends object>({
   const exit = toExit(exitLike);
 
   // Use a no-op draggable to avoid attaching event handlers
-  const hoisted = renderManipulableReadOnly(manipulable, {
+  const layered = renderManipulableReadOnly(manipulable, {
     state: exit.state,
     draggedId,
     ghostId: ghostId || null,
   });
 
-  return { ...exit, hoisted };
+  return { ...exit, layered };
 }
 
 function renderExitWithDragged<T extends object>({
@@ -495,20 +495,20 @@ function renderExitWithDragged<T extends object>({
     draggedId,
     ghostId,
   });
-  // prettyLog(hoisted, { label: "hoisted in makeManifoldPoint" });
-  console.log("gonna find", draggedPath, "in hoisted:");
-  // prettyLog(hoisted);
-  const draggedElement = findByPathInHoisted(draggedPath, renderedExit.hoisted);
+  // prettyLog(layered, { label: "layered in makeManifoldPoint" });
+  console.log("gonna find", draggedPath, "in layered:");
+  // prettyLog(layered);
+  const draggedElement = findByPathInLayered(draggedPath, renderedExit.layered);
   assertWithJSX(
     !!draggedElement,
-    "renderExitWithDragged: can't find draggable element in hoisted SVG",
+    "renderExitWithDragged: can't find draggable element in layered SVG",
     () => (
       <>
         <p className="mb-2">
           We're looking for an element with path{" "}
           <span className="font-mono">{draggedPath}</span> inside:
         </p>
-        <PrettyPrint value={renderedExit.hoisted} />
+        <PrettyPrint value={renderedExit.layered} />
         <p className="mb-2">
           This came up when figuring out how to go from state:
         </p>
@@ -593,8 +593,8 @@ function dragStateFromSpec<T extends object>(
 
     // snatch out the dragged SVG element
     assert(!!draggedId, "Dragged element needs ID for 'floating' drags");
-    const { extracted: floatHoisted } = hoistedExtract(
-      renderedBefore.hoisted,
+    const { extracted: floatLayered } = layeredExtract(
+      renderedBefore.layered,
       draggedId
     );
 
@@ -602,15 +602,15 @@ function dragStateFromSpec<T extends object>(
     const draggedIdForSure = draggedId;
     function postProcessExitForGhost(exit: RenderedExitWithDragged<T>) {
       if (ghost === false) {
-        const { remaining } = hoistedExtract(exit.hoisted, draggedIdForSure);
-        return { ...exit, hoisted: remaining };
+        const { remaining } = layeredExtract(exit.layered, draggedIdForSure);
+        return { ...exit, layered: remaining };
       } else if (ghost === true) {
         return exit;
       } else {
         // SVG attributes
         // TODO: support for merging style? other stuff like that?
-        const oldGhost = assertDefined(exit.hoisted.byId.get(draggedIdForSure));
-        exit.hoisted.byId.set(draggedIdForSure, cloneElement(oldGhost, ghost));
+        const oldGhost = assertDefined(exit.layered.byId.get(draggedIdForSure));
+        exit.layered.byId.set(draggedIdForSure, cloneElement(oldGhost, ghost));
         return exit;
       }
     }
@@ -683,9 +683,9 @@ function dragStateFromSpec<T extends object>(
       backdropParams,
       curParams: initialCurParams,
       paramsEnteredAt: undefined,
-      floatHoisted,
+      floatLayered,
       backgroundSpringState: createLerpSpringState(
-        startingExit.hoisted,
+        startingExit.layered,
         performance.now()
       ),
     };
@@ -779,7 +779,7 @@ function updateDragState<T extends object>(
       getManifoldPointPosition(pt, dragState.pointerLocal);
 
     let newState: T;
-    let hoistedToRender: HoistedSvgx;
+    let layeredToRender: LayeredSvgx;
 
     const manifoldProjections = dragState.manifolds.map((manifold) => ({
       ...manifold.delaunay.projectOntoConvexHull(pointer),
@@ -840,25 +840,25 @@ function updateDragState<T extends object>(
           return updateDragState(newDragState, ctx, pointer);
         }
       }
-      hoistedToRender = closestManifoldPt.hoisted;
+      layeredToRender = closestManifoldPt.layered;
     } else {
       // Interpolate based on projection type
       if (bestManifoldProjection.type === "vertex") {
         const { ptIdx } = bestManifoldProjection;
-        hoistedToRender = bestManifoldProjection.manifold.exits[ptIdx].hoisted;
+        layeredToRender = bestManifoldProjection.manifold.exits[ptIdx].layered;
       } else if (bestManifoldProjection.type === "edge") {
         const { ptIdx0, ptIdx1, t } = bestManifoldProjection;
-        hoistedToRender = lerpHoisted(
-          bestManifoldProjection.manifold.exits[ptIdx0].hoisted,
-          bestManifoldProjection.manifold.exits[ptIdx1].hoisted,
+        layeredToRender = lerpLayered(
+          bestManifoldProjection.manifold.exits[ptIdx0].layered,
+          bestManifoldProjection.manifold.exits[ptIdx1].layered,
           t
         );
       } else {
         const { ptIdx0, ptIdx1, ptIdx2, barycentric } = bestManifoldProjection;
-        hoistedToRender = lerpHoisted3(
-          bestManifoldProjection.manifold.exits[ptIdx0].hoisted,
-          bestManifoldProjection.manifold.exits[ptIdx1].hoisted,
-          bestManifoldProjection.manifold.exits[ptIdx2].hoisted,
+        layeredToRender = lerpLayered3(
+          bestManifoldProjection.manifold.exits[ptIdx0].layered,
+          bestManifoldProjection.manifold.exits[ptIdx1].layered,
+          bestManifoldProjection.manifold.exits[ptIdx2].layered,
           barycentric
         );
       }
@@ -867,7 +867,7 @@ function updateDragState<T extends object>(
     return {
       ...dragState,
       byproducts: {
-        hoistedToRender,
+        layeredToRender,
         manifoldProjections,
         pointer,
         newState,
@@ -889,18 +889,18 @@ function updateDragState<T extends object>(
     const useBackdrop = !closestPoint || pointer.dist(pos(closestPoint)) > 50;
     // Both paths render in the same structure: spring on background
     // (element extracted) + "floating-" prefixed dragged element on
-    // top. This keeps the hoisted trees structurally compatible so
+    // top. This keeps the layered trees structurally compatible so
     // the spring lerps cleanly when transitioning between modes.
-    let backgroundTarget: HoistedSvgx;
-    let floatForFrame: HoistedSvgx;
+    let backgroundTarget: LayeredSvgx;
+    let floatForFrame: LayeredSvgx;
     let newCurParams: number[] | undefined = undefined;
     let exit: Exit<T>;
 
     if (useBackdrop && dragState.backdropExit) {
       exitPointless = dragState.backdropExit;
-      backgroundTarget = exitPointless.hoisted;
-      floatForFrame = hoistedTransform(
-        dragState.floatHoisted,
+      backgroundTarget = exitPointless.layered;
+      floatForFrame = layeredTransform(
+        dragState.floatLayered,
         translate(pointer.sub(dragState.pointerStart))
       );
       exit = exitPointless;
@@ -946,7 +946,7 @@ function updateDragState<T extends object>(
       newCurParams = r.solution;
 
       const computedState = stateFromParams(...newCurParams);
-      const paramsHoisted = renderManipulableReadOnly(ctx.manipulable, {
+      const paramsLayered = renderManipulableReadOnly(ctx.manipulable, {
         state: computedState,
         draggedId: dragState.draggedId,
         ghostId: null,
@@ -955,17 +955,17 @@ function updateDragState<T extends object>(
       // Extract dragged element so the background is structurally
       // compatible with the float+spring exits. The extracted
       // element becomes the float for this frame.
-      const { extracted, remaining } = hoistedExtract(
-        paramsHoisted,
+      const { extracted, remaining } = layeredExtract(
+        paramsLayered,
         dragState.draggedId
       );
       backgroundTarget = remaining;
       floatForFrame = extracted;
       exit = { state: computedState, andThen: undefined };
     } else {
-      backgroundTarget = closestPoint!.hoisted;
-      floatForFrame = hoistedTransform(
-        dragState.floatHoisted,
+      backgroundTarget = closestPoint!.layered;
+      floatForFrame = layeredTransform(
+        dragState.floatLayered,
         translate(pointer.sub(dragState.pointerStart))
       );
       exit = closestPoint!;
@@ -995,19 +995,19 @@ function updateDragState<T extends object>(
             omega: 0.03, // spring frequency (rad/ms)
             gamma: 0.1, // damping rate (1/ms)
           },
-          lerpHoisted,
+          lerpLayered,
           now,
           backgroundTarget
         );
 
-    const hoistedToRender = hoistedMerge(
+    const layeredToRender = layeredMerge(
       newBackgroundSpringState.cur,
       pipe(
         floatForFrame,
-        (d) => hoistedPrefixIds(d, "floating-"),
+        (d) => layeredPrefixIds(d, "floating-"),
         dragState.dragSpec.onTop
           ? // HACK: hierarchical z-indices would be cleaner
-            (d) => hoistedShiftZIndices(d, 1000000)
+            (d) => layeredShiftZIndices(d, 1000000)
           : (d) => d
       )
     );
@@ -1019,7 +1019,7 @@ function updateDragState<T extends object>(
       backgroundSpringState: newBackgroundSpringState,
       byproducts: {
         exit,
-        hoistedToRender,
+        layeredToRender,
       },
     };
   } else if (dragState.type === "drag-params") {
@@ -1080,9 +1080,9 @@ function handlePointerUp<T extends object>(
     return updateDragState(
       {
         type: "animating",
-        startHoisted: dragState.byproducts.hoistedToRender,
+        startLayered: dragState.byproducts.layeredToRender,
         // TODO: redundant render, it's in the ManifoldPoint
-        targetHoisted: renderManipulableReadOnly(ctx.manipulable, {
+        targetLayered: renderManipulableReadOnly(ctx.manipulable, {
           state: dragState.byproducts.newState,
           draggedId: null,
           ghostId: null,
@@ -1096,7 +1096,7 @@ function handlePointerUp<T extends object>(
       pointer
     );
   } else if (dragState.type === "drag-floating") {
-    // Currently dragState.byproducts.hoistedToRender is displayed.
+    // Currently dragState.byproducts.layeredToRender is displayed.
     // It shows the floating element together with a background. In
     // the target diagram, either the dragged element is present or
     // it's been removed. In the first case, we want to animate into
@@ -1104,30 +1104,30 @@ function handlePointerUp<T extends object>(
     // final state. In the second case, we want it to animate out.
     const exit = dragState.byproducts.exit;
     const targetState = exit.andThen ?? exit.state;
-    let hoistedToRenderAfter = renderExit({
+    let layeredToRenderAfter = renderExit({
       exitLike: targetState,
       draggedId: dragState.draggedId,
       manipulable: ctx.manipulable,
-    }).hoisted;
+    }).layered;
 
-    if (hoistedToRenderAfter.byId.has(dragState.draggedId)) {
+    if (layeredToRenderAfter.byId.has(dragState.draggedId)) {
       // To properly animate the floating element to its final
       // position, re-id the final-diagram version of the dragged
       // element to have the "floating-" prefix.
-      const { extracted, remaining } = hoistedExtract(
-        hoistedToRenderAfter,
+      const { extracted, remaining } = layeredExtract(
+        layeredToRenderAfter,
         dragState.draggedId
       );
-      hoistedToRenderAfter = hoistedMerge(
-        hoistedPrefixIds(extracted, "floating-"),
+      layeredToRenderAfter = layeredMerge(
+        layeredPrefixIds(extracted, "floating-"),
         remaining
       );
     }
     return updateDragState(
       {
         type: "animating",
-        startHoisted: dragState.byproducts.hoistedToRender,
-        targetHoisted: hoistedToRenderAfter,
+        startLayered: dragState.byproducts.layeredToRender,
+        targetLayered: layeredToRenderAfter,
         startTime: performance.now(),
         easing: d3Ease.easeElastic,
         duration: ctx.drawerConfig.animationDuration,
@@ -1189,8 +1189,8 @@ const DrawIdleMode = memoGeneric(
           // animate to new state
           ctx.setDragState({
             type: "animating",
-            startHoisted: postProcessReadOnly(content),
-            targetHoisted: renderManipulableReadOnly(ctx.manipulable, {
+            startLayered: postProcessReadOnly(content),
+            targetLayered: renderManipulableReadOnly(ctx.manipulable, {
               state: newState,
               draggedId: null,
               ghostId: null,
@@ -1204,7 +1204,7 @@ const DrawIdleMode = memoGeneric(
       ),
     });
 
-    return drawHoisted(
+    return drawLayered(
       postProcessForInteraction(content, dragState.state, ctx)
     );
   }
@@ -1212,10 +1212,10 @@ const DrawIdleMode = memoGeneric(
 
 const DrawAnimatingMode = memoGeneric(
   <T extends object>({ dragState }: DrawModeProps<T, "animating">) => {
-    return drawHoisted(
-      lerpHoisted(
-        dragState.startHoisted,
-        dragState.targetHoisted,
+    return drawLayered(
+      lerpLayered(
+        dragState.startLayered,
+        dragState.targetLayered,
         dragState.byproducts.easedProgress
       )
     );
@@ -1229,7 +1229,7 @@ const DrawDragManifoldsMode = memoGeneric(
   }: DrawModeProps<T, "drag-manifolds">) => {
     return (
       <>
-        {drawHoisted(dragState.byproducts.hoistedToRender)}
+        {drawLayered(dragState.byproducts.layeredToRender)}
         {ctx.debugMode && debugForDragManifoldsMode(dragState)}
       </>
     );
@@ -1297,7 +1297,7 @@ function debugForDragManifoldsMode(
 
 const DrawDragFloatingMode = memoGeneric(
   <T extends object>({ dragState }: DrawModeProps<T, "drag-floating">) => {
-    return drawHoisted(dragState.byproducts.hoistedToRender);
+    return drawLayered(dragState.byproducts.layeredToRender);
   }
 );
 
@@ -1305,7 +1305,7 @@ const DrawDragParamsMode = memoGeneric(
   <T extends object>({ dragState, ctx }: DrawModeProps<T, "drag-params">) => {
     return (
       <>
-        {drawHoisted(postProcessReadOnly(dragState.byproducts.content))}
+        {drawLayered(postProcessReadOnly(dragState.byproducts.content))}
         {ctx.debugMode && debugForDragParamsMode(dragState)}
       </>
     );

@@ -6,7 +6,7 @@ import { shouldRecurseIntoChildren, Svgx } from ".";
 import { ErrorWithJSX } from "../ErrorBoundary";
 import { prettyLog, PrettyPrint } from "@joshuahhh/pretty-print";
 import { emptyToUndefined } from "../utils";
-import { HoistedSvgx } from "./hoist";
+import { LayeredSvgx } from "./layers";
 import { lerpTransformString } from "./transform";
 
 // SVG properties that should be interpolated as colors
@@ -297,11 +297,11 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-export function lerpHoisted(
-  a: HoistedSvgx,
-  b: HoistedSvgx,
+export function lerpLayered(
+  a: LayeredSvgx,
+  b: LayeredSvgx,
   t: number
-): HoistedSvgx {
+): LayeredSvgx {
   const result = new Map<string, Svgx>();
   const allKeys = new Set([...a.byId.keys(), ...b.byId.keys()]);
 
@@ -310,7 +310,7 @@ export function lerpHoisted(
     const bVal = b.byId.get(key);
 
     if (aVal && bVal) {
-      // console.log("lerpHoisted is lerping key:", key);
+      // console.log("lerpLayered is lerping key:", key);
       result.set(key, lerpSvgx(aVal, bVal, t));
     } else if (aVal) {
       // TODO: we're hard-coding "enter/exit by fading"
@@ -328,13 +328,13 @@ export function lerpHoisted(
   };
 }
 
-export function lerpHoisted3(
-  a: HoistedSvgx,
-  b: HoistedSvgx,
-  c: HoistedSvgx,
+export function lerpLayered3(
+  a: LayeredSvgx,
+  b: LayeredSvgx,
+  c: LayeredSvgx,
   { l0, l1, l2 }: { l0: number; l1: number; l2: number }
-): HoistedSvgx {
+): LayeredSvgx {
   if (l0 + l1 < 1e-6) return c;
-  const ab = lerpHoisted(a, b, l1 / (l0 + l1));
-  return lerpHoisted(ab, c, l2);
+  const ab = lerpLayered(a, b, l1 / (l0 + l1));
+  return lerpLayered(ab, c, l2);
 }

@@ -3,7 +3,7 @@ import { Svgx, updateElement, updatePropsDownTree } from ".";
 import { assert } from "../utils";
 import { findByPath } from "./path";
 
-export type HoistedSvgx = {
+export type LayeredSvgx = {
   /**
    * Svgx nodes keyed by ID (or "" for root).
    */
@@ -11,7 +11,7 @@ export type HoistedSvgx = {
   /**
    * Map of ID to its set of descendents' IDs (including
    * transitively). Will be null if we did wacky stuff to the
-   * HoistedSvgx and don't want to bother to preserve this info.
+   * LayeredSvgx and don't want to bother preserving this info.
    */
   descendents: Map<string, Set<string>> | null;
 };
@@ -49,15 +49,16 @@ function walkAndAccumulateTransforms(
 
 /**
  * Step 2: Partially flattens an SVG tree by pulling nodes with IDs
- * to the top level. Reads data-accumulated-transform and sets it as
- * transform for extracted nodes. Returns a map of elements keyed by
- * their id, plus a descendents map tracking parent-child relationships.
+ * to the top level as separate layers. Reads data-accumulated-transform
+ * and sets it as transform for extracted nodes. Returns a map of elements
+ * keyed by their id, plus a descendents map tracking parent-child
+ * relationships.
  * - Key "" contains the root with extracted nodes removed (or is not
  *   set if root has an ID)
  * - Extracted nodes are removed from their parents
  * - Recurses into nodes with IDs to find deeper IDs
  */
-export function hoistSvg(element: Svgx): HoistedSvgx {
+export function layerSvg(element: Svgx): LayeredSvgx {
   const byId = new Map<string, Svgx>();
   const descendents = new Map<string, Set<string>>();
   const rootWithExtractedRemoved = extractIdNodes(
@@ -123,11 +124,11 @@ function extractIdNodes(
     }
 
     const accumulatedTransform = props[accumulatedTransformProp];
-    const elementToHoist = cloneElement(newElement, {
+    const elementToLayer = cloneElement(newElement, {
       transform: accumulatedTransform || undefined,
     });
 
-    byId.set(currentId, elementToHoist);
+    byId.set(currentId, elementToLayer);
     return null;
   } else {
     return newElement;
@@ -146,10 +147,10 @@ function combineTransforms(t1: string, t2: string): string {
   return t1 + " " + t2;
 }
 
-export function drawHoisted(hoisted: HoistedSvgx): Svgx {
+export function drawLayered(layered: LayeredSvgx): Svgx {
   return (
     <>
-      {Array.from(hoisted.byId.entries())
+      {Array.from(layered.byId.entries())
         .sort(([_keyA, elemA], [_keyB, elemB]) => {
           const zIndexA = parseInt((elemA.props as any)["data-z-index"]) || 0;
           const zIndexB = parseInt((elemB.props as any)["data-z-index"]) || 0;
@@ -177,17 +178,17 @@ export function drawHoisted(hoisted: HoistedSvgx): Svgx {
   );
 }
 
-export function hoistedExtract(
-  hoisted: HoistedSvgx,
+export function layeredExtract(
+  layered: LayeredSvgx,
   id: string
-): { remaining: HoistedSvgx; extracted: HoistedSvgx } {
-  assert(hoisted.descendents !== null, "hoisted.descendents is null");
-  assert(hoisted.byId.has(id), `Hoisted SVG does not contain id "${id}"`);
+): { remaining: LayeredSvgx; extracted: LayeredSvgx } {
+  assert(layered.descendents !== null, "layered.descendents is null");
+  assert(layered.byId.has(id), `Layered SVG does not contain id "${id}"`);
 
   // Collect the ID and all its descendants
   const extractedIds = new Set([id]);
-  if (hoisted.descendents.has(id)) {
-    for (const descId of hoisted.descendents.get(id)!) {
+  if (layered.descendents.has(id)) {
+    for (const descId of layered.descendents.get(id)!) {
       extractedIds.add(descId);
     }
   }
@@ -195,7 +196,7 @@ export function hoistedExtract(
   // Split byId into extracted and remaining
   const extractedById = new Map<string, Svgx>();
   const remainingById = new Map<string, Svgx>();
-  for (const [key, value] of hoisted.byId.entries()) {
+  for (const [key, value] of layered.byId.entries()) {
     if (extractedIds.has(key)) {
       extractedById.set(key, value);
     } else {
@@ -208,7 +209,7 @@ export function hoistedExtract(
   const extractedDescendents = new Map<string, Set<string>>();
   const remainingDescendents = new Map<string, Set<string>>();
 
-  for (const [ancestorId, descIds] of hoisted.descendents.entries()) {
+  for (const [ancestorId, descIds] of layered.descendents.entries()) {
     const isAncestorExtracted = extractedIds.has(ancestorId);
 
     const filteredDescs = new Set<string>();
@@ -235,24 +236,24 @@ export function hoistedExtract(
   };
 }
 
-export function hoistedMerge(h1: HoistedSvgx, h2: HoistedSvgx): HoistedSvgx {
+export function layeredMerge(h1: LayeredSvgx, h2: LayeredSvgx): LayeredSvgx {
   const mergedById = new Map<string, Svgx>(h1.byId);
   for (const [key, value] of h2.byId.entries()) {
     assert(
       !mergedById.has(key),
-      `Cannot merge HoistedSvgx: duplicate id "${key}" found.`
+      `Cannot merge LayeredSvgx: duplicate id "${key}" found`
     );
     mergedById.set(key, value);
   }
   return { byId: mergedById, descendents: null };
 }
 
-export function hoistedTransform(
-  hoisted: HoistedSvgx,
+export function layeredTransform(
+  layered: LayeredSvgx,
   transform: string
-): HoistedSvgx {
+): LayeredSvgx {
   const transformedById = new Map<string, Svgx>();
-  for (const [key, element] of hoisted.byId.entries()) {
+  for (const [key, element] of layered.byId.entries()) {
     const props = element.props as any;
     const elementTransform = props.transform || "";
     const newTransform = combineTransforms(transform, elementTransform);
@@ -261,15 +262,15 @@ export function hoistedTransform(
     });
     transformedById.set(key, transformedElement);
   }
-  return { byId: transformedById, descendents: hoisted.descendents };
+  return { byId: transformedById, descendents: layered.descendents };
 }
 
-export function hoistedPrefixIds(
-  hoisted: HoistedSvgx,
+export function layeredPrefixIds(
+  layered: LayeredSvgx,
   prefix: string
-): HoistedSvgx {
+): LayeredSvgx {
   const prefixedById = new Map<string, Svgx>();
-  for (const [key, element] of hoisted.byId.entries()) {
+  for (const [key, element] of layered.byId.entries()) {
     const newId = prefix + key;
     const prefixedElement = cloneElement(element, { id: newId });
     prefixedById.set(newId, prefixedElement);
@@ -277,12 +278,12 @@ export function hoistedPrefixIds(
   return { byId: prefixedById, descendents: null };
 }
 
-export function hoistedStripIdPrefix(
-  hoisted: HoistedSvgx,
+export function layeredStripIdPrefix(
+  layered: LayeredSvgx,
   prefix: string
-): HoistedSvgx {
+): LayeredSvgx {
   const strippedById = new Map<string, Svgx>();
-  for (const [key, element] of hoisted.byId.entries()) {
+  for (const [key, element] of layered.byId.entries()) {
     if (key.startsWith(prefix)) {
       const newId = key.slice(prefix.length);
       strippedById.set(newId, cloneElement(element, { id: newId }));
@@ -293,12 +294,12 @@ export function hoistedStripIdPrefix(
   return { byId: strippedById, descendents: null };
 }
 
-export function hoistedShiftZIndices(
-  hoisted: HoistedSvgx,
+export function layeredShiftZIndices(
+  layered: LayeredSvgx,
   shift: number
-): HoistedSvgx {
+): LayeredSvgx {
   const shiftedById = new Map<string, Svgx>();
-  for (const [key, element] of hoisted.byId.entries()) {
+  for (const [key, element] of layered.byId.entries()) {
     const props = element.props as any;
     const zIndex = parseInt(props["data-z-index"]) || 0;
     const newZIndex = zIndex + shift;
@@ -307,25 +308,25 @@ export function hoistedShiftZIndices(
     });
     shiftedById.set(key, shiftedElement);
   }
-  return { ...hoisted, byId: shiftedById };
+  return { ...layered, byId: shiftedById };
 }
 
-export function hoistedSetAttributes(
-  hoisted: HoistedSvgx,
+export function layeredSetAttributes(
+  layered: LayeredSvgx,
   attrs: Partial<React.SVGProps<SVGElement>>
-): HoistedSvgx {
+): LayeredSvgx {
   const newById = new Map<string, Svgx>();
-  for (const [key, element] of hoisted.byId.entries()) {
+  for (const [key, element] of layered.byId.entries()) {
     newById.set(key, cloneElement(element, attrs));
   }
-  return { ...hoisted, byId: newById };
+  return { ...layered, byId: newById };
 }
 
-export function findByPathInHoisted(
+export function findByPathInLayered(
   path: string,
-  hoisted: HoistedSvgx
+  layered: LayeredSvgx
 ): Svgx | null {
-  for (const element of hoisted.byId.values()) {
+  for (const element of layered.byId.values()) {
     const found = findByPath(path, element);
     if (found) return found;
   }
