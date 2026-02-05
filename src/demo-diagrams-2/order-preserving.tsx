@@ -1,6 +1,6 @@
 import { curveCardinal, line } from "d3-shape";
 import _ from "lodash";
-import { span } from "../DragSpec2";
+import { span, withSnapRadius } from "../DragSpec2";
 import { overlapIntervals } from "../layout";
 import { Drag, Manipulable } from "../manipulable2";
 import { Vec2 } from "../math/vec2";
@@ -114,7 +114,11 @@ export namespace OrderPreserving {
         )!
     );
 
-    return span(newMorphs.map((morph) => ({ ...state, morph })));
+    return withSnapRadius(
+      span(newMorphs.map((morph) => ({ ...state, morph }))),
+      20,
+      { transition: true }
+    );
   }
 
   // # Drawing constants

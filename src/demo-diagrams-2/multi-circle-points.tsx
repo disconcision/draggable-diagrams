@@ -29,8 +29,8 @@ export namespace MultiCirclePoints {
   export const state1: State = {
     circles: [
       { id: "c1", x: 100, y: 150, radius: 70, color: "#e57373" },
-      { id: "c2", x: 250, y: 120, radius: 60, color: "#64b5f6" },
-      { id: "c3", x: 200, y: 250, radius: 80, color: "#81c784" },
+      { id: "c2", x: 350, y: 120, radius: 60, color: "#64b5f6" },
+      { id: "c3", x: 250, y: 250, radius: 80, color: "#81c784" },
     ],
     points: [
       { id: "p1", circleId: "c1", dx: 20, dy: -10 },

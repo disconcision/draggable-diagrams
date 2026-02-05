@@ -47,6 +47,7 @@ export type DragSpec<T> =
   | DragSpecAndThen<T>
   | DragSpecVary<T>
   | DragSpecWithDistance<T>
+  | DragSpecWithSnapRadius<T>
   | DragSpecSpan<T>;
 
 export type DragSpecJust<T> = {
@@ -70,6 +71,13 @@ export type DragSpecWithBackground<T> = {
   foreground: DragSpec<T>;
   background: DragSpec<T>;
   radius: number;
+};
+
+export type DragSpecWithSnapRadius<T> = {
+  type: "with-snap-radius";
+  spec: DragSpec<T>;
+  radius: number;
+  transition: boolean;
 };
 
 export type DragSpecAndThen<T> = {
@@ -182,6 +190,19 @@ export function withDistance<T>(
   f: (distance: number) => number
 ): DragSpec<T> {
   return { type: "with-distance", spec, f };
+}
+
+export function withSnapRadius<T>(
+  spec: DragSpec<T>,
+  radius: number,
+  options: { transition?: boolean } = {}
+): DragSpec<T> {
+  return {
+    type: "with-snap-radius",
+    spec,
+    radius,
+    transition: options.transition ?? false,
+  };
 }
 
 export function span<T>(states: T[]): DragSpec<T> {
@@ -431,6 +452,38 @@ export function dragSpecToBehavior<T extends object>(
       const scaledDistance = spec.f(result.distance);
       return { ...result, distance: scaledDistance };
     };
+  } else if (spec.type === "with-snap-radius") {
+    const subBehavior = dragSpecToBehavior(spec.spec, ctx);
+    const radiusSq = spec.radius ** 2;
+    return (frame) => {
+      const result = subBehavior(frame);
+      // TODO: noxious smell
+      // re-accumulate transforms for everything in result.rendered
+      for (const id of result.rendered.byId.keys()) {
+        result.rendered.byId.set(
+          id,
+          accumulateTransforms(result.rendered.byId.get(id)!)
+        );
+      }
+      const elementPos = getElementPosition(ctx, result.rendered);
+      // TODO: costly
+      const dropRendered = renderStateReadOnly(ctx, result.dropState);
+      const dropElementPos = getElementPosition(ctx, dropRendered);
+      let rendered = result.rendered;
+      const snapped = dropElementPos.dist2(elementPos) <= radiusSq;
+      if (snapped) {
+        rendered = dropRendered;
+      }
+      const activePath =
+        spec.transition && snapped
+          ? `with-snap-radius[snapped]/${result.activePath}`
+          : `with-snap-radius/${result.activePath}`;
+      return {
+        ...result,
+        rendered,
+        activePath,
+      };
+    };
   } else if (spec.type === "span") {
     const renderedStates = spec.states.map((state) => {
       const layered = renderStateReadOnly(ctx, state);
@@ -467,7 +520,7 @@ export function dragSpecToBehavior<T extends object>(
       return {
         rendered,
         dropState: closest.state,
-        distance: projection.dist,
+        distance: closest.position.dist(frame.pointer),
         activePath: "span",
       };
     };

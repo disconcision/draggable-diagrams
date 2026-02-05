@@ -167,6 +167,30 @@ function SpecNode<T>({
         />
       </Box>
     );
+  } else if (spec.type === "with-snap-radius") {
+    // activePath may be "with-snap-radius/..." or "with-snap-radius[snapped]/..."
+    // Strip either prefix for the child to match correctly
+    let childActivePath = activePath;
+    const snapped = activePath?.startsWith("with-snap-radius[snapped]/");
+    if (snapped) {
+      childActivePath = activePath!.slice("with-snap-radius[snapped]/".length);
+    } else if (activePath?.startsWith("with-snap-radius/")) {
+      childActivePath = activePath.slice("with-snap-radius/".length);
+    }
+    let label = `withSnapRadius (${spec.radius})`;
+    if (spec.transition) {
+      label += snapped ? " [snapped]" : " [not snapped]";
+    }
+    return (
+      <Box label={label}>
+        <SpecNode
+          spec={spec.spec}
+          activePath={childActivePath}
+          path={path}
+          colorMap={colorMap}
+        />
+      </Box>
+    );
   } else if (spec.type === "span") {
     const fullPath = path + "span";
     const active = activePath === fullPath;

@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { span } from "../DragSpec2";
+import { span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -121,7 +121,7 @@ export namespace RushHour {
                 tryMove(0, 1);
               }
 
-              return span(nextStates);
+              return withSnapRadius(span(nextStates), 10);
             })}
           />
         ))}

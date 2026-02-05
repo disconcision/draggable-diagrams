@@ -12,7 +12,7 @@ export namespace Simplest {
   export const manipulable: Manipulable<State> = ({ state, drag }) => (
     <rect
       id="switch"
-      transform={translate([state.value ? 100 : 0, 0])}
+      transform={translate(state.value ? 100 : 0, 0)}
       x={0}
       y={0}
       width={100}

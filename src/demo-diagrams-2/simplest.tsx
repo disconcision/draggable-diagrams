@@ -1,4 +1,4 @@
-import { span } from "../DragSpec2";
+import { span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -17,7 +17,9 @@ export namespace Simplest {
       y={0}
       width={100}
       height={100}
-      data-on-drag={drag(() => span([{ value: true }, { value: false }]))}
+      data-on-drag={drag(() =>
+        withSnapRadius(span([{ value: true }, { value: false }]), 10)
+      )}
     />
   );
 }
