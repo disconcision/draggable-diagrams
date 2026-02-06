@@ -384,6 +384,21 @@ function createSyntheticBefore(newElement: Svgx, originElement: Svgx): Svgx {
   const originTransform = (originElement.props as any).transform || "";
   const emergeMode = (newElement.props as any)["data-emerge-mode"];
 
+  // Clone mode: position at origin, full opacity (split/merge, no fade)
+  if (emergeMode === "clone") {
+    const originBounds = findEmergeBounds(originElement);
+    const newBounds = findEmergeBounds(newElement);
+    if (originBounds && newBounds) {
+      const synthetic = cloneWithBounds(newElement, originBounds);
+      return cloneElement(synthetic, {
+        transform: originTransform || undefined,
+      });
+    }
+    return cloneElement(newElement, {
+      transform: originTransform || undefined,
+    });
+  }
+
   // If forced to use scale, skip bounds detection
   if (emergeMode !== "scale") {
     const originBounds = findEmergeBounds(originElement);

@@ -141,7 +141,7 @@ export namespace NoolTreeEditable {
     },
     {
       title: <>Distributivity</>,
-      subtitle: <>Distribute</>,
+      subtitle: <>Distribute (drag +)</>,
       rewrites: [
         rewr("(× A #(+ B C))", "(+ (× A B) (× A C))"),
         rewr("(× #(+ B C) A)", "(+ (× B A) (× C A))"),
@@ -149,10 +149,28 @@ export namespace NoolTreeEditable {
     },
     {
       title: <>Distributivity</>,
-      subtitle: <>Factor</>,
+      subtitle: <>Distribute (drag operand)</>,
+      rewrites: [
+        rewr("(× #A (+ B C))", "(+ (× A B) (× A C))"),
+        rewr("(× (+ B C) #A)", "(+ (× B A) (× C A))"),
+      ],
+    },
+    {
+      title: <>Distributivity</>,
+      subtitle: <>Factor (drag +)</>,
       rewrites: [
         rewr("#(+ (× A B) (× A C))", "(× A (+ B C))"),
         rewr("#(+ (× B A) (× C A))", "(× A (+ B C))"),
+      ],
+    },
+    {
+      title: <>Distributivity</>,
+      subtitle: <>Factor (drag operand)</>,
+      rewrites: [
+        rewr("(+ (× #A B) (× A C))", "(× A (+ B C))"),
+        rewr("(+ (× A B) (× #A C))", "(× A (+ B C))"),
+        rewr("(+ (× B #A) (× C A))", "(× A (+ B C))"),
+        rewr("(+ (× B A) (× C #A))", "(× A (+ B C))"),
       ],
     },
     {
@@ -247,7 +265,7 @@ export namespace NoolTreeEditable {
         data-emerge-from={
           config.enableEmergeAnimation ? tree.emergeFrom : undefined
         }
-        data-emerge-mode={config.forceTransformScale ? "scale" : undefined}
+        data-emerge-mode={tree.emergeMode ?? (config.forceTransformScale ? "scale" : undefined)}
       >
         {/* Background */}
         <rect

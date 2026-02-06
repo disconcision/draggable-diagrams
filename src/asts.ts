@@ -8,6 +8,8 @@ export type Tree = {
   children: Tree[];
   /** For new nodes created by expanding rewrites, the ID of the element they emerge from */
   emergeFrom?: string;
+  /** Controls emerge animation style: "clone" for split/merge, undefined for default fade */
+  emergeMode?: string;
 };
 
 export function isOp(node: Tree): boolean {
@@ -205,6 +207,7 @@ export function applyRewrite(
       label: tree.label,
       children: tree.children.map(cloneWithEmerge),
       emergeFrom: tree.id,
+      emergeMode: "clone",
     };
   }
 
