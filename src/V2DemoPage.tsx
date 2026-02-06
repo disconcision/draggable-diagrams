@@ -13,6 +13,7 @@ import { Clock } from "./demo-diagrams-2/clock";
 import { Dragon } from "./demo-diagrams-2/dragon";
 import { GridPoly } from "./demo-diagrams-2/grid-poly";
 import { Hanoi } from "./demo-diagrams-2/hanoi";
+import { Kanban } from "./demo-diagrams-2/kanban";
 import { InsertAndRemove } from "./demo-diagrams-2/insert-and-remove";
 import { Tiles } from "./demo-diagrams-2/tiles";
 import { ListOfLists } from "./demo-diagrams-2/list-of-lists";
@@ -244,6 +245,14 @@ export function V2DemoPage() {
         initialState={Hanoi.state3}
         width={600}
         height={200}
+      />
+
+      <h2 className="text-xl font-semibold mt-8 mb-2">kanban</h2>
+      <Drawer
+        manipulable={Kanban.manipulable}
+        initialState={Kanban.state1}
+        width={400}
+        height={300}
       />
 
       <h2 className="text-xl font-semibold mt-8 mb-2">angle</h2>
