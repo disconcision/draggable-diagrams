@@ -1,5 +1,11 @@
 import { produce } from "immer";
-import { closest, just, vary, withBackground } from "../DragSpec2";
+import {
+  closest,
+  just,
+  transitionToAndThen,
+  vary,
+  withBackground,
+} from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -26,7 +32,9 @@ export namespace NodeWires {
 
   function portY(count: number, idx: number, h: number) {
     const startY =
-      NODE_HEADER + (h - NODE_HEADER - count * PORT_SPACING) / 2 + PORT_SPACING / 2;
+      NODE_HEADER +
+      (h - NODE_HEADER - count * PORT_SPACING) / 2 +
+      PORT_SPACING / 2;
     return startY + idx * PORT_SPACING;
   }
 
@@ -62,6 +70,12 @@ export namespace NodeWires {
     return [end.x, end.y];
   }
 
+  function nextWireId(state: State): string {
+    let i = 0;
+    while (`w${i}` in state.wires) i++;
+    return `w${i}`;
+  }
+
   function allPorts(side: "in" | "out") {
     const result: { nodeId: string; port: string }[] = [];
     for (const [nodeId, def] of Object.entries(NODE_DEFS)) {
@@ -90,35 +104,37 @@ export namespace NodeWires {
     },
   };
 
-  export const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
-    function endDrag(wireId: string, endKey: "from" | "to") {
-      return drag(() => {
-        const [px, py] = endPos(state.nodes, state.wires[wireId][endKey]);
+  export const manipulable: Manipulable<State> = ({
+    state,
+    drag,
+    draggedId,
+  }) => {
+    function endDragSpec(wireId: string, endKey: "from" | "to") {
+      const [px, py] = endPos(state.nodes, state.wires[wireId][endKey]);
 
-        const freeState = produce(state, (d) => {
-          d.wires[wireId][endKey] = { type: "free", x: px, y: py };
-        });
-
-        const varySpec = vary(
-          freeState,
-          ["wires", wireId, endKey, "x"],
-          ["wires", wireId, endKey, "y"]
-        );
-
-        const side = endKey === "to" ? "in" : "out";
-        const snapSpecs = allPorts(side).map(({ nodeId, port }) =>
-          just(
-            produce(state, (d) => {
-              d.wires[wireId][endKey] = { type: "on-port", nodeId, port };
-            })
-          )
-        );
-
-        if (snapSpecs.length > 0) {
-          return withBackground(closest(snapSpecs), varySpec, { radius: 20 });
-        }
-        return varySpec;
+      const freeState = produce(state, (d) => {
+        d.wires[wireId][endKey] = { type: "free", x: px, y: py };
       });
+
+      const varySpec = vary(
+        freeState,
+        ["wires", wireId, endKey, "x"],
+        ["wires", wireId, endKey, "y"]
+      );
+
+      const side = endKey === "to" ? "in" : "out";
+      const snapSpecs = allPorts(side).map(({ nodeId, port }) =>
+        just(
+          produce(state, (d) => {
+            d.wires[wireId][endKey] = { type: "on-port", nodeId, port };
+          })
+        )
+      );
+
+      if (snapSpecs.length > 0) {
+        return withBackground(closest(snapSpecs), varySpec, { radius: 20 });
+      }
+      return varySpec;
     }
 
     return (
@@ -133,7 +149,9 @@ export namespace NodeWires {
             <g id={`wire-${wid}`}>
               <path
                 id={`wire-path-${wid}`}
-                d={`M${fx},${fy} C${fx + dx},${fy} ${tx - dx},${ty} ${tx},${ty}`}
+                d={`M${fx},${fy} C${fx + dx},${fy} ${
+                  tx - dx
+                },${ty} ${tx},${ty}`}
                 fill="none"
                 stroke="#aaa"
                 strokeWidth={2}
@@ -146,7 +164,7 @@ export namespace NodeWires {
                 stroke={wire.from.type === "free" ? "#999" : "none"}
                 strokeWidth={wire.from.type === "free" ? 1 : 0}
                 data-z-index={3}
-                data-on-drag={endDrag(wid, "from")}
+                data-on-drag={drag(() => endDragSpec(wid, "from"))}
               />
               <circle
                 id={`wire-${wid}-to`}
@@ -156,7 +174,7 @@ export namespace NodeWires {
                 stroke={wire.to.type === "free" ? "#999" : "none"}
                 strokeWidth={wire.to.type === "free" ? 1 : 0}
                 data-z-index={3}
-                data-on-drag={endDrag(wid, "to")}
+                data-on-drag={drag(() => endDragSpec(wid, "to"))}
               />
             </g>
           );
@@ -203,69 +221,81 @@ export namespace NodeWires {
                 {def.label}
               </text>
 
-              {/* input ports */}
-              {def.inputs.map((port, i) => {
-                const py = portY(def.inputs.length, i, h);
-                const connected = Object.values(state.wires).some(
-                  (w) =>
-                    w.to.type === "on-port" &&
-                    w.to.nodeId === nid &&
-                    w.to.port === port
-                );
-                return (
-                  <g id={`port-${nid}-${port}`}>
-                    <circle
-                      cx={0}
-                      cy={py}
-                      r={PORT_R}
-                      fill={connected ? "#4a9eff" : "#c0d8f0"}
-                      stroke="white"
-                      strokeWidth={1.5}
-                    />
-                    <text
-                      x={PORT_R + 4}
-                      y={py}
-                      dominantBaseline="middle"
-                      fontSize={9}
-                      fill="#999"
+              {(["in", "out"] as const).map((side) => {
+                const ports = side === "in" ? def.inputs : def.outputs;
+                const cx = side === "in" ? 0 : NODE_W;
+                const colors =
+                  side === "in"
+                    ? ["#4a9eff", "#c0d8f0"]
+                    : ["#ff6b4a", "#f0c8c0"];
+                const wireEnd = side === "in" ? "to" : "from";
+                return ports.map((port, i) => {
+                  const py = portY(ports.length, i, h);
+                  const connected = Object.values(state.wires).some((w) => {
+                    const end = w[wireEnd];
+                    return (
+                      end.type === "on-port" &&
+                      end.nodeId === nid &&
+                      end.port === port
+                    );
+                  });
+                  return (
+                    <g
+                      id={`${side === "in" ? "port" : "oport"}-${nid}-${port}`}
+                      data-on-drag={
+                        !connected &&
+                        drag(() => {
+                          const [px, py] = portPos(state.nodes, nid, port);
+                          const wid = nextWireId(state);
+                          const endKey = side === "out" ? "to" : "from";
+                          const newState = produce(state, (d) => {
+                            d.wires[wid] =
+                              side === "out"
+                                ? {
+                                    from: {
+                                      type: "on-port",
+                                      nodeId: nid,
+                                      port,
+                                    },
+                                    to: { type: "free", x: px, y: py },
+                                  }
+                                : {
+                                    from: { type: "free", x: px, y: py },
+                                    to: {
+                                      type: "on-port",
+                                      nodeId: nid,
+                                      port,
+                                    },
+                                  };
+                          });
+                          return transitionToAndThen(
+                            newState,
+                            `wire-${wid}-${endKey}`
+                          );
+                        })
+                      }
                     >
-                      {port}
-                    </text>
-                  </g>
-                );
-              })}
-
-              {/* output ports */}
-              {def.outputs.map((port, i) => {
-                const py = portY(def.outputs.length, i, h);
-                const connected = Object.values(state.wires).some(
-                  (w) =>
-                    w.from.type === "on-port" &&
-                    w.from.nodeId === nid &&
-                    w.from.port === port
-                );
-                return (
-                  <g id={`oport-${nid}-${port}`}>
-                    <circle
-                      cx={NODE_W}
-                      cy={py}
-                      r={PORT_R}
-                      fill={connected ? "#ff6b4a" : "#f0c8c0"}
-                      stroke="white"
-                      strokeWidth={1.5}
-                    />
-                    <text
-                      x={NODE_W - PORT_R - 4}
-                      y={py}
-                      dominantBaseline="middle"
-                      textAnchor="end"
-                      fontSize={9}
-                      fill="#999"
-                    >
-                      {port}
-                    </text>
-                  </g>
-                );
+                      <circle
+                        cx={cx}
+                        cy={py}
+                        r={PORT_R}
+                        fill={connected ? colors[0] : colors[1]}
+                        stroke="white"
+                        strokeWidth={1.5}
+                      />
+                      <text
+                        x={side === "in" ? PORT_R + 4 : NODE_W - PORT_R - 4}
+                        y={py}
+                        dominantBaseline="middle"
+                        textAnchor={side === "in" ? "start" : "end"}
+                        fontSize={9}
+                        fill="#999"
+                      >
+                        {port}
+                      </text>
+                    </g>
+                  );
+                });
               })}
             </g>
           );

@@ -23,7 +23,7 @@ import {
   unsafeDrag,
 } from "./manipulable2";
 import { Vec2 } from "./math/vec2";
-import { Svgx, updatePropsDownTree } from "./svgx";
+import { Svgx, findElement, updatePropsDownTree } from "./svgx";
 import {
   LayeredSvgx,
   accumulateTransforms,
@@ -132,19 +132,26 @@ export function ManipulableDrawer<T extends object>({
         // Handle chaining: restart drag from new state
         if (result.chainNow) {
           const newState = result.dropState;
+          const newDraggedId =
+            typeof result.chainNow === "string"
+              ? result.chainNow
+              : ds.draggedId;
           // Render the new state and find the dragged element
           const content = pipe(
             manipulable({
               state: newState,
               drag: unsafeDrag,
-              draggedId: ds.draggedId,
+              draggedId: newDraggedId,
               ghostId: null,
               setState: throwError,
             }),
             assignPaths,
             accumulateTransforms
           );
-          const element = findByPath(ds.behaviorCtx.draggedPath, content);
+          const element =
+            typeof result.chainNow === "string"
+              ? findElement(content, (el) => el.props.id === result.chainNow)
+              : findByPath(ds.behaviorCtx.draggedPath, content);
           if (element) {
             const dragSpecCallback = getDragSpecCallbackOnElement<T>(element);
             if (dragSpecCallback) {
@@ -154,10 +161,25 @@ export function ManipulableDrawer<T extends object>({
               const layered = runSpring(springingFrom, result.rendered);
               const newSpringingFrom = { layered, time: performance.now() };
 
+              const newDraggedPath = getPath(element);
+              assert(!!newDraggedPath, "Chained element must have a path");
+
+              const accTransform = getAccumulatedTransform(element);
+              const transforms = parseTransform(accTransform || "");
+              const pointerLocal = globalToLocal(
+                transforms,
+                pointerRef.current!
+              );
+
               const { floatLayered: _, ...behaviorCtxWithoutFloat } = ds.behaviorCtx;
               const { dragState: chainedState, debugInfo } = initDrag(
                 newDragSpec,
-                behaviorCtxWithoutFloat,
+                {
+                  ...behaviorCtxWithoutFloat,
+                  draggedPath: newDraggedPath,
+                  draggedId: newDraggedId,
+                  pointerLocal,
+                },
                 newState,
                 frame,
                 ds.pointerStart,

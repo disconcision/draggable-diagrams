@@ -205,6 +205,16 @@ function SpecNode<T>({
         color={colorMap?.get(fullPath)}
       />
     );
+  } else if (spec.type === "transition-to-and-then") {
+    const fullPath = path + "transition-to-and-then";
+    const active = activePath === fullPath;
+    return (
+      <Box
+        label={`transitionToAndThen → ${spec.draggedId}`}
+        active={active}
+        color={colorMap?.get(fullPath)}
+      />
+    );
   } else {
     assertNever(spec);
   }

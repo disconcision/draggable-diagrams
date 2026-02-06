@@ -48,7 +48,8 @@ export type DragSpec<T> =
   | DragSpecVary<T>
   | DragSpecWithDistance<T>
   | DragSpecWithSnapRadius<T>
-  | DragSpecSpan<T>;
+  | DragSpecSpan<T>
+  | DragSpecTransitionToAndThen<T>;
 
 export type DragSpecJust<T> = {
   type: "just";
@@ -106,6 +107,12 @@ export type DragSpecWithDistance<T> = {
 export type DragSpecSpan<T> = {
   type: "span";
   states: T[];
+};
+
+export type DragSpecTransitionToAndThen<T> = {
+  type: "transition-to-and-then";
+  state: T;
+  draggedId: string;
 };
 
 // ## Constructors
@@ -212,6 +219,13 @@ export function span<T>(states: T[]): DragSpec<T> {
   return { type: "span", states };
 }
 
+export function transitionToAndThen<T>(
+  state: T,
+  draggedId: string
+): DragSpec<T> {
+  return { type: "transition-to-and-then", state, draggedId };
+}
+
 /** Constraint helper: returns a - b, so a < b when result ≤ 0 */
 export function lessThan(a: number, b: number): number {
   return a - b;
@@ -229,7 +243,7 @@ export type DragResult<T> = {
   dropState: T;
   distance: number;
   activePath: string;
-  chainNow?: boolean;
+  chainNow?: boolean | string;
 };
 
 export type DragBehavior<T> = (frame: DragFrame) => DragResult<T>;
@@ -528,6 +542,15 @@ export function dragSpecToBehavior<T extends object>(
         activePath: "span",
       };
     };
+  } else if (spec.type === "transition-to-and-then") {
+    const rendered = renderStateReadOnly(ctx, spec.state);
+    return (_frame) => ({
+      rendered,
+      dropState: spec.state,
+      distance: 0,
+      activePath: "transition-to-and-then",
+      chainNow: spec.draggedId,
+    });
   } else {
     assertNever(spec);
   }
