@@ -1,6 +1,7 @@
 import { NoolStageBuilder } from "./demo-diagrams/nool-stage-builder";
 import { NoolStageBuilderVariant } from "./demo-diagrams/nool-stage-builder-variant";
 import { NoolTreeEditable } from "./demo-diagrams/nool-tree-editable";
+import { NoolTreeMacro } from "./demo-diagrams/nool-tree-macro";
 import { demoData, SomeDemoData } from "./demos";
 
 // Nool-specific demos registry
@@ -53,5 +54,21 @@ export const noolDemos: SomeDemoData[] = [
     initialDrawerConfig: { snapRadius: 1, relativePointerMotion: true },
     sourceFile: "nool-tree-editable.tsx",
   }),
-  // Future: Rule Builder (construct rewrite rules)
+  demoData({
+    id: "nool-tree-macro",
+    title: "Nool Tree (Macro Recorder)",
+    notes: (
+      <>
+        Record macros to derive rewrite rules by demonstration. Click "Record
+        Macro", freely rearrange the tree, then stop recording. The system
+        derives a rule from the before/after diff.
+      </>
+    ),
+    manipulable: NoolTreeMacro.manipulable,
+    initialStates: [NoolTreeMacro.state1],
+    height: 600,
+    padding: 20,
+    initialDrawerConfig: { snapRadius: 1, relativePointerMotion: true },
+    sourceFile: "nool-tree-macro.tsx",
+  }),
 ];
