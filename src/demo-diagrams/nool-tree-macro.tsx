@@ -226,7 +226,26 @@ export namespace NoolTreeMacro {
     }
 
     // Build pattern from tree, converting stable subtrees to wildcards
-    function buildPattern(tree: Tree, isRoot: boolean): Pattern {
+    // Mark ALL nodes in the LHS as triggers so dragging any node
+    // in the matching subtree activates the rule
+    function buildLhsPattern(tree: Tree): Pattern {
+      if (stableIds.has(tree.id)) {
+        return {
+          type: "wildcard",
+          id: getWildcardName(tree.id),
+          isTrigger: true,
+        };
+      }
+      return {
+        type: "op",
+        label: tree.label,
+        id: tree.label,
+        children: tree.children.map(buildLhsPattern),
+        isTrigger: true,
+      };
+    }
+
+    function buildRhsPattern(tree: Tree): Pattern {
       if (stableIds.has(tree.id)) {
         return {
           type: "wildcard",
@@ -238,14 +257,14 @@ export namespace NoolTreeMacro {
         type: "op",
         label: tree.label,
         id: tree.label,
-        children: tree.children.map((c) => buildPattern(c, false)),
-        isTrigger: isRoot,
+        children: tree.children.map(buildRhsPattern),
+        isTrigger: false,
       };
     }
 
     // Build LHS first (assigns wildcard names in LHS traversal order)
-    const fromPattern = buildPattern(before, true);
-    const toPattern = buildPattern(after, false);
+    const fromPattern = buildLhsPattern(before);
+    const toPattern = buildRhsPattern(after);
 
     return { from: fromPattern, to: toPattern };
   }
