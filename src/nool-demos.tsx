@@ -1,18 +1,19 @@
-import { demoData, SomeDemoData } from "./demos";
 import { NoolStageBuilder } from "./demo-diagrams/nool-stage-builder";
 import { NoolStageBuilderVariant } from "./demo-diagrams/nool-stage-builder-variant";
 import { NoolTreeEditable } from "./demo-diagrams/nool-tree-editable";
+import { demoData, SomeDemoData } from "./demos";
 
 // Nool-specific demos registry
 
 export const noolDemos: SomeDemoData[] = [
   demoData({
     id: "nool-stage-builder",
-    title: "Stage Builder",
+    title: "Stage Builder (Holes)",
     notes: (
       <>
         Build algebraic expressions from scratch. Drag blocks from the toolkit
-        onto holes (□). Grab placed nodes to move, swap siblings, or erase.
+        onto holes (◯). Grab placed nodes to move them, to swap siblings, or
+        drag away toerase.
       </>
     ),
     manipulable: NoolStageBuilder.manipulable,
@@ -23,11 +24,11 @@ export const noolDemos: SomeDemoData[] = [
   }),
   demoData({
     id: "nool-stage-builder-variant",
-    title: "Stage Builder (Variable Arity)",
+    title: "Stage Builder (Variadic)",
     notes: (
       <>
-        No holes — operators take any number of children. Red outline when
-        arity doesn't match expected. Drag blocks into any op's child list.
+        Operators will tolerate any number of children, but will be angry (red)
+        until their arity matches. Drag blocks into any op's child list.
       </>
     ),
     manipulable: NoolStageBuilderVariant.manipulable,

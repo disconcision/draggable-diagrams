@@ -278,3 +278,54 @@ Two approaches for what you start with in the variable-arity builder:
 ### Stage Builder and Rewrite Builder may converge
 
 The stage builder (construct from a hole) and rewrite builder (freely edit an expression) overlap significantly. The stage builder is a special case of the rewrite builder (starting from a single hole). The rewrite builder subsumes it. Architectural distinction may just be which operations are allowed, not the underlying mechanism.
+
+---
+
+## Rewrite Rule Conflict Detection
+
+### The problem
+
+When multiple rewrite rule sets are enabled, two rules from different sets can both match the same tree structure with the same trigger node. Each produces a different target state, but the `straightTo` manifold for each target is parameterized by where the dragged element ends up. If both targets place the dragged element at the same rendered position, the user can only snap to one — the other is effectively invisible. Example: commutativity `(+ #A B) → (+ B A)` and associativity-sideways `(+2 #(+1 A B) C) → (+2 A #(+1 B C))` both match `(+ (+ a b) c)` with trigger on the inner `+`, and both move it to the second-child position.
+
+### Three layers of "conflict"
+
+1. **Pattern overlap** (static, from rules alone): Two LHS patterns can simultaneously match the same tree with the same trigger. This is a necessary condition for any conflict. Checkable by analyzing pattern structure without knowing the state or the view.
+
+2. **Instance-level overlap** (runtime, from rules + current state): For a specific tree and a specific drag, do two rules actually both fire? Pattern overlap is an over-approximation — a specific tree might not contain the structure needed for both rules to match. Even within one tree, some nodes might trigger both rules while others trigger only one.
+
+3. **Spatial overlap** (runtime, from rules + state + view): Do the two resulting target states place the dragged element at indistinguishable rendered positions? This depends on the view function. The current nool-tree view is structurally homogeneous (position depends only on tree structure, not labels/depth/identity), which means pattern overlap reliably predicts spatial overlap. A context-sensitive view could break this correspondence — rendering different operators differently could make two "conflicting" rules produce visually distinguishable targets.
+
+### Key insight about static detection
+
+Pattern overlap is necessary for conflict regardless of view. Two rules that never match the same tree+trigger cannot conflict under any view. So static pattern-overlap detection identifies exactly the rule pairs that *could* conflict under *some* view for *some* state. It's a sound over-approximation.
+
+Conversely, without considering the view, you can't prove two overlapping rules *will* conflict — a sufficiently clever view could always distinguish them. But for the homogeneous nool-tree view, the over-approximation is tight.
+
+### Proposed approach: static pattern-overlap detection
+
+Given the homogeneous nool-tree rendering, static detection should catch all practical conflicts.
+
+**Algorithm sketch**: Two LHS patterns overlap with compatible triggers if there exists a tree matching both, where the trigger positions align. Check by attempting to "unify" the two patterns:
+- Two wildcards always unify (they can match the same subtree)
+- A wildcard and an op pattern unify (the wildcard matches the op's structure)
+- Two op patterns unify if they have the same label and their children pairwise unify
+- Trigger compatibility: at least one trigger in each pattern must correspond to the same position in the unified tree
+
+More precisely: given rules R1 with trigger on node T1 and R2 with trigger on node T2, they overlap when we can overlay the two LHS patterns such that T1 and T2 map to the same tree node. This requires walking the patterns together and checking structural compatibility.
+
+Note: rules within the same set don't need conflict checking (they're designed to work together). Only cross-set conflicts matter.
+
+**UI behavior**:
+- When the user enables a rule set, check for pattern overlap against all other enabled sets
+- If conflicts are detected, visually mark the conflicting sets (e.g., amber/red highlight, warning icon)
+- Optionally: prevent enabling a set that conflicts with already-enabled sets, or show a confirmation
+- The existing hardcoded "Conflicts with commutativity!" message on associativity-sideways should be replaced by automatic detection
+
+**Scope**: This only needs to handle the nool-tree's pattern language (ops with labels + wildcards + trigger markers). The pattern structures are small, so the unification check is cheap.
+
+### What this doesn't cover
+
+- Conflicts that only manifest for certain states (instance-level) — the static check flags the pair regardless
+- Conflicts that a different view function would resolve — the static check is conservative
+- "Soft" conflicts where targets are close but not identical in position — would need rendering-aware analysis
+- Runtime disambiguation UI (e.g., showing a menu when multiple targets overlap) — a separate feature entirely
