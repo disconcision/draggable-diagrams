@@ -248,21 +248,21 @@ export namespace NoolStageBuilder {
     const element = (
       <g id={tree.id} data-on-drag={opts?.rootOnDrag || pickUpDrag} data-z-index={depth} opacity={opts?.opacity}>
         <rect
-          x={0}
-          y={0}
-          width={innerW + T_PADDING * 2}
-          height={innerH + T_PADDING * 2}
-          stroke={isHole ? "#aaa" : "gray"}
+          x={isHole ? 3 : 0}
+          y={isHole ? 3 : 0}
+          width={isHole ? innerW + T_PADDING * 2 - 6 : innerW + T_PADDING * 2}
+          height={isHole ? innerH + T_PADDING * 2 - 6 : innerH + T_PADDING * 2}
+          rx={isHole ? (innerH + T_PADDING * 2 - 6) / 2 : undefined}
+          stroke={isHole ? "#bbb" : "gray"}
           strokeWidth={1}
-          strokeDasharray={isHole ? "4 2" : undefined}
-          fill={isHole ? "#f5f5f5" : "transparent"}
+          fill={isHole ? "#eee" : "transparent"}
         />
         <text
           x={T_PADDING + T_LABEL_WIDTH / 2}
           y={T_PADDING + innerH / 2}
           dominantBaseline="middle"
           textAnchor="middle"
-          fontSize={isHole ? 14 : 20}
+          fontSize={isHole ? 0 : 20}
           fill={isHole ? "#999" : "black"}
           pointerEvents={opts?.pointerEventsNone ? "none" : undefined}
         >
