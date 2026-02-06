@@ -7,7 +7,6 @@ import {
   allPossibleRewrites,
   isWildcard,
   Pattern,
-  rewr,
   Rewrite,
   Tree,
 } from "../asts";
@@ -21,10 +20,28 @@ import { translate } from "../svgx/helpers";
 export namespace NoolTreeMacro {
   // # State
 
+  type ToolkitBlock = {
+    key: string;
+    label: string;
+  };
+
   export type State = {
     tree: Tree;
+    toolkit: ToolkitBlock[];
     gutter: Tree[];
   };
+
+  const BLOCK_DEFS: { label: string }[] = [
+    { label: "+" },
+    { label: "×" },
+    { label: "-" },
+    { label: "0" },
+    { label: "⛅" },
+    { label: "🍄" },
+    { label: "🎲" },
+    { label: "🦠" },
+    { label: "🐝" },
+  ];
 
   export const state1: State = {
     tree: {
@@ -42,15 +59,12 @@ export namespace NoolTreeMacro {
         { id: "root-2", label: "🎲", children: [] },
       ],
     },
+    toolkit: BLOCK_DEFS.map((def, i) => ({
+      key: `tk-${i}`,
+      label: def.label,
+    })),
     gutter: [],
   };
-
-  // # Built-in rewrites
-
-  const builtInRewrites: Rewrite[] = [
-    rewr("(+ #A #B)", "(+ B A)"),
-    rewr("(× #A #B)", "(× B A)"),
-  ];
 
   // # Tree helpers
 
@@ -254,20 +268,6 @@ export namespace NoolTreeMacro {
   const GUTTER_MIN_WIDTH = 46;
   const TRASH_SIZE = 30;
 
-  // Toolkit blocks for macro mode
-  const TOOLKIT_BLOCKS: { label: string }[] = [
-    { label: "+" },
-    { label: "×" },
-    { label: "-" },
-    { label: "0" },
-    { label: "⛅" },
-    { label: "🍄" },
-    { label: "🎲" },
-    { label: "🦠" },
-    { label: "🐝" },
-  ];
-
-  let nextToolkitId = 0;
   let nextPlaceholderId = 0;
 
   function treeSize(tree: Tree): { w: number; h: number } {
@@ -299,7 +299,6 @@ export namespace NoolTreeMacro {
     macroMode: boolean;
     beforeTree: Tree | null;
     userRules: Rewrite[];
-    enableBuiltInRules: boolean;
     enableEmergeAnimation: boolean;
   };
 
@@ -307,7 +306,6 @@ export namespace NoolTreeMacro {
     macroMode: false,
     beforeTree: null,
     userRules: [],
-    enableBuiltInRules: true,
     enableEmergeAnimation: true,
   };
 
@@ -334,10 +332,7 @@ export namespace NoolTreeMacro {
     drag: Drag<State>,
     config: Config
   ): Svgx {
-    const activeRewrites = [
-      ...(config.enableBuiltInRules ? builtInRewrites : []),
-      ...config.userRules,
-    ];
+    const activeRewrites = config.userRules;
 
     function dragTargets(draggedKey: string): DragSpec<State> {
       const newTrees = allPossibleRewrites(
@@ -602,10 +597,10 @@ export namespace NoolTreeMacro {
     drag: Drag<State>,
     _config: Config
   ): Svgx {
-    // Toolkit
-    const toolkitItems = TOOLKIT_BLOCKS.map((block) => {
+    // Toolkit (from state, with mutable keys for clone-and-refresh)
+    const toolkitItems = state.toolkit.map((block) => {
       const tree: Tree = {
-        id: `tk-${block.label}`,
+        id: block.key,
         label: block.label,
         children: [],
       };
@@ -696,25 +691,32 @@ export namespace NoolTreeMacro {
                 rootOnDrag:
                   insertionPoints.length > 0
                     ? drag(() => {
-                        const newId = `macro-${block.label}-${nextToolkitId++}`;
+                        // Clone-and-refresh: new node gets original key,
+                        // toolkit item gets refreshed key so the dragged
+                        // element (original key) isn't anchored to toolkit
+                        const stateWithout = produce(state, (draft) => {
+                          draft.toolkit[idx].key += "-r";
+                        });
                         const newNode: Tree = {
-                          id: newId,
+                          id: block.key,
                           label: block.label,
                           children: [],
                         };
-                        const points = allInsertionPoints(state.tree);
+                        const points = allInsertionPoints(stateWithout.tree);
                         const targetStates: State[] = points.map(
                           ({ parentId, index }) => ({
-                            ...state,
+                            ...stateWithout,
                             tree: insertChild(
-                              state.tree,
+                              stateWithout.tree,
                               parentId,
                               index,
                               newNode
                             ),
                           })
                         );
-                        return floating(targetStates, { backdrop: state });
+                        return floating(targetStates, {
+                          backdrop: stateWithout,
+                        });
                       })
                     : undefined,
               }).element
@@ -815,9 +817,6 @@ export namespace NoolTreeMacro {
 
   function MacroLeftPanel({ config, setConfig }: ConfigPanelProps<Config>) {
     if (config.macroMode) {
-      const currentTree = _currentTree;
-      const wellFormed = currentTree ? treeIsWellFormed(currentTree) : false;
-
       return (
         <div className="text-xs">
           <div className="flex items-center gap-2 mb-2 text-purple-700 font-medium">
@@ -829,21 +828,16 @@ export namespace NoolTreeMacro {
             the toolkit, or park in the gutter. When done, stop recording to
             derive a rule.
           </p>
-          {!wellFormed && (
-            <p className="text-red-500 mb-2">
-              Tree has invalid arities (red nodes). Fix before stopping.
-            </p>
-          )}
           <button
-            className={`w-full px-3 py-1.5 rounded text-xs font-medium ${
-              wellFormed
-                ? "bg-purple-600 text-white hover:bg-purple-700"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
-            disabled={!wellFormed}
+            className="w-full px-3 py-1.5 rounded text-xs font-medium bg-purple-600 text-white hover:bg-purple-700"
             onClick={() => {
-              if (!wellFormed || !currentTree || !config.beforeTree) return;
-              const rule = deriveRule(config.beforeTree, currentTree);
+              // Read _currentTree at click time (not render time) to
+              // avoid stale closure — the manipulable updates it each render
+              // but this panel doesn't re-render on state changes.
+              const now = _currentTree;
+              if (!now || !config.beforeTree) return;
+              if (!treeIsWellFormed(now)) return;
+              const rule = deriveRule(config.beforeTree, now);
               setConfig({
                 ...config,
                 macroMode: false,
@@ -874,14 +868,6 @@ export namespace NoolTreeMacro {
 
     return (
       <>
-        <ConfigCheckbox
-          value={config.enableBuiltInRules}
-          onChange={(v) => setConfig({ ...config, enableBuiltInRules: v })}
-        >
-          <b>Commutativity</b>
-          <br />
-          Built-in swap rules
-        </ConfigCheckbox>
         {config.userRules.length > 0 && (
           <>
             <div className="border-t border-gray-300 my-1" />
