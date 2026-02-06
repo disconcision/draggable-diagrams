@@ -89,6 +89,15 @@ export namespace NoolStageBuilder {
   }
 
   let nextPickupId = 0;
+  let nextCloneId = 0;
+
+  function cloneTreeWithFreshIds(tree: Tree): Tree {
+    return {
+      id: `clone-${nextCloneId++}`,
+      label: tree.label,
+      children: tree.children.map(cloneTreeWithFreshIds),
+    };
+  }
 
   function swapChildrenAtParent(
     tree: Tree,
@@ -199,13 +208,45 @@ export namespace NoolStageBuilder {
           T_GAP * (renderedChildren.length - 1)
         : T_LABEL_MIN_HEIGHT;
 
+    const w = innerW + T_PADDING * 2;
+    const h = innerH + T_PADDING * 2;
+    const rx = isHole
+      ? (h - 6) / 2
+      : Math.min(14, 0.3 * Math.min(w, h));
+
     // Pick-up drag: non-hole tree nodes can be grabbed, moved, swapped, or erased
     const pickUpDrag =
       opts?.pickUp && !isHole
-        ? opts.pickUp.drag(() => {
+        ? opts.pickUp.drag(({ altKey }) => {
             const { fullState } = opts.pickUp!;
             const nodeId = tree.id;
             const parentInfo = findParentAndIndex(fullState.tree, nodeId);
+
+            // Alt-drag: duplicate (clone stays at original position)
+            if (altKey) {
+              const clone = cloneTreeWithFreshIds(tree);
+              const stateWithClone: State = {
+                ...fullState,
+                tree: replaceNode(fullState.tree, nodeId, clone),
+              };
+              // Holes NOT inside the clone (avoid recursive nesting)
+              const cloneHoles = new Set(findAllHoles(clone));
+              const availableHoles = findAllHoles(stateWithClone.tree).filter(
+                (hId) => !cloneHoles.has(hId)
+              );
+              const placeTargets = availableHoles.map((hId) => ({
+                ...stateWithClone,
+                tree: replaceNode(stateWithClone.tree, hId, tree),
+              }));
+              const gutterTargets = gutterInsertionTargets(
+                stateWithClone,
+                tree
+              );
+              return floating(
+                [...placeTargets, ...gutterTargets, fullState],
+                { backdrop: stateWithClone }
+              );
+            }
 
             // Backdrop: fresh hole at vacated position (unique ID that
             // doesn't collide with any real hole)
@@ -281,9 +322,9 @@ export namespace NoolStageBuilder {
         <rect
           x={isHole ? 3 : 0}
           y={isHole ? 3 : 0}
-          width={isHole ? innerW + T_PADDING * 2 - 6 : innerW + T_PADDING * 2}
-          height={isHole ? innerH + T_PADDING * 2 - 6 : innerH + T_PADDING * 2}
-          rx={isHole ? (innerH + T_PADDING * 2 - 6) / 2 : undefined}
+          width={isHole ? w - 6 : w}
+          height={isHole ? h - 6 : h}
+          rx={rx}
           stroke={isHole ? "#bbb" : "gray"}
           strokeWidth={1}
           fill={isHole ? "#eee" : "transparent"}
@@ -309,18 +350,14 @@ export namespace NoolStageBuilder {
       </g>
     );
 
-    return {
-      element,
-      w: innerW + T_PADDING * 2,
-      h: innerH + T_PADDING * 2,
-    };
+    return { element, w, h };
   }
 
   // # Main layout constants
 
   const BLOCK_GAP = 8;
   const TOOLKIT_PADDING = 5;
-  const GUTTER_MIN_WIDTH = 24;
+  const GUTTER_MIN_WIDTH = 40;
   const TRASH_SIZE = 30;
 
   // # Manipulable
@@ -454,7 +491,27 @@ export namespace NoolStageBuilder {
               ),
               pointerEventsNone: true,
               flatZIndex: true,
-              rootOnDrag: drag(() => {
+              rootOnDrag: drag(({ altKey }) => {
+                if (altKey) {
+                  // Duplicate: clone stays in gutter, original moves
+                  const stateWithClone = produce(state, (draft) => {
+                    draft.gutter[idx] = cloneTreeWithFreshIds(block);
+                  });
+                  const holes = findAllHoles(stateWithClone.tree);
+                  const placeTargets = holes.map((hId) => ({
+                    ...stateWithClone,
+                    tree: replaceNode(stateWithClone.tree, hId, block),
+                  }));
+                  const gutterTargets = gutterInsertionTargets(
+                    stateWithClone,
+                    block
+                  );
+                  return floating(
+                    [...placeTargets, ...gutterTargets, state],
+                    { backdrop: stateWithClone }
+                  );
+                }
+
                 // Remove from gutter
                 const stateWithout = produce(state, (draft) => {
                   draft.gutter.splice(idx, 1);

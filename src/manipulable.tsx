@@ -33,17 +33,24 @@ export type SetState<T> = (
 
 // # drag
 
+export type DragStartInfo = {
+  altKey: boolean;
+};
+
 export type Drag<T> = typeof unsafeDrag<T>;
 
 // this is exported so that ManipulableDrawer can import it and
 // provide it to manipulables, but it's important for type-safety
 // that manipulables not use it directly.
 export function unsafeDrag<T>(
-  dragSpec: (() => DragSpec<T>) | DragSpec<T>
+  dragSpec: ((info: DragStartInfo) => DragSpec<T>) | DragSpec<T>
 ): OnDragPropValue<T> {
   return {
     type: onDragPropValueSymbol,
-    value: typeof dragSpec === "function" ? dragSpec : () => dragSpec,
+    value:
+      typeof dragSpec === "function"
+        ? dragSpec
+        : (_info: DragStartInfo) => dragSpec,
   };
 }
 
@@ -53,7 +60,7 @@ const onDragPropValueSymbol: unique symbol = Symbol();
 
 export type OnDragPropValue<T> = {
   type: typeof onDragPropValueSymbol;
-  value: () => DragSpec<T>;
+  value: (info: DragStartInfo) => DragSpec<T>;
 };
 
 function isOnDragPropValue<T>(value: unknown): value is OnDragPropValue<T> {
@@ -62,7 +69,7 @@ function isOnDragPropValue<T>(value: unknown): value is OnDragPropValue<T> {
 
 export function getDragSpecCallbackOnElement<T>(
   element: ReactElement
-): (() => DragSpec<T>) | undefined {
+): ((info: DragStartInfo) => DragSpec<T>) | undefined {
   const props = element.props as any;
   const maybeOnDragPropValue = props[onDragPropName];
   // it's ok for it to be missing

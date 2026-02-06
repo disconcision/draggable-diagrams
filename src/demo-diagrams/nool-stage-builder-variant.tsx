@@ -49,9 +49,27 @@ export namespace NoolStageBuilderVariant {
   }
 
   let nextPlaceholderId = 0;
+  let nextCloneId = 0;
 
   function isPlaceholder(tree: Tree): boolean {
     return tree.label === "□";
+  }
+
+  function cloneTreeWithFreshIds(tree: Tree): Tree {
+    return {
+      id: `clone-${nextCloneId++}`,
+      label: tree.label,
+      children: tree.children.map(cloneTreeWithFreshIds),
+    };
+  }
+
+  function replaceNode(tree: Tree, targetId: string, replacement: Tree): Tree {
+    if (tree.id === targetId) return replacement;
+    const newChildren = tree.children.map((c) =>
+      replaceNode(c, targetId, replacement)
+    );
+    if (newChildren.every((c, i) => c === tree.children[i])) return tree;
+    return { ...tree, children: newChildren };
   }
 
   // Start with a placeholder — drag any block from the toolkit to begin
@@ -258,10 +276,47 @@ export namespace NoolStageBuilderVariant {
     // Pick-up drag: any non-placeholder node can be grabbed
     const pickUpDrag =
       opts?.pickUp && !isPlaceholder(tree)
-        ? opts.pickUp.drag(() => {
+        ? opts.pickUp.drag(({ altKey }) => {
             const { fullState } = opts.pickUp!;
             const nodeId = tree.id;
             const parentInfo = findParentAndIndex(fullState.tree, nodeId);
+
+            // Alt-drag: duplicate (clone stays at original position)
+            if (altKey) {
+              const clone = cloneTreeWithFreshIds(tree);
+              if (!parentInfo) {
+                // Root alt-drag: clone replaces root, original → gutter
+                const stateWithClone: State = {
+                  ...fullState,
+                  tree: clone,
+                };
+                const gutterTargets = gutterInsertionTargets(
+                  stateWithClone,
+                  tree
+                );
+                return floating([...gutterTargets, fullState], {
+                  backdrop: stateWithClone,
+                });
+              }
+              // Non-root alt-drag
+              const stateWithClone: State = {
+                ...fullState,
+                tree: replaceNode(fullState.tree, nodeId, clone),
+              };
+              const points = allInsertionPoints(stateWithClone.tree);
+              const insertTargets = points.map(({ parentId, index }) => ({
+                ...stateWithClone,
+                tree: insertChild(stateWithClone.tree, parentId, index, tree),
+              }));
+              const gutterTargets = gutterInsertionTargets(
+                stateWithClone,
+                tree
+              );
+              return floating(
+                [...insertTargets, ...gutterTargets, fullState],
+                { backdrop: stateWithClone }
+              );
+            }
 
             // Root node: replace with placeholder, offer gutter/erase/put-back
             if (!parentInfo) {
@@ -344,6 +399,9 @@ export namespace NoolStageBuilderVariant {
     const labelColor = ph ? "#999" : valid ? "black" : "#dd3333";
     const w = innerW + T_PADDING * 2;
     const h = innerH + T_PADDING * 2;
+    const rx = ph
+      ? (h - 6) / 2
+      : Math.min(14, 0.3 * Math.min(w, h));
 
     const element = (
       <g
@@ -358,7 +416,7 @@ export namespace NoolStageBuilderVariant {
           y={ph ? 3 : 0}
           width={ph ? w - 6 : w}
           height={ph ? h - 6 : h}
-          rx={ph ? (h - 6) / 2 : undefined}
+          rx={rx}
           stroke={strokeColor}
           strokeWidth={1}
           fill={ph ? "#eee" : "transparent"}
@@ -395,7 +453,7 @@ export namespace NoolStageBuilderVariant {
 
   const BLOCK_GAP = 8;
   const TOOLKIT_PADDING = 5;
-  const GUTTER_MIN_WIDTH = 24;
+  const GUTTER_MIN_WIDTH = 40;
   const TRASH_SIZE = 30;
 
   // # Manipulable
@@ -546,7 +604,41 @@ export namespace NoolStageBuilderVariant {
               ),
               pointerEventsNone: true,
               flatZIndex: true,
-              rootOnDrag: drag(() => {
+              rootOnDrag: drag(({ altKey }) => {
+                if (altKey) {
+                  // Duplicate: clone stays in gutter, original moves
+                  const stateWithClone = produce(state, (draft) => {
+                    draft.gutter[idx] = cloneTreeWithFreshIds(block);
+                  });
+                  const placeTargets: State[] = [];
+                  if (isPlaceholder(stateWithClone.tree)) {
+                    placeTargets.push({
+                      ...stateWithClone,
+                      tree: block,
+                    });
+                  }
+                  const points = allInsertionPoints(stateWithClone.tree);
+                  for (const { parentId, index } of points) {
+                    placeTargets.push({
+                      ...stateWithClone,
+                      tree: insertChild(
+                        stateWithClone.tree,
+                        parentId,
+                        index,
+                        block
+                      ),
+                    });
+                  }
+                  const gutterTargets = gutterInsertionTargets(
+                    stateWithClone,
+                    block
+                  );
+                  return floating(
+                    [...placeTargets, ...gutterTargets, state],
+                    { backdrop: stateWithClone }
+                  );
+                }
+
                 const stateWithout = produce(state, (draft) => {
                   draft.gutter.splice(idx, 1);
                 });

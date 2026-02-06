@@ -22,6 +22,7 @@ import {
 import {
   Manipulable,
   ManipulableProps,
+  DragStartInfo,
   getDragSpecCallbackOnElement,
   unsafeDrag,
 } from "./manipulable";
@@ -399,12 +400,13 @@ function postProcessForInteraction<T extends object>(
             const pointerLocal = globalToLocal(transforms, pointer);
             const path = getPath(el);
             assert(!!path, "Draggable element must have a path");
+            const dragStartInfo: DragStartInfo = { altKey: e.altKey };
             ctx.setDragState(
               dragStateFromSpec(
                 state,
                 path,
                 el.props.id || null,
-                dragSpecCallback(),
+                dragSpecCallback(dragStartInfo),
                 pointerLocal,
                 pointer,
                 ctx.manipulable
@@ -771,7 +773,7 @@ function updateDragState<T extends object>(
             newState,
             dragState.draggedPath,
             dragState.draggedId,
-            dragSpecCallback(),
+            dragSpecCallback({ altKey: false }),
             dragState.pointerLocal,
             pointer,
             ctx.manipulable
