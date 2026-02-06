@@ -23,6 +23,13 @@ export function IndexPage() {
             Demos
           </Link>
 
+          <Link
+            to="/nool"
+            className="block w-64 px-6 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors no-underline text-center font-medium"
+          >
+            Nool Playground
+          </Link>
+
           <details className="mt-6">
             <summary className="text-sm text-gray-600 hover:text-gray-800 cursor-pointer">
               Tech demos

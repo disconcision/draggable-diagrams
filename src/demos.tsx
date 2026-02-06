@@ -52,6 +52,8 @@ export type DemoData<T extends object> = {
   padding?: number;
   initialDrawerConfig?: Partial<DrawerConfig>;
   sourceFile?: string;
+  /** Position of the config panel. Defaults to "right". */
+  configPosition?: "left" | "right";
 };
 
 export function demoData<T extends object>(

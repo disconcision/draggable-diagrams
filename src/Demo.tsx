@@ -28,6 +28,7 @@ export function Demo<T extends object>({
     padding,
     initialDrawerConfig,
     sourceFile,
+    configPosition = "right",
   } = demoData;
 
   const [snapRadius, setSnapRadius] = useState(
@@ -78,7 +79,7 @@ export function Demo<T extends object>({
         )}
       </div>
       {notes && <div className="mt-2 mb-4 text-sm text-gray-600">{notes}</div>}
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className={`flex flex-col gap-4 ${configPosition === "left" ? "md:flex-row-reverse" : "md:flex-row"}`}>
         <div className="flex-1 min-w-0" style={{ padding }}>
           {initialStates.map((initialState, idx) => (
             <div key={idx}>
@@ -118,6 +119,15 @@ export function Demo<T extends object>({
               : "w-48 md:w-32"
           } bg-gray-50 rounded p-3 flex flex-col gap-2`}
         >
+          {demoData.manipulable.type === "configurable" && (
+            <>
+              <demoData.manipulable.ConfigPanel
+                config={diagramConfig}
+                setConfig={setDiagramConfig}
+              />
+              <div className="border-t border-gray-300 my-1" />
+            </>
+          )}
           <label className="flex flex-col gap-1 text-xs">
             <span className="font-medium text-gray-700">Snap radius</span>
             <input
@@ -143,15 +153,6 @@ export function Demo<T extends object>({
             value={relativePointerMotion}
             onChange={_setRelativePointerMotion}
           /> */}
-          {demoData.manipulable.type === "configurable" && (
-            <>
-              <div className="border-t border-gray-300 my-1" />
-              <demoData.manipulable.ConfigPanel
-                config={diagramConfig}
-                setConfig={setDiagramConfig}
-              />
-            </>
-          )}
         </div>
       </div>
     </div>
