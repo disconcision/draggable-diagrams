@@ -157,6 +157,10 @@ function matchHelper(
         const existing = result.match.wildcards.get(key);
         if (existing !== undefined) {
           if (!structurallyEqual(existing, value)) return null;
+          // Prefer the triggered copy so the dragged node's ID survives in output
+          if (value.id === triggerId) {
+            result.match.wildcards.set(key, value);
+          }
         } else {
           result.match.wildcards.set(key, value);
         }
