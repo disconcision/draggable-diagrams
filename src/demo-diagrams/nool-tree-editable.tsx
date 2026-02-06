@@ -225,6 +225,10 @@ export namespace NoolTreeEditable {
           GAP * (renderedChildren.length - 1)
         : LABEL_MIN_HEIGHT;
 
+    const w = innerW + PADDING * 2;
+    const h = innerH + PADDING * 2;
+    const rx = Math.min(14, 0.3 * Math.min(w, h));
+
     const element = (
       <g
         id={tree.id}
@@ -235,11 +239,12 @@ export namespace NoolTreeEditable {
         <rect
           x={0}
           y={0}
-          width={innerW + PADDING * 2}
-          height={innerH + PADDING * 2}
+          width={w}
+          height={h}
+          rx={rx}
           stroke="gray"
           strokeWidth={1}
-          fill="none"
+          fill="transparent"
         />
         {/* Label - draggable text */}
         <text
@@ -262,12 +267,7 @@ export namespace NoolTreeEditable {
       </g>
     );
 
-    return {
-      element,
-      w: innerW + PADDING * 2,
-      h: innerH + PADDING * 2,
-      id: tree.id,
-    };
+    return { element, w, h, id: tree.id };
   }
 
   function dragTargets(

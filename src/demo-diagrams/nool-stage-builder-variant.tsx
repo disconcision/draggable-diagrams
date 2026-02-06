@@ -452,8 +452,9 @@ export namespace NoolStageBuilderVariant {
   // # Main layout constants
 
   const BLOCK_GAP = 8;
-  const TOOLKIT_PADDING = 5;
-  const GUTTER_MIN_WIDTH = 40;
+  const TOOLKIT_PADDING = 8;
+  const ZONE_GAP = 15;
+  const GUTTER_MIN_WIDTH = 46;
   const TRASH_SIZE = 30;
 
   // # Manipulable
@@ -468,13 +469,13 @@ export namespace NoolStageBuilderVariant {
     const maxToolkitW = _.max(toolkitItemData.map((t) => t.size.w)) ?? 30;
     const toolkitWidth = maxToolkitW + TOOLKIT_PADDING * 2;
 
-    let toolkitY = BLOCK_GAP;
+    let toolkitY = TOOLKIT_PADDING;
     const toolkitPositions = toolkitItemData.map((item) => {
       const y = toolkitY;
       toolkitY += item.size.h + BLOCK_GAP;
       return y;
     });
-    const toolkitHeight = toolkitY;
+    const toolkitHeight = toolkitY + TOOLKIT_PADDING - BLOCK_GAP;
 
     // All insertion points in the tree (positions in op child lists)
     const rootIsPlaceholder = isPlaceholder(state.tree);
@@ -494,21 +495,24 @@ export namespace NoolStageBuilderVariant {
       maxGutterW + TOOLKIT_PADDING * 2
     );
 
-    let gutterY = BLOCK_GAP;
+    let gutterY = TOOLKIT_PADDING;
     const gutterPositions = gutterItemData.map((item) => {
       const y = gutterY;
       gutterY += item.size.h + BLOCK_GAP;
       return y;
     });
-    const gutterHeight = Math.max(gutterY, BLOCK_GAP * 2 + GUTTER_MIN_WIDTH);
+    const gutterHeight = Math.max(
+      gutterY + TOOLKIT_PADDING - BLOCK_GAP,
+      TOOLKIT_PADDING * 2 + GUTTER_MIN_WIDTH
+    );
 
-    const gutterOffsetX = toolkitWidth + 10;
-    const treeOffsetX = gutterOffsetX + gutterContentWidth + 20;
+    const gutterOffsetX = toolkitWidth + ZONE_GAP;
+    const treeOffsetX = gutterOffsetX + gutterContentWidth + ZONE_GAP;
     const treeR = renderTree(state.tree, {
       pickUp: { drag, fullState: state },
     });
 
-    const trashX = treeOffsetX + treeR.w + 30;
+    const trashX = treeOffsetX + treeR.w + ZONE_GAP;
     const trashY = 0;
 
     return (
@@ -522,7 +526,7 @@ export namespace NoolStageBuilderVariant {
           fill="#f0f0f0"
           stroke="#ccc"
           strokeWidth={1}
-          rx={4}
+          rx={Math.min(14, 0.3 * Math.min(toolkitWidth, toolkitHeight))}
           id="toolkit-bg"
           data-z-index={-10}
         />
@@ -589,7 +593,7 @@ export namespace NoolStageBuilderVariant {
           stroke="#ddd"
           strokeWidth={1}
           strokeDasharray="4,4"
-          rx={4}
+          rx={Math.min(14, 0.3 * Math.min(gutterContentWidth, Math.max(gutterHeight, toolkitHeight)))}
           id="gutter-bg"
           data-z-index={-10}
         />

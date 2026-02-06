@@ -79,7 +79,7 @@ export function Demo<T extends object>({
         )}
       </div>
       {notes && <div className="mt-2 mb-4 text-sm text-gray-600">{notes}</div>}
-      <div className={`flex flex-col gap-4 ${configPosition === "left" ? "md:flex-row-reverse" : "md:flex-row"}`}>
+      <div className={`flex flex-col gap-4 md:items-start ${configPosition === "left" ? "md:flex-row-reverse" : "md:flex-row"}`}>
         <div className="flex-1 min-w-0" style={{ padding }}>
           {initialStates.map((initialState, idx) => (
             <div key={idx}>
@@ -117,7 +117,7 @@ export function Demo<T extends object>({
             demoData.manipulable.type === "configurable"
               ? "w-64 md:w-52"
               : "w-48 md:w-32"
-          } bg-gray-50 rounded p-3 flex flex-col gap-2`}
+          } bg-gray-100 border border-gray-300 rounded-lg p-3 flex flex-col gap-2`}
         >
           {demoData.manipulable.type === "configurable" && (
             <>

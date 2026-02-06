@@ -22,23 +22,6 @@ export const noolDemos: SomeDemoData[] = [
     sourceFile: "nool-stage-builder.tsx",
   }),
   demoData({
-    id: "nool-tree",
-    title: "Nool Tree",
-    notes: (
-      <>
-        Apply rewrite rules to transform algebraic expressions.
-        Try using the identity rules to grow the tree!
-      </>
-    ),
-    manipulable: NoolTreeEditable.manipulable,
-    initialStates: [NoolTreeEditable.state1],
-    height: 600,
-    padding: 20,
-    initialDrawerConfig: { snapRadius: 1, relativePointerMotion: true },
-    sourceFile: "nool-tree-editable.tsx",
-    configPosition: "left",
-  }),
-  demoData({
     id: "nool-stage-builder-variant",
     title: "Stage Builder (Variable Arity)",
     notes: (
@@ -52,6 +35,22 @@ export const noolDemos: SomeDemoData[] = [
     height: 550,
     padding: 20,
     sourceFile: "nool-stage-builder-variant.tsx",
+  }),
+  demoData({
+    id: "nool-tree",
+    title: "Nool Tree",
+    notes: (
+      <>
+        Apply rewrite rules to transform algebraic expressions. Try using the
+        identity rules to grow the tree!
+      </>
+    ),
+    manipulable: NoolTreeEditable.manipulable,
+    initialStates: [NoolTreeEditable.state1],
+    height: 600,
+    padding: 20,
+    initialDrawerConfig: { snapRadius: 1, relativePointerMotion: true },
+    sourceFile: "nool-tree-editable.tsx",
   }),
   // Future: Rule Builder (construct rewrite rules)
 ];
