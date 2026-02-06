@@ -405,12 +405,14 @@ export namespace NoolStageBuilderVariant {
     const ph = isPlaceholder(tree);
     const strokeColor = ph
       ? (opts?.insideArrow ? "#c4b5fd" : "#bbb")
+      : !valid ? "#dd3333"
       : isArrow ? "#7c3aed"
-      : valid ? "gray" : "#dd3333";
+      : "gray";
     const labelColor = ph
       ? "#999"
+      : !valid ? "#dd3333"
       : isArrow ? "#7c3aed"
-      : valid ? "black" : "#dd3333";
+      : "black";
     const w = innerW + T_PADDING * 2;
     const h = innerH + T_PADDING * 2;
     const rx = ph
