@@ -1,6 +1,6 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { closest, just, span } from "../DragSpec2";
+import { closest, just, span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -135,7 +135,7 @@ export namespace Braid {
                   )
                 );
               }
-              return closest(specs);
+              return withSnapRadius(closest(specs), 1, { chain: true });
             })}
           >
             <circle r={20} fill="transparent" />
