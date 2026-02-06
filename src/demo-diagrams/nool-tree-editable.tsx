@@ -244,7 +244,7 @@ export namespace NoolTreeEditable {
           rx={rx}
           stroke="gray"
           strokeWidth={1}
-          fill="transparent"
+          fill="none"
         />
         {/* Label - draggable text */}
         <text
