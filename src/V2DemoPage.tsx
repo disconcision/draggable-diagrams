@@ -19,6 +19,7 @@ import { Tiles } from "./demo-diagrams-2/tiles";
 import { ListOfLists } from "./demo-diagrams-2/list-of-lists";
 import { ListOfListsSizes } from "./demo-diagrams-2/list-of-lists-sizes";
 import { MultiCirclePoints } from "./demo-diagrams-2/multi-circle-points";
+import { NodeWires } from "./demo-diagrams-2/node-wires";
 import { NoolTree } from "./demo-diagrams-2/nool-tree";
 import { OrbitingPlanet } from "./demo-diagrams-2/orbiting-planet";
 import { OrbitingPlanetWithBackground } from "./demo-diagrams-2/orbiting-planet-with-background";
@@ -329,6 +330,14 @@ export function V2DemoPage() {
         initialState={ConstrainedPoint.state1}
         width={300}
         height={300}
+      />
+
+      <h2 className="text-xl font-semibold mt-8 mb-2">node-wires</h2>
+      <Drawer
+        manipulable={NodeWires.manipulable}
+        initialState={NodeWires.state1}
+        width={500}
+        height={200}
       />
 
       <h2 className="text-xl font-semibold mt-8 mb-2">multi-circle-points</h2>
