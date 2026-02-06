@@ -269,6 +269,12 @@ Associativity-style transforms require restructuring the tree, which means parki
 
 Instead of fixed-arity operators with holes, operators could take variable-length child lists (like the list demos). Invalid arities would be shown visually (red outline/label). This removes holes entirely and makes construction feel more free-form, but loses the "build valid expressions step by step" grammar guarantee. Different pedagogical character — "build freely, we'll tell you when it's wrong" vs. "fill in the blanks." Worth exploring as an alternative mode.
 
+### Freeform root vs. placeholder root
+
+Two approaches for what you start with in the variable-arity builder:
+1. **Placeholder root** (current): Start with a single hole/placeholder. Toolkit or gutter items can replace it. Guarantees you always have a well-formed root before adding children. Simpler mental model.
+2. **Freeform root**: Start with nothing. Dragging a block creates the root directly. Would need a "no tree yet" state and special handling for the first drop. More flexible but adds edge cases (what does the empty canvas look like? what happens when you trash the root?). Deferred in favor of placeholder approach.
+
 ### Stage Builder and Rewrite Builder may converge
 
 The stage builder (construct from a hole) and rewrite builder (freely edit an expression) overlap significantly. The stage builder is a special case of the rewrite builder (starting from a single hole). The rewrite builder subsumes it. Architectural distinction may just be which operations are allowed, not the underlying mechanism.

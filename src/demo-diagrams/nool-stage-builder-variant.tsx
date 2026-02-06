@@ -1,8 +1,8 @@
 // Stage Builder Variant: variable-arity ops (no holes)
 // Operators take any number of children. Red when arity doesn't match expected.
 
-import _ from "lodash";
 import { produce } from "immer";
+import _ from "lodash";
 import { Tree } from "../asts";
 import { andThen, floating } from "../DragSpec";
 import { Drag, Manipulable } from "../manipulable";
@@ -48,9 +48,15 @@ export namespace NoolStageBuilderVariant {
     return tree.children.length === expected;
   }
 
-  // Start with a single + op with no children (red until filled)
+  let nextPlaceholderId = 0;
+
+  function isPlaceholder(tree: Tree): boolean {
+    return tree.label === "□";
+  }
+
+  // Start with a placeholder — drag any block from the toolkit to begin
   export const state1: State = {
-    tree: { id: "root", label: "+", children: [] },
+    tree: { id: "root", label: "□", children: [] },
     toolkit: BLOCK_DEFS.map((def, i) => ({
       key: `tk-${i}`,
       label: def.label,
@@ -140,10 +146,7 @@ export namespace NoolStageBuilderVariant {
     return points;
   }
 
-  function gutterInsertionTargets(
-    baseState: State,
-    subtree: Tree
-  ): State[] {
+  function gutterInsertionTargets(baseState: State, subtree: Tree): State[] {
     return _.range(baseState.gutter.length + 1).map((insertIdx) =>
       produce(baseState, (draft) => {
         draft.gutter.splice(insertIdx, 0, subtree);
@@ -169,17 +172,18 @@ export namespace NoolStageBuilderVariant {
       childSizes.length > 0
         ? _.max(childSizes.map((c) => c.w))!
         : isOpNode
-          ? T_EMPTY_CHILD_W
-          : 0;
+        ? T_EMPTY_CHILD_W
+        : 0;
     const childAreaH =
       childSizes.length > 0
-        ? _.sumBy(childSizes, (c) => c.h) +
-          T_GAP * (childSizes.length - 1)
+        ? _.sumBy(childSizes, (c) => c.h) + T_GAP * (childSizes.length - 1)
         : isOpNode
-          ? T_EMPTY_CHILD_H
-          : T_LABEL_MIN_HEIGHT;
+        ? T_EMPTY_CHILD_H
+        : T_LABEL_MIN_HEIGHT;
     const innerW = T_LABEL_WIDTH + (hasChildArea ? T_GAP + childAreaW : 0);
-    const innerH = hasChildArea ? Math.max(childAreaH, T_LABEL_MIN_HEIGHT) : T_LABEL_MIN_HEIGHT;
+    const innerH = hasChildArea
+      ? Math.max(childAreaH, T_LABEL_MIN_HEIGHT)
+      : T_LABEL_MIN_HEIGHT;
     return { w: innerW + T_PADDING * 2, h: innerH + T_PADDING * 2 };
   }
 
@@ -208,15 +212,25 @@ export namespace NoolStageBuilderVariant {
     // Children use rootTransform for positioning (no non-id wrapper <g>)
     // so that variable child counts don't break lerp
     const baseChildOpts = opts
-      ? { ...opts, rootOnDrag: undefined, rootTransform: undefined, depth: depth + 1 }
+      ? {
+          ...opts,
+          rootOnDrag: undefined,
+          rootTransform: undefined,
+          depth: depth + 1,
+        }
       : undefined;
     const renderedChildren: { element: Svgx; w: number; h: number }[] = [];
     let childY = 0;
     for (const child of tree.children) {
-      const r = renderTree(child, baseChildOpts ? {
-        ...baseChildOpts,
-        rootTransform: translate(0, childY),
-      } : undefined);
+      const r = renderTree(
+        child,
+        baseChildOpts
+          ? {
+              ...baseChildOpts,
+              rootTransform: translate(0, childY),
+            }
+          : undefined
+      );
       renderedChildren.push(r);
       childY += r.h + T_GAP;
     }
@@ -227,122 +241,143 @@ export namespace NoolStageBuilderVariant {
       renderedChildren.length > 0
         ? _.max(renderedChildren.map((c) => c.w))!
         : isOpNode
-          ? T_EMPTY_CHILD_W
-          : 0;
+        ? T_EMPTY_CHILD_W
+        : 0;
     const childAreaH =
       renderedChildren.length > 0
         ? _.sumBy(renderedChildren, (c) => c.h) +
           T_GAP * (renderedChildren.length - 1)
         : isOpNode
-          ? T_EMPTY_CHILD_H
-          : T_LABEL_MIN_HEIGHT;
+        ? T_EMPTY_CHILD_H
+        : T_LABEL_MIN_HEIGHT;
     const innerW = T_LABEL_WIDTH + (hasChildArea ? T_GAP + childAreaW : 0);
-    const innerH = hasChildArea ? Math.max(childAreaH, T_LABEL_MIN_HEIGHT) : T_LABEL_MIN_HEIGHT;
+    const innerH = hasChildArea
+      ? Math.max(childAreaH, T_LABEL_MIN_HEIGHT)
+      : T_LABEL_MIN_HEIGHT;
 
-    // Pick-up drag: any node can be grabbed
+    // Pick-up drag: any non-placeholder node can be grabbed
     const pickUpDrag =
-      opts?.pickUp
+      opts?.pickUp && !isPlaceholder(tree)
         ? opts.pickUp.drag(() => {
             const { fullState } = opts.pickUp!;
             const nodeId = tree.id;
             const parentInfo = findParentAndIndex(fullState.tree, nodeId);
 
-            // Can only pick up non-root nodes (root has no parent)
+            // Root node: replace with placeholder, offer gutter/erase/put-back
             if (!parentInfo) {
-              // Root node: only gutter and erase targets
+              const phId = `placeholder-${nextPlaceholderId++}`;
               const stateWithout: State = {
                 ...fullState,
-                tree: { id: "empty-root", label: "+", children: [] },
+                tree: { id: phId, label: "□", children: [] },
               };
               const gutterTargets = gutterInsertionTargets(stateWithout, tree);
               const eraseState: State = { ...stateWithout, trashed: tree };
-              const cleanState: State = { ...stateWithout, trashed: undefined };
+              const cleanState: State = {
+                ...stateWithout,
+                trashed: undefined,
+              };
               return floating(
-                [...gutterTargets, fullState, andThen(eraseState, cleanState)],
+                [
+                  ...gutterTargets,
+                  fullState,
+                  andThen(eraseState, cleanState),
+                ],
                 { backdrop: stateWithout }
               );
             }
 
-            // Remove this node from its parent's child list
-            const stateWithout: State = {
-              ...fullState,
-              tree: removeNode(fullState.tree, nodeId),
-            };
+          // Remove this node from its parent's child list
+          const stateWithout: State = {
+            ...fullState,
+            tree: removeNode(fullState.tree, nodeId),
+          };
 
-            // Insertion targets: all positions in all ops in the modified tree
-            const insertionPoints = allInsertionPoints(stateWithout.tree);
-            const insertTargets = insertionPoints.map(({ parentId, index }) => ({
-              ...stateWithout,
-              tree: insertChild(stateWithout.tree, parentId, index, tree),
-            }));
+          // Insertion targets: all positions in all ops in the modified tree
+          const insertionPoints = allInsertionPoints(stateWithout.tree);
+          const insertTargets = insertionPoints.map(({ parentId, index }) => ({
+            ...stateWithout,
+            tree: insertChild(stateWithout.tree, parentId, index, tree),
+          }));
 
-            // Swap targets: exchange with non-adjacent siblings
-            const swapTargets: State[] = [];
-            if (parentInfo) {
-              const { parent, index } = parentInfo;
-              for (let i = 0; i < parent.children.length; i++) {
-                if (i !== index) {
-                  swapTargets.push({
-                    ...fullState,
-                    tree: swapChildrenAtParent(
-                      fullState.tree,
-                      parent.id,
-                      index,
-                      i
-                    ),
-                  });
-                }
+          // Swap targets: exchange with non-adjacent siblings
+          const swapTargets: State[] = [];
+          if (parentInfo) {
+            const { parent, index } = parentInfo;
+            for (let i = 0; i < parent.children.length; i++) {
+              if (i !== index) {
+                swapTargets.push({
+                  ...fullState,
+                  tree: swapChildrenAtParent(
+                    fullState.tree,
+                    parent.id,
+                    index,
+                    i
+                  ),
+                });
               }
             }
+          }
 
-            // Gutter targets
-            const gutterTargets = gutterInsertionTargets(stateWithout, tree);
+          // Gutter targets
+          const gutterTargets = gutterInsertionTargets(stateWithout, tree);
 
-            // Erase target
-            const eraseState: State = { ...stateWithout, trashed: tree };
-            const cleanState: State = { ...stateWithout, trashed: undefined };
+          // Erase target
+          const eraseState: State = { ...stateWithout, trashed: tree };
+          const cleanState: State = { ...stateWithout, trashed: undefined };
 
-            return floating(
-              [
-                ...insertTargets,
-                ...swapTargets,
-                ...gutterTargets,
-                fullState, // put back
-                andThen(eraseState, cleanState),
-              ],
-              { backdrop: stateWithout }
-            );
-          })
-        : undefined;
+          return floating(
+            [
+              ...insertTargets,
+              ...swapTargets,
+              ...gutterTargets,
+              fullState, // put back
+              andThen(eraseState, cleanState),
+            ],
+            { backdrop: stateWithout }
+          );
+        })
+      : undefined;
 
     const zIndex = opts?.flatZIndex ? 0 : depth;
-    const strokeColor = valid ? "gray" : "#cc3333";
-    const labelColor = valid ? "black" : "#cc3333";
+    const ph = isPlaceholder(tree);
+    const strokeColor = ph ? "#bbb" : valid ? "gray" : "#dd3333";
+    const labelColor = ph ? "#999" : valid ? "black" : "#dd3333";
+    const w = innerW + T_PADDING * 2;
+    const h = innerH + T_PADDING * 2;
 
     const element = (
-      <g id={tree.id} transform={opts?.rootTransform} data-on-drag={opts?.rootOnDrag || pickUpDrag} data-z-index={zIndex} opacity={opts?.opacity}>
+      <g
+        id={tree.id}
+        transform={opts?.rootTransform}
+        data-on-drag={opts?.rootOnDrag || pickUpDrag}
+        data-z-index={zIndex}
+        opacity={opts?.opacity}
+      >
         <rect
-          x={0}
-          y={0}
-          width={innerW + T_PADDING * 2}
-          height={innerH + T_PADDING * 2}
+          x={ph ? 3 : 0}
+          y={ph ? 3 : 0}
+          width={ph ? w - 6 : w}
+          height={ph ? h - 6 : h}
+          rx={ph ? (h - 6) / 2 : undefined}
           stroke={strokeColor}
-          strokeWidth={valid ? 1 : 2}
-          fill="transparent"
+          strokeWidth={1}
+          fill={ph ? "#eee" : "transparent"}
         />
         <text
           x={T_PADDING + T_LABEL_WIDTH / 2}
           y={T_PADDING + innerH / 2}
           dominantBaseline="middle"
           textAnchor="middle"
-          fontSize={20}
+          fontSize={ph ? 0 : 20}
           fill={labelColor}
           pointerEvents={opts?.pointerEventsNone ? "none" : undefined}
         >
           {tree.label}
         </text>
         {hasChildArea && (
-          <g transform={translate(T_PADDING + T_LABEL_WIDTH + T_GAP, T_PADDING)}>
+          <g
+            transform={translate(T_PADDING + T_LABEL_WIDTH + T_GAP, T_PADDING)}
+          >
             {renderedChildrenElements}
           </g>
         )}
@@ -384,6 +419,7 @@ export namespace NoolStageBuilderVariant {
     const toolkitHeight = toolkitY;
 
     // All insertion points in the tree (positions in op child lists)
+    const rootIsPlaceholder = isPlaceholder(state.tree);
     const insertionPoints = allInsertionPoints(state.tree);
 
     // Compute gutter layout
@@ -395,7 +431,10 @@ export namespace NoolStageBuilderVariant {
       gutterItemData.length > 0
         ? _.max(gutterItemData.map((g) => g.size.w))!
         : 0;
-    const gutterContentWidth = Math.max(GUTTER_MIN_WIDTH, maxGutterW + TOOLKIT_PADDING * 2);
+    const gutterContentWidth = Math.max(
+      GUTTER_MIN_WIDTH,
+      maxGutterW + TOOLKIT_PADDING * 2
+    );
 
     let gutterY = BLOCK_GAP;
     const gutterPositions = gutterItemData.map((item) => {
@@ -433,31 +472,52 @@ export namespace NoolStageBuilderVariant {
         {/* Toolkit blocks */}
         {toolkitItemData.map(({ block, tree }, idx) => (
           <g transform={translate(TOOLKIT_PADDING, toolkitPositions[idx])}>
-            {renderTree(tree, {
-              pointerEventsNone: true,
-              opacity: insertionPoints.length > 0 ? undefined : 0.35,
-              rootOnDrag:
-                insertionPoints.length > 0
-                  ? drag(() => {
-                      const stateWithout = produce(state, (draft) => {
-                        draft.toolkit[idx].key += "-r";
-                      });
-                      const newNode: Tree = {
-                        id: block.key,
-                        label: block.label,
-                        children: [],
-                      };
-                      const points = allInsertionPoints(stateWithout.tree);
-                      const targetStates = points.map(({ parentId, index }) => ({
-                        ...stateWithout,
-                        tree: insertChild(stateWithout.tree, parentId, index, newNode),
-                      }));
-                      return floating(targetStates, {
-                        backdrop: stateWithout,
-                      });
-                    })
-                  : undefined,
-            }).element}
+            {
+              renderTree(tree, {
+                pointerEventsNone: true,
+                opacity:
+                  insertionPoints.length > 0 || rootIsPlaceholder
+                    ? undefined
+                    : 0.35,
+                rootOnDrag:
+                  insertionPoints.length > 0 || rootIsPlaceholder
+                    ? drag(() => {
+                        const stateWithout = produce(state, (draft) => {
+                          draft.toolkit[idx].key += "-r";
+                        });
+                        const newNode: Tree = {
+                          id: block.key,
+                          label: block.label,
+                          children: [],
+                        };
+                        const targetStates: State[] = [];
+                        // Replace placeholder root
+                        if (isPlaceholder(stateWithout.tree)) {
+                          targetStates.push({
+                            ...stateWithout,
+                            tree: newNode,
+                          });
+                        }
+                        // Insert into op child lists
+                        const points = allInsertionPoints(stateWithout.tree);
+                        for (const { parentId, index } of points) {
+                          targetStates.push({
+                            ...stateWithout,
+                            tree: insertChild(
+                              stateWithout.tree,
+                              parentId,
+                              index,
+                              newNode
+                            ),
+                          });
+                        }
+                        return floating(targetStates, {
+                          backdrop: stateWithout,
+                        });
+                      })
+                    : undefined,
+              }).element
+            }
           </g>
         ))}
 
@@ -477,29 +537,53 @@ export namespace NoolStageBuilderVariant {
         />
 
         {/* Gutter items */}
-        {gutterItemData.map(({ block }, idx) =>
-          renderTree(block, {
-            rootTransform: translate(gutterOffsetX + TOOLKIT_PADDING, gutterPositions[idx]),
-            pointerEventsNone: true,
-            flatZIndex: true,
-            rootOnDrag: drag(() => {
-              const stateWithout = produce(state, (draft) => {
-                draft.gutter.splice(idx, 1);
-              });
-              const points = allInsertionPoints(stateWithout.tree);
-              const placeTargets = points.map(({ parentId, index }) => ({
-                ...stateWithout,
-                tree: insertChild(stateWithout.tree, parentId, index, block),
-              }));
-              const reorderTargets = gutterInsertionTargets(stateWithout, block);
-              const eraseState: State = { ...stateWithout, trashed: block };
-              const cleanState: State = { ...stateWithout, trashed: undefined };
-              return floating(
-                [...placeTargets, ...reorderTargets, andThen(eraseState, cleanState)],
-                { backdrop: stateWithout }
-              );
-            }),
-          }).element
+        {gutterItemData.map(
+          ({ block }, idx) =>
+            renderTree(block, {
+              rootTransform: translate(
+                gutterOffsetX + TOOLKIT_PADDING,
+                gutterPositions[idx]
+              ),
+              pointerEventsNone: true,
+              flatZIndex: true,
+              rootOnDrag: drag(() => {
+                const stateWithout = produce(state, (draft) => {
+                  draft.gutter.splice(idx, 1);
+                });
+                const placeTargets: State[] = [];
+                // Replace placeholder root
+                if (isPlaceholder(stateWithout.tree)) {
+                  placeTargets.push({
+                    ...stateWithout,
+                    tree: block,
+                  });
+                }
+                const points = allInsertionPoints(stateWithout.tree);
+                for (const { parentId, index } of points) {
+                  placeTargets.push({
+                    ...stateWithout,
+                    tree: insertChild(stateWithout.tree, parentId, index, block),
+                  });
+                }
+                const reorderTargets = gutterInsertionTargets(
+                  stateWithout,
+                  block
+                );
+                const eraseState: State = { ...stateWithout, trashed: block };
+                const cleanState: State = {
+                  ...stateWithout,
+                  trashed: undefined,
+                };
+                return floating(
+                  [
+                    ...placeTargets,
+                    ...reorderTargets,
+                    andThen(eraseState, cleanState),
+                  ],
+                  { backdrop: stateWithout }
+                );
+              }),
+            }).element
         )}
 
         {/* Trash zone */}

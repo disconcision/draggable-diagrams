@@ -1,8 +1,8 @@
 // Stage Builder: construct algebraic expressions by dragging blocks from a toolkit onto holes
 // Based on the "clone from store" pattern from insert-and-remove
 
-import _ from "lodash";
 import { produce } from "immer";
+import _ from "lodash";
 import { Tree } from "../asts";
 import { andThen, floating } from "../DragSpec";
 import { Drag, Manipulable } from "../manipulable";
@@ -27,6 +27,7 @@ export namespace NoolStageBuilder {
     { label: "×", arity: 2 },
     { label: "-", arity: 1 },
     { label: "0", arity: 0 },
+    { label: "1", arity: 0 },
     { label: "⛅", arity: 0 },
     { label: "🍄", arity: 0 },
     { label: "🎲", arity: 0 },
@@ -108,10 +109,7 @@ export namespace NoolStageBuilder {
   }
 
   // Generate all gutter insertion targets for a given subtree
-  function gutterInsertionTargets(
-    baseState: State,
-    subtree: Tree
-  ): State[] {
+  function gutterInsertionTargets(baseState: State, subtree: Tree): State[] {
     return _.range(baseState.gutter.length + 1).map((insertIdx) =>
       produce(baseState, (draft) => {
         draft.gutter.splice(insertIdx, 0, subtree);
@@ -131,13 +129,10 @@ export namespace NoolStageBuilder {
     const childSizes = tree.children.map(treeSize);
     const innerW =
       T_LABEL_WIDTH +
-      (childSizes.length > 0
-        ? T_GAP + _.max(childSizes.map((c) => c.w))!
-        : 0);
+      (childSizes.length > 0 ? T_GAP + _.max(childSizes.map((c) => c.w))! : 0);
     const innerH =
       childSizes.length > 0
-        ? _.sumBy(childSizes, (c) => c.h) +
-          T_GAP * (childSizes.length - 1)
+        ? _.sumBy(childSizes, (c) => c.h) + T_GAP * (childSizes.length - 1)
         : T_LABEL_MIN_HEIGHT;
     return { w: innerW + T_PADDING * 2, h: innerH + T_PADDING * 2 };
   }
@@ -173,7 +168,12 @@ export namespace NoolStageBuilder {
 
     // Children inherit opts but NOT rootOnDrag/rootTransform (only root gets those)
     const childOpts = opts
-      ? { ...opts, rootOnDrag: undefined, rootTransform: undefined, depth: depth + 1 }
+      ? {
+          ...opts,
+          rootOnDrag: undefined,
+          rootTransform: undefined,
+          depth: depth + 1,
+        }
       : undefined;
     const renderedChildren = tree.children.map((child) =>
       renderTree(child, childOpts)
@@ -271,7 +271,13 @@ export namespace NoolStageBuilder {
     const zIndex = opts?.flatZIndex ? 0 : depth;
 
     const element = (
-      <g id={tree.id} transform={opts?.rootTransform} data-on-drag={opts?.rootOnDrag || pickUpDrag} data-z-index={zIndex} opacity={opts?.opacity}>
+      <g
+        id={tree.id}
+        transform={opts?.rootTransform}
+        data-on-drag={opts?.rootOnDrag || pickUpDrag}
+        data-z-index={zIndex}
+        opacity={opts?.opacity}
+      >
         <rect
           x={isHole ? 3 : 0}
           y={isHole ? 3 : 0}
@@ -294,7 +300,9 @@ export namespace NoolStageBuilder {
           {tree.label}
         </text>
         {renderedChildren.length > 0 && (
-          <g transform={translate(T_PADDING + T_LABEL_WIDTH + T_GAP, T_PADDING)}>
+          <g
+            transform={translate(T_PADDING + T_LABEL_WIDTH + T_GAP, T_PADDING)}
+          >
             {renderedChildrenElements}
           </g>
         )}
@@ -346,7 +354,10 @@ export namespace NoolStageBuilder {
       gutterItemData.length > 0
         ? _.max(gutterItemData.map((g) => g.size.w))!
         : 0;
-    const gutterContentWidth = Math.max(GUTTER_MIN_WIDTH, maxGutterW + TOOLKIT_PADDING * 2);
+    const gutterContentWidth = Math.max(
+      GUTTER_MIN_WIDTH,
+      maxGutterW + TOOLKIT_PADDING * 2
+    );
 
     let gutterY = BLOCK_GAP;
     const gutterPositions = gutterItemData.map((item) => {
@@ -386,32 +397,34 @@ export namespace NoolStageBuilder {
             matches the placed version (avoids lerp child count mismatch) */}
         {toolkitItemData.map(({ block, expansion }, idx) => (
           <g transform={translate(TOOLKIT_PADDING, toolkitPositions[idx])}>
-            {renderTree(expansion, {
-              pointerEventsNone: true,
-              opacity: holeIds.length > 0 ? undefined : 0.35,
-              rootOnDrag:
-                holeIds.length > 0
-                  ? drag(() => {
-                      // Clone pattern: refresh toolkit slot key
-                      const stateWithout = produce(state, (draft) => {
-                        draft.toolkit[idx].key += "-r";
-                      });
+            {
+              renderTree(expansion, {
+                pointerEventsNone: true,
+                opacity: holeIds.length > 0 ? undefined : 0.35,
+                rootOnDrag:
+                  holeIds.length > 0
+                    ? drag(() => {
+                        // Clone pattern: refresh toolkit slot key
+                        const stateWithout = produce(state, (draft) => {
+                          draft.toolkit[idx].key += "-r";
+                        });
 
-                      const targetStates = holeIds.map((holeId) => ({
-                        ...stateWithout,
-                        tree: replaceNode(
-                          stateWithout.tree,
-                          holeId,
-                          makeExpansion(block.key, block.label)
-                        ),
-                      }));
+                        const targetStates = holeIds.map((holeId) => ({
+                          ...stateWithout,
+                          tree: replaceNode(
+                            stateWithout.tree,
+                            holeId,
+                            makeExpansion(block.key, block.label)
+                          ),
+                        }));
 
-                      return floating(targetStates, {
-                        backdrop: stateWithout,
-                      });
-                    })
-                  : undefined,
-            }).element}
+                        return floating(targetStates, {
+                          backdrop: stateWithout,
+                        });
+                      })
+                    : undefined,
+              }).element
+            }
           </g>
         ))}
 
@@ -432,37 +445,51 @@ export namespace NoolStageBuilder {
 
         {/* Gutter items — rootTransform puts position on the id-bearing element
             so no wrapper <g> is needed (avoids variable child count in lerp) */}
-        {gutterItemData.map(({ block }, idx) =>
-          renderTree(block, {
-            rootTransform: translate(gutterOffsetX + TOOLKIT_PADDING, gutterPositions[idx]),
-            pointerEventsNone: true,
-            flatZIndex: true,
-            rootOnDrag: drag(() => {
-              // Remove from gutter
-              const stateWithout = produce(state, (draft) => {
-                draft.gutter.splice(idx, 1);
-              });
+        {gutterItemData.map(
+          ({ block }, idx) =>
+            renderTree(block, {
+              rootTransform: translate(
+                gutterOffsetX + TOOLKIT_PADDING,
+                gutterPositions[idx]
+              ),
+              pointerEventsNone: true,
+              flatZIndex: true,
+              rootOnDrag: drag(() => {
+                // Remove from gutter
+                const stateWithout = produce(state, (draft) => {
+                  draft.gutter.splice(idx, 1);
+                });
 
-              // Place in any hole in the tree
-              const holes = findAllHoles(stateWithout.tree);
-              const placeTargets = holes.map((hId) => ({
-                ...stateWithout,
-                tree: replaceNode(stateWithout.tree, hId, block),
-              }));
+                // Place in any hole in the tree
+                const holes = findAllHoles(stateWithout.tree);
+                const placeTargets = holes.map((hId) => ({
+                  ...stateWithout,
+                  tree: replaceNode(stateWithout.tree, hId, block),
+                }));
 
-              // Reorder within gutter (includes "put back" at original position)
-              const reorderTargets = gutterInsertionTargets(stateWithout, block);
+                // Reorder within gutter (includes "put back" at original position)
+                const reorderTargets = gutterInsertionTargets(
+                  stateWithout,
+                  block
+                );
 
-              // Erase
-              const eraseState: State = { ...stateWithout, trashed: block };
-              const cleanState: State = { ...stateWithout, trashed: undefined };
+                // Erase
+                const eraseState: State = { ...stateWithout, trashed: block };
+                const cleanState: State = {
+                  ...stateWithout,
+                  trashed: undefined,
+                };
 
-              return floating(
-                [...placeTargets, ...reorderTargets, andThen(eraseState, cleanState)],
-                { backdrop: stateWithout }
-              );
-            }),
-          }).element
+                return floating(
+                  [
+                    ...placeTargets,
+                    ...reorderTargets,
+                    andThen(eraseState, cleanState),
+                  ],
+                  { backdrop: stateWithout }
+                );
+              }),
+            }).element
         )}
 
         {/* Trash zone - subtle indicator to the right */}
