@@ -89,12 +89,26 @@ export function rewr(from: string, to: string): Rewrite {
   };
 }
 
-type Match = Map<string, Tree>;
+export type Match = {
+  wildcards: Map<string, Tree>;
+  ops: Map<string, Tree>;
+};
+
+/**
+ * Check if two trees have the same shape (same labels and children
+ * structure), ignoring IDs. Used to verify that repeated wildcards
+ * in a pattern match compatible subtrees.
+ */
+function structurallyEqual(a: Tree, b: Tree): boolean {
+  if (a.label !== b.label) return false;
+  if (a.children.length !== b.children.length) return false;
+  return a.children.every((c, i) => structurallyEqual(c, b.children[i]));
+}
 
 /**
  * Attempt to match a pattern against a tree. If successful, returns
- * a map from pattern IDs to subtrees of the tree. If not successful,
- * returns null.
+ * a Match with wildcard bindings and op node mappings. If not
+ * successful, returns null.
  */
 function match(pattern: Pattern, tree: Tree, triggerId: string): Match | null {
   const result = matchHelper(pattern, tree, triggerId);
@@ -110,12 +124,17 @@ function matchHelper(
   tree: Tree,
   triggerId: string
 ): { match: Match; isTriggered: boolean } | null {
-  let result = {
-    match: new Map<string, Tree>(),
+  let result: { match: Match; isTriggered: boolean } = {
+    match: { wildcards: new Map(), ops: new Map() },
     isTriggered: !!(pattern.isTrigger && tree.id === triggerId),
   };
   if (isWildcard(pattern)) {
-    result.match.set(pattern.id, tree);
+    const existing = result.match.wildcards.get(pattern.id);
+    if (existing !== undefined) {
+      if (!structurallyEqual(existing, tree)) return null;
+    } else {
+      result.match.wildcards.set(pattern.id, tree);
+    }
     return result;
   } else {
     if (pattern.label !== tree.label) {
@@ -127,17 +146,28 @@ function matchHelper(
     for (let i = 0; i < pattern.children.length; i++) {
       const childPattern = pattern.children[i];
       const childTree = tree.children[i];
-      const childMap = matchHelper(childPattern, childTree, triggerId);
-      if (childMap === null) {
+      const childResult = matchHelper(childPattern, childTree, triggerId);
+      if (childResult === null) {
         return null;
       }
-      for (const [key, value] of childMap.match.entries()) {
-        assert(!result.match.has(key));
-        result.match.set(key, value);
+      // Merge wildcard bindings (repeated wildcards must be structurally equal)
+      for (const [key, value] of childResult.match.wildcards.entries()) {
+        const existing = result.match.wildcards.get(key);
+        if (existing !== undefined) {
+          if (!structurallyEqual(existing, value)) return null;
+        } else {
+          result.match.wildcards.set(key, value);
+        }
       }
-      result.isTriggered = result.isTriggered || childMap.isTriggered;
+      // Merge op bindings (repeated ops just keep first match)
+      for (const [key, value] of childResult.match.ops.entries()) {
+        if (!result.match.ops.has(key)) {
+          result.match.ops.set(key, value);
+        }
+      }
+      result.isTriggered = result.isTriggered || childResult.isTriggered;
     }
-    result.match.set(pattern.id, tree);
+    result.match.ops.set(pattern.id, tree);
     return result;
   }
 }
@@ -152,6 +182,11 @@ let globalIdCounter = 0;
  * For "expanding" rewrites where the RHS has operators that don't exist
  * in the LHS (e.g., `A → (+ (0) A)`), new IDs are generated based on
  * the triggerId. New nodes "emerge from" the trigger conceptually.
+ *
+ * When a wildcard or op appears multiple times in the RHS (e.g.,
+ * distributivity: `(× A (+ B C)) → (+ (× A B) (× A C))`), the first
+ * use gets the original IDs, and subsequent uses are cloned with fresh
+ * IDs and emergeFrom pointing to the originals.
  */
 export function applyRewrite(
   match: Match,
@@ -159,29 +194,51 @@ export function applyRewrite(
   triggerId: string
 ): Tree {
   function generateId(patternId: string): string {
-    // Generate a globally unique ID for a new node, based on the trigger
-    // and the pattern's operator label. Uses a global counter to ensure
-    // uniqueness even if the same rewrite is applied multiple times.
     globalIdCounter++;
     return `${triggerId}-${patternId}-${globalIdCounter}`;
   }
 
+  /** Clone a subtree with fresh IDs, each node emerging from its original. */
+  function cloneWithEmerge(tree: Tree): Tree {
+    return {
+      id: generateId(tree.id),
+      label: tree.label,
+      children: tree.children.map(cloneWithEmerge),
+      emergeFrom: tree.id,
+    };
+  }
+
+  const consumed = new Set<string>();
+
   function build(pattern: Pattern): Tree {
-    const subtree = match.get(pattern.id);
     if (isWildcard(pattern)) {
-      // Wildcards must have been matched
+      const subtree = match.wildcards.get(pattern.id);
       assert(subtree !== undefined);
+      if (consumed.has(pattern.id)) {
+        return cloneWithEmerge(subtree);
+      }
+      consumed.add(pattern.id);
       return subtree;
-    } else if (subtree !== undefined) {
-      // Op node was matched - use its ID (structure-preserving rewrite)
+    }
+    const matchedOp = match.ops.get(pattern.id);
+    if (matchedOp !== undefined) {
+      if (consumed.has("op:" + pattern.id)) {
+        // Second use of this op — new ID, emerging from original
+        return {
+          id: generateId(pattern.id),
+          label: pattern.label,
+          children: pattern.children.map(build),
+          emergeFrom: matchedOp.id,
+        };
+      }
+      consumed.add("op:" + pattern.id);
       return {
-        id: subtree.id,
+        id: matchedOp.id,
         label: pattern.label,
         children: pattern.children.map(build),
       };
     } else {
-      // Op node wasn't matched - generate a new ID (expanding rewrite)
-      // Mark this node as emerging from the trigger element for animation
+      // Op not in match — expanding rewrite, emerge from trigger
       return {
         id: generateId(pattern.id),
         label: pattern.label,

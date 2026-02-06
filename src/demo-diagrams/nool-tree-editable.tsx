@@ -140,6 +140,22 @@ export namespace NoolTreeEditable {
       ],
     },
     {
+      title: <>Distributivity</>,
+      subtitle: <>Distribute</>,
+      rewrites: [
+        rewr("(× A #(+ B C))", "(+ (× A B) (× A C))"),
+        rewr("(× #(+ B C) A)", "(+ (× B A) (× C A))"),
+      ],
+    },
+    {
+      title: <>Distributivity</>,
+      subtitle: <>Factor</>,
+      rewrites: [
+        rewr("#(+ (× A B) (× A C))", "(× A (+ B C))"),
+        rewr("#(+ (× B A) (× C A))", "(× A (+ B C))"),
+      ],
+    },
+    {
       title: <>Associativity</>,
       subtitle: (
         <>
@@ -323,6 +339,9 @@ export namespace NoolTreeEditable {
         "+": <span className="text-red-600 font-bold">+</span>,
         "+1": <span className="text-red-600 font-bold">+</span>,
         "+2": <span className="text-green-600 font-bold">+</span>,
+        "×": <span className="text-purple-600 font-bold">×</span>,
+        "×1": <span className="text-purple-600 font-bold">×</span>,
+        "×2": <span className="text-orange-600 font-bold">×</span>,
       };
       contents = (
         <>
