@@ -23,6 +23,7 @@ export namespace NoolStageBuilder {
   };
 
   const BLOCK_DEFS: { label: string; arity: number }[] = [
+    { label: "→", arity: 2 },
     { label: "+", arity: 2 },
     { label: "×", arity: 2 },
     { label: "-", arity: 1 },
@@ -34,6 +35,10 @@ export namespace NoolStageBuilder {
     { label: "🦠", arity: 0 },
     { label: "🐝", arity: 0 },
   ];
+
+  function isRewriteArrow(label: string): boolean {
+    return label === "→";
+  }
 
   export const state1: State = {
     tree: { id: "root", label: "□", children: [] },
@@ -166,6 +171,8 @@ export namespace NoolStageBuilder {
       opacity?: number;
       // When true, all nodes get z-index 0 (parent drawn on top, captures clicks)
       flatZIndex?: boolean;
+      // When true, this node is inside a rewrite arrow — holes get purple tinting
+      insideArrow?: boolean;
     }
   ): {
     element: Svgx;
@@ -173,6 +180,7 @@ export namespace NoolStageBuilder {
     h: number;
   } {
     const isHole = tree.label === "□";
+    const isArrow = isRewriteArrow(tree.label);
     const depth = opts?.depth ?? 0;
 
     // Children inherit opts but NOT rootOnDrag/rootTransform (only root gets those)
@@ -182,6 +190,7 @@ export namespace NoolStageBuilder {
           rootOnDrag: undefined,
           rootTransform: undefined,
           depth: depth + 1,
+          insideArrow: opts.insideArrow || isArrow,
         }
       : undefined;
     const renderedChildren = tree.children.map((child) =>
@@ -325,9 +334,9 @@ export namespace NoolStageBuilder {
           width={isHole ? w - 6 : w}
           height={isHole ? h - 6 : h}
           rx={rx}
-          stroke={isHole ? "#bbb" : "gray"}
-          strokeWidth={1}
-          fill={isHole ? "#eee" : "transparent"}
+          stroke={isHole ? (opts?.insideArrow ? "#c4b5fd" : "#bbb") : isArrow ? "#7c3aed" : "gray"}
+          strokeWidth={isArrow ? 2 : 1}
+          fill={isHole ? (opts?.insideArrow ? "#ede9fe" : "#eee") : "transparent"}
         />
         <text
           x={T_PADDING + T_LABEL_WIDTH / 2}
@@ -335,7 +344,7 @@ export namespace NoolStageBuilder {
           dominantBaseline="middle"
           textAnchor="middle"
           fontSize={isHole ? 0 : 20}
-          fill={isHole ? "#999" : "black"}
+          fill={isHole ? "#999" : isArrow ? "#7c3aed" : "black"}
           pointerEvents={opts?.pointerEventsNone ? "none" : undefined}
         >
           {tree.label}

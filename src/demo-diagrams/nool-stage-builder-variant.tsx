@@ -23,6 +23,7 @@ export namespace NoolStageBuilderVariant {
   };
 
   const BLOCK_DEFS: { label: string; arity: number }[] = [
+    { label: "→", arity: 2 },
     { label: "+", arity: 2 },
     { label: "×", arity: 2 },
     { label: "-", arity: 1 },
@@ -33,6 +34,10 @@ export namespace NoolStageBuilderVariant {
     { label: "🦠", arity: 0 },
     { label: "🐝", arity: 0 },
   ];
+
+  function isRewriteArrow(label: string): boolean {
+    return label === "→";
+  }
 
   function expectedArity(label: string): number {
     return BLOCK_DEFS.find((d) => d.label === label)?.arity ?? 0;
@@ -217,6 +222,7 @@ export namespace NoolStageBuilderVariant {
       depth?: number;
       opacity?: number;
       flatZIndex?: boolean;
+      insideArrow?: boolean;
     }
   ): {
     element: Svgx;
@@ -224,6 +230,7 @@ export namespace NoolStageBuilderVariant {
     h: number;
   } {
     const isOpNode = isOp(tree.label);
+    const isArrow = isRewriteArrow(tree.label);
     const depth = opts?.depth ?? 0;
     const valid = arityOk(tree);
 
@@ -235,6 +242,7 @@ export namespace NoolStageBuilderVariant {
           rootOnDrag: undefined,
           rootTransform: undefined,
           depth: depth + 1,
+          insideArrow: opts.insideArrow || isArrow,
         }
       : undefined;
     const renderedChildren: { element: Svgx; w: number; h: number }[] = [];
@@ -395,8 +403,14 @@ export namespace NoolStageBuilderVariant {
 
     const zIndex = opts?.flatZIndex ? 0 : depth;
     const ph = isPlaceholder(tree);
-    const strokeColor = ph ? "#bbb" : valid ? "gray" : "#dd3333";
-    const labelColor = ph ? "#999" : valid ? "black" : "#dd3333";
+    const strokeColor = ph
+      ? (opts?.insideArrow ? "#c4b5fd" : "#bbb")
+      : isArrow ? "#7c3aed"
+      : valid ? "gray" : "#dd3333";
+    const labelColor = ph
+      ? "#999"
+      : isArrow ? "#7c3aed"
+      : valid ? "black" : "#dd3333";
     const w = innerW + T_PADDING * 2;
     const h = innerH + T_PADDING * 2;
     const rx = ph
@@ -418,8 +432,8 @@ export namespace NoolStageBuilderVariant {
           height={ph ? h - 6 : h}
           rx={rx}
           stroke={strokeColor}
-          strokeWidth={1}
-          fill={ph ? "#eee" : "transparent"}
+          strokeWidth={isArrow ? 2 : 1}
+          fill={ph ? (opts?.insideArrow ? "#ede9fe" : "#eee") : "transparent"}
         />
         <text
           x={T_PADDING + T_LABEL_WIDTH / 2}
