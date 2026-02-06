@@ -82,19 +82,12 @@ export namespace NoolTreeEditable {
   const rewriteSets: RewriteSet[] = [
     {
       title: <>Identity</>,
-      subtitle: <>0 + a → a</>,
-      rewrites: [
-        rewr("(+ (0) #A)", "A"),
-        rewr("(+ #A (0))", "A"),
-      ],
+      rewrites: [rewr("(+ (0) #A)", "A"), rewr("(+ #A (0))", "A")],
       defaultEnabled: true,
     },
     {
       title: <>Identity (reverse)</>,
-      subtitle: <>a → 0 + a</>,
-      rewrites: [
-        rewr("#A", "(+ (0) A)"),
-      ],
+      rewrites: [rewr("#A", "(+ (0) A)")],
       defaultEnabled: true,
     },
     {
@@ -179,9 +172,9 @@ export namespace NoolTreeEditable {
   };
 
   export const manipulable = configurableManipulable<State, Config>(
-    { defaultConfig, ConfigPanel },
+    { defaultConfig, ConfigPanel, LeftPanel: OperationsPanel },
     (config, { state, drag }) => {
-      return renderTree(state, state, drag, config).element;
+      return renderTree(state, state, drag, config, 0).element;
     }
   );
 
@@ -189,7 +182,8 @@ export namespace NoolTreeEditable {
     state: State,
     tree: Tree,
     drag: Drag<State>,
-    config: Config
+    config: Config,
+    depth: number
   ): {
     element: Svgx;
     w: number;
@@ -202,7 +196,7 @@ export namespace NoolTreeEditable {
     const LABEL_MIN_HEIGHT = 20;
 
     const renderedChildren = tree.children.map((child) =>
-      renderTree(state, child, drag, config)
+      renderTree(state, child, drag, config, depth + 1)
     );
 
     const renderedChildrenElements: Svgx[] = [];
@@ -232,7 +226,11 @@ export namespace NoolTreeEditable {
     const element = (
       <g
         id={tree.id}
-        data-emerge-from={config.enableEmergeAnimation ? tree.emergeFrom : undefined}
+        data-on-drag={drag(() => dragTargets(state, tree.id, config))}
+        data-z-index={depth}
+        data-emerge-from={
+          config.enableEmergeAnimation ? tree.emergeFrom : undefined
+        }
         data-emerge-mode={config.forceTransformScale ? "scale" : undefined}
       >
         {/* Background */}
@@ -244,9 +242,9 @@ export namespace NoolTreeEditable {
           rx={rx}
           stroke="gray"
           strokeWidth={1}
-          fill="none"
+          fill="transparent"
         />
-        {/* Label - draggable text */}
+        {/* Label */}
         <text
           x={PADDING + LABEL_WIDTH / 2}
           y={PADDING + innerH / 2}
@@ -254,7 +252,6 @@ export namespace NoolTreeEditable {
           textAnchor="middle"
           fontSize={20}
           fill="black"
-          data-on-drag={drag(() => dragTargets(state, tree.id, config))}
         >
           {tree.label}
         </text>
@@ -347,7 +344,7 @@ export namespace NoolTreeEditable {
     }
   };
 
-  function ConfigPanel({ config, setConfig }: ConfigPanelProps<Config>) {
+  function OperationsPanel({ config, setConfig }: ConfigPanelProps<Config>) {
     return (
       <>
         {rewriteSets.map((rewriteSet, i) => (
@@ -368,10 +365,17 @@ export namespace NoolTreeEditable {
               </>
             )}
             <br />
-            {rewriteSet.rewrites.length > 0 && drawRewrite(rewriteSet.rewrites[0])}
+            {rewriteSet.rewrites.length > 0 &&
+              drawRewrite(rewriteSet.rewrites[0])}
           </ConfigCheckbox>
         ))}
-        <hr className="my-2 border-gray-300" />
+      </>
+    );
+  }
+
+  function ConfigPanel({ config, setConfig }: ConfigPanelProps<Config>) {
+    return (
+      <>
         <ConfigCheckbox
           value={config.enableEmergeAnimation}
           onChange={(v) => setConfig({ ...config, enableEmergeAnimation: v })}

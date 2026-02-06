@@ -28,7 +28,6 @@ export function Demo<T extends object>({
     padding,
     initialDrawerConfig,
     sourceFile,
-    configPosition = "right",
   } = demoData;
 
   const [snapRadius, setSnapRadius] = useState(
@@ -79,7 +78,19 @@ export function Demo<T extends object>({
         )}
       </div>
       {notes && <div className="mt-2 mb-4 text-sm text-gray-600">{notes}</div>}
-      <div className={`flex flex-col gap-4 md:items-start ${configPosition === "left" ? "md:flex-row-reverse" : "md:flex-row"}`}>
+      <div className="flex flex-col gap-4 md:items-start md:flex-row">
+        {demoData.manipulable.type === "configurable" &&
+          demoData.manipulable.LeftPanel && (
+            <div
+              className="w-64 md:w-56 bg-gray-100 border border-gray-300 rounded-lg px-3 pb-3 flex flex-col gap-2"
+              style={{ paddingTop: padding ?? 12 }}
+            >
+              <demoData.manipulable.LeftPanel
+                config={diagramConfig}
+                setConfig={setDiagramConfig}
+              />
+            </div>
+          )}
         <div className="flex-1 min-w-0" style={{ padding }}>
           {initialStates.map((initialState, idx) => (
             <div key={idx}>
@@ -114,10 +125,12 @@ export function Demo<T extends object>({
         </div>
         <div
           className={`${
-            demoData.manipulable.type === "configurable"
+            demoData.manipulable.type === "configurable" &&
+            !demoData.manipulable.LeftPanel
               ? "w-64 md:w-52"
-              : "w-48 md:w-32"
-          } bg-gray-100 border border-gray-300 rounded-lg p-3 flex flex-col gap-2`}
+              : "w-48 md:w-40"
+          } bg-gray-100 border border-gray-300 rounded-lg px-3 pb-3 flex flex-col gap-2`}
+          style={{ paddingTop: padding ?? 12 }}
         >
           {demoData.manipulable.type === "configurable" && (
             <>

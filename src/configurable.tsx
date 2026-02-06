@@ -8,6 +8,7 @@ export type Configurable<T, Config> = {
 export type ConfigurableProps<Config> = {
   defaultConfig: Config;
   ConfigPanel: React.ComponentType<ConfigPanelProps<Config>>;
+  LeftPanel?: React.ComponentType<ConfigPanelProps<Config>>;
 };
 
 export interface ConfigPanelProps<Config> {
@@ -22,8 +23,7 @@ export function configurable<T, Config>(
   return {
     type: "configurable",
     withConfig,
-    defaultConfig: props.defaultConfig,
-    ConfigPanel: props.ConfigPanel,
+    ...props,
   };
 }
 
