@@ -153,6 +153,9 @@ export namespace NoolStageBuilder {
       pointerEventsNone?: boolean;
       // For toolkit/gutter blocks: attaches drag handler to the root <g>
       rootOnDrag?: ReturnType<Drag<State>>;
+      // Transform applied to the root <g> (puts position on the id-bearing element
+      // so variable-count containers don't need non-id wrapper <g> elements)
+      rootTransform?: string;
       // Depth in tree (for z-index: children drawn on top of parents)
       depth?: number;
       // Visual opacity (applied to the id-bearing <g> so it survives hoisting)
@@ -168,9 +171,9 @@ export namespace NoolStageBuilder {
     const isHole = tree.label === "□";
     const depth = opts?.depth ?? 0;
 
-    // Children inherit opts but NOT rootOnDrag (only root gets it)
+    // Children inherit opts but NOT rootOnDrag/rootTransform (only root gets those)
     const childOpts = opts
-      ? { ...opts, rootOnDrag: undefined, depth: depth + 1 }
+      ? { ...opts, rootOnDrag: undefined, rootTransform: undefined, depth: depth + 1 }
       : undefined;
     const renderedChildren = tree.children.map((child) =>
       renderTree(child, childOpts)
@@ -268,7 +271,7 @@ export namespace NoolStageBuilder {
     const zIndex = opts?.flatZIndex ? 0 : depth;
 
     const element = (
-      <g id={tree.id} data-on-drag={opts?.rootOnDrag || pickUpDrag} data-z-index={zIndex} opacity={opts?.opacity}>
+      <g id={tree.id} transform={opts?.rootTransform} data-on-drag={opts?.rootOnDrag || pickUpDrag} data-z-index={zIndex} opacity={opts?.opacity}>
         <rect
           x={isHole ? 3 : 0}
           y={isHole ? 3 : 0}
@@ -427,40 +430,40 @@ export namespace NoolStageBuilder {
           data-z-index={-10}
         />
 
-        {/* Gutter items */}
-        {gutterItemData.map(({ block }, idx) => (
-          <g transform={translate(gutterOffsetX + TOOLKIT_PADDING, gutterPositions[idx])}>
-            {renderTree(block, {
-              pointerEventsNone: true,
-              flatZIndex: true,
-              rootOnDrag: drag(() => {
-                // Remove from gutter
-                const stateWithout = produce(state, (draft) => {
-                  draft.gutter.splice(idx, 1);
-                });
+        {/* Gutter items — rootTransform puts position on the id-bearing element
+            so no wrapper <g> is needed (avoids variable child count in lerp) */}
+        {gutterItemData.map(({ block }, idx) =>
+          renderTree(block, {
+            rootTransform: translate(gutterOffsetX + TOOLKIT_PADDING, gutterPositions[idx]),
+            pointerEventsNone: true,
+            flatZIndex: true,
+            rootOnDrag: drag(() => {
+              // Remove from gutter
+              const stateWithout = produce(state, (draft) => {
+                draft.gutter.splice(idx, 1);
+              });
 
-                // Place in any hole in the tree
-                const holes = findAllHoles(stateWithout.tree);
-                const placeTargets = holes.map((hId) => ({
-                  ...stateWithout,
-                  tree: replaceNode(stateWithout.tree, hId, block),
-                }));
+              // Place in any hole in the tree
+              const holes = findAllHoles(stateWithout.tree);
+              const placeTargets = holes.map((hId) => ({
+                ...stateWithout,
+                tree: replaceNode(stateWithout.tree, hId, block),
+              }));
 
-                // Reorder within gutter (includes "put back" at original position)
-                const reorderTargets = gutterInsertionTargets(stateWithout, block);
+              // Reorder within gutter (includes "put back" at original position)
+              const reorderTargets = gutterInsertionTargets(stateWithout, block);
 
-                // Erase
-                const eraseState: State = { ...stateWithout, trashed: block };
-                const cleanState: State = { ...stateWithout, trashed: undefined };
+              // Erase
+              const eraseState: State = { ...stateWithout, trashed: block };
+              const cleanState: State = { ...stateWithout, trashed: undefined };
 
-                return floating(
-                  [...placeTargets, ...reorderTargets, andThen(eraseState, cleanState)],
-                  { backdrop: stateWithout }
-                );
-              }),
-            }).element}
-          </g>
-        ))}
+              return floating(
+                [...placeTargets, ...reorderTargets, andThen(eraseState, cleanState)],
+                { backdrop: stateWithout }
+              );
+            }),
+          }).element
+        )}
 
         {/* Trash zone - subtle indicator to the right */}
         <g transform={translate(trashX, trashY)}>
