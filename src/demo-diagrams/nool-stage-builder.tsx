@@ -1,5 +1,15 @@
 // Unified Stage Builder: construct algebraic expressions with holes-based and/or variadic ops.
-// Three toggleable sections: holes ops (◎), variadic ops (⊞), atoms (◆).
+// Three toggleable sections with draggable icons to reorder.
+//
+// TODO: Palette could behave as the same kind of list container as the stage
+// (same rootTransform-based hoisting, same insertion targets). Currently palette
+// items can be reordered and dragged to stage/holes/trash, but brush items can't
+// be dragged directly into the palette. Consider unifying.
+//
+// TODO: "Spring" — when a user drops far below a column, the item should animate
+// into the last slot. This already works via floating-drag proximity, but if the
+// drop point is below the SVG viewport the user can't reach it. May need dynamic
+// SVG height or scroll-into-view behavior.
 
 import { produce } from "immer";
 import _ from "lodash";
@@ -28,6 +38,24 @@ export namespace NoolStageBuilder {
     showAtoms: boolean;
     showHolesOps: boolean;
     showVariadicOps: boolean;
+    sectionOrder: Section[];
+  };
+
+  // # Section metadata
+
+  const SECTION_ICONS: Record<Section, string> = {
+    holes: "◯ →",
+    variadic: "◎ →",
+    atoms: "⊙ →",
+  };
+
+  const SECTION_STATE_KEYS: Record<
+    Section,
+    "showHolesOps" | "showVariadicOps" | "showAtoms"
+  > = {
+    holes: "showHolesOps",
+    variadic: "showVariadicOps",
+    atoms: "showAtoms",
   };
 
   // # Block definitions
@@ -273,15 +301,27 @@ export namespace NoolStageBuilder {
     );
   }
 
+  // Remove bare root-level holes from the stage (leftover after node removal).
+  // Only removes trees whose root is a bare ◯ — not op nodes with hole children
+  // (like +(◯, ◯)) which represent real structure being built.
+  function removeStageHoles(s: State): State {
+    const cleaned = s.trees.filter(
+      (t) => !(t.label === "◯" && t.children.length === 0)
+    );
+    if (cleaned.length === s.trees.length) return s;
+    return { ...s, trees: cleaned };
+  }
+
   // # Initial state
 
   export const state1: State = {
-    trees: [{ id: "root", label: "◯", children: [] }],
+    trees: [],
     toolkit: ALL_TOOLKIT,
     palette: [],
     showAtoms: true,
     showHolesOps: true,
     showVariadicOps: false,
+    sectionOrder: ["holes", "variadic", "atoms"],
   };
 
   // # Tree layout constants
@@ -414,34 +454,36 @@ export namespace NoolStageBuilder {
                 stateWithClone.trees
               ).filter(({ holeId }) => !cloneHoles.has(holeId));
               const holeTargets = availableHoles.map(
-                ({ treeIdx: ti, holeId }) => ({
-                  ...stateWithClone,
-                  trees: replaceInTrees(
-                    stateWithClone.trees,
-                    ti,
-                    holeId,
-                    tree
-                  ),
-                })
+                ({ treeIdx: ti, holeId }) =>
+                  removeStageHoles({
+                    ...stateWithClone,
+                    trees: replaceInTrees(
+                      stateWithClone.trees,
+                      ti,
+                      holeId,
+                      tree
+                    ),
+                  })
               );
               const insertTargets = variadicEnabled
                 ? allInsertionPointsInTrees(stateWithClone.trees).map(
-                    ({ treeIdx: ti, parentId, index }) => ({
-                      ...stateWithClone,
-                      trees: insertInTrees(
-                        stateWithClone.trees,
-                        ti,
-                        parentId,
-                        index,
-                        tree
-                      ),
-                    })
+                    ({ treeIdx: ti, parentId, index }) =>
+                      removeStageHoles({
+                        ...stateWithClone,
+                        trees: insertInTrees(
+                          stateWithClone.trees,
+                          ti,
+                          parentId,
+                          index,
+                          tree
+                        ),
+                      })
                   )
                 : [];
               const paletteTargets = paletteInsertionTargets(
                 stateWithClone,
                 tree
-              );
+              ).map(removeStageHoles);
               return floating(
                 [
                   ...holeTargets,
@@ -473,23 +515,26 @@ export namespace NoolStageBuilder {
             const allHoles = findAllHolesInTrees(stateWithout.trees).filter(
               ({ holeId }) => holeId !== pickupHoleId
             );
-            const holeTargets = allHoles.map(({ treeIdx: ti, holeId }) => ({
-              ...stateWithout,
-              trees: replaceInTrees(stateWithout.trees, ti, holeId, tree),
-            }));
+            const holeTargets = allHoles.map(({ treeIdx: ti, holeId }) =>
+              removeStageHoles({
+                ...stateWithout,
+                trees: replaceInTrees(stateWithout.trees, ti, holeId, tree),
+              })
+            );
 
             const insertTargets = variadicEnabled
               ? allInsertionPointsInTrees(stateWithout.trees).map(
-                  ({ treeIdx: ti, parentId, index }) => ({
-                    ...stateWithout,
-                    trees: insertInTrees(
-                      stateWithout.trees,
-                      ti,
-                      parentId,
-                      index,
-                      tree
-                    ),
-                  })
+                  ({ treeIdx: ti, parentId, index }) =>
+                    removeStageHoles({
+                      ...stateWithout,
+                      trees: insertInTrees(
+                        stateWithout.trees,
+                        ti,
+                        parentId,
+                        index,
+                        tree
+                      ),
+                    })
                 )
               : [];
 
@@ -513,7 +558,7 @@ export namespace NoolStageBuilder {
             const paletteTargets = paletteInsertionTargets(
               stateWithout,
               tree
-            );
+            ).map(removeStageHoles);
             const eraseState: State = { ...stateWithout, trashed: tree };
             const cleanState: State = {
               ...stateWithout,
@@ -527,7 +572,10 @@ export namespace NoolStageBuilder {
                 ...swapTargets,
                 ...paletteTargets,
                 fullState,
-                andThen(eraseState, cleanState),
+                andThen(
+                  removeStageHoles(eraseState),
+                  removeStageHoles(cleanState)
+                ),
               ],
               { backdrop: stateWithout }
             );
@@ -607,10 +655,9 @@ export namespace NoolStageBuilder {
   const PALETTE_MIN_WIDTH = 46;
   const STAGE_MIN_WIDTH = 46;
   const TRASH_SIZE = 30;
-  const BRUSH_PREFIX_W = 22;
   const SECTION_GAP = 12;
   const ICON_FONT_SIZE = 14;
-  const ICON_COL_WIDTH = LANE_PADDING * 2 + ICON_FONT_SIZE;
+  const ICON_COL_WIDTH = 48;
 
   // # Manipulable
 
@@ -619,7 +666,7 @@ export namespace NoolStageBuilder {
     drag,
     setState,
   }) => {
-    // Filter toolkit items by active sections
+    // Filter toolkit items by active sections, ordered by sectionOrder
     const visibleItems = state.toolkit.filter(
       (b) =>
         (b.section === "atoms" && state.showAtoms) ||
@@ -627,8 +674,7 @@ export namespace NoolStageBuilder {
         (b.section === "variadic" && state.showVariadicOps)
     );
 
-    // Group by section order with gaps between sections
-    const sectionOrder: Section[] = ["holes", "variadic", "atoms"];
+    const sectionOrder = state.sectionOrder;
     const orderedItems: { block: ToolkitBlock; sectionStart: boolean }[] = [];
     let firstSection = true;
     for (const sec of sectionOrder) {
@@ -659,8 +705,7 @@ export namespace NoolStageBuilder {
       brushKitItemData.length > 0
         ? _.max(brushKitItemData.map((t) => t.size.w))!
         : 30;
-    const brushKitWidth =
-      LANE_PADDING + BRUSH_PREFIX_W + brushKitContentW + LANE_PADDING;
+    const brushKitWidth = LANE_PADDING + brushKitContentW + LANE_PADDING;
 
     let brushKitY = LANE_PADDING;
     const brushKitPositions = brushKitItemData.map((item) => {
@@ -671,17 +716,19 @@ export namespace NoolStageBuilder {
     });
     const brushKitHeight = brushKitY + LANE_PADDING - BLOCK_GAP;
 
-    const allHoles = findAllHolesInTrees(state.trees);
-    const hasHoles = allHoles.length > 0;
-    const allInsertPts = allInsertionPointsInTrees(state.trees);
+    // Section dividers (thin horizontal lines between sections)
+    const brushDividers: { id: string; y: number }[] = [];
+    brushKitItemData.forEach((item, idx) => {
+      if (item.sectionStart) {
+        brushDividers.push({
+          id: `brush-div-${brushDividers.length}`,
+          y: brushKitPositions[idx] - (BLOCK_GAP + SECTION_GAP) / 2,
+        });
+      }
+    });
 
-    function itemHasTargets(block: ToolkitBlock): boolean {
-      if (block.section === "holes") return hasHoles;
-      if (block.section === "variadic")
-        return allInsertPts.length > 0;
-      // atoms: can fill holes, insert variadically, or create new stage tree
-      return hasHoles || allInsertPts.length > 0 || true;
-    }
+    const allHoles = findAllHolesInTrees(state.trees);
+    const allInsertPts = allInsertionPointsInTrees(state.trees);
 
     // -- Palette layout --
     const paletteItems = state.palette.map((block) => ({
@@ -748,67 +795,44 @@ export namespace NoolStageBuilder {
     const sep2X = paletteX + paletteWidth + COL_GAP / 2;
     const sep3X = stageX + stageWidth + COL_GAP / 2;
 
-    // -- Icon column layout --
-    const iconDefs: {
-      id: string;
-      icon: string;
-      active: boolean;
-      stateKey: "showHolesOps" | "showVariadicOps" | "showAtoms";
-    }[] = [
-      {
-        id: "icon-holes",
-        icon: "◎",
-        active: state.showHolesOps,
-        stateKey: "showHolesOps",
-      },
-      {
-        id: "icon-variadic",
-        icon: "⊞",
-        active: state.showVariadicOps,
-        stateKey: "showVariadicOps",
-      },
-      {
-        id: "icon-atoms",
-        icon: "◆",
-        active: state.showAtoms,
-        stateKey: "showAtoms",
-      },
-    ];
+    // -- Icon column: click-to-toggle section icons --
+    const iconDefs = sectionOrder.map((section, idx) => {
+      const stateKey = SECTION_STATE_KEYS[section];
+      return {
+        id: `icon-${section}`,
+        icon: SECTION_ICONS[section],
+        active: state[stateKey],
+        stateKey,
+        y:
+          LANE_PADDING +
+          idx * (ICON_FONT_SIZE + BLOCK_GAP) +
+          ICON_FONT_SIZE / 2,
+      };
+    });
 
     return (
       <g>
-        {/* CSS for hover-reveal on brush prefixes and icon hover */}
+        {/* CSS for icon hover */}
         <defs>
           <style>{`
-            [id^="brush-prefix-"] {
-              opacity: 0;
-              transition: opacity 0.15s;
-            }
-            [data-brush-item]:hover [id^="brush-prefix-"] {
-              opacity: 0.6;
-            }
-            [data-section-icon] {
+            [data-section-active], [data-section-inactive] {
               transition: fill 0.1s;
+              cursor: pointer;
             }
-            [data-section-icon]:hover {
-              fill: #333 !important;
+            [data-section-active]:hover {
+              fill: #111 !important;
+            }
+            [data-section-inactive]:hover {
+              fill: #999 !important;
             }
           `}</style>
         </defs>
 
-        {/* Icon column */}
-        {iconDefs.map(({ id, icon, active, stateKey }, idx) => (
-          <text
+        {/* Icon column — click to toggle sections */}
+        {iconDefs.map(({ id, icon, active, stateKey, y }) => (
+          <g
             id={id}
-            x={iconsX + ICON_COL_WIDTH / 2}
-            y={LANE_PADDING + idx * (ICON_FONT_SIZE + BLOCK_GAP) + ICON_FONT_SIZE / 2}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={ICON_FONT_SIZE}
-            fill={active ? "#999" : "#ccc"}
-            style={{ cursor: "pointer" }}
-            data-section-icon={true}
-            data-z-index={-5}
+            transform={translate(iconsX + LANE_PADDING, y)}
             onClick={() =>
               setState(
                 { ...state, [stateKey]: !active },
@@ -816,13 +840,29 @@ export namespace NoolStageBuilder {
               )
             }
           >
-            {icon}
-          </text>
+            <text
+              textAnchor="start"
+              dominantBaseline="middle"
+              fontSize={ICON_FONT_SIZE}
+              fill={active ? "#333" : "#ccc"}
+              {...(active
+                ? { "data-section-active": true }
+                : { "data-section-inactive": true })}
+            >
+              {icon}
+            </text>
+          </g>
         ))}
 
         {/* Separator lines */}
         {[
-          { x: sep0X, h: Math.max(brushKitHeight, ICON_FONT_SIZE * 3 + BLOCK_GAP * 2 + LANE_PADDING * 2) },
+          {
+            x: sep0X,
+            h: Math.max(
+              brushKitHeight,
+              ICON_FONT_SIZE * 3 + BLOCK_GAP * 2 + LANE_PADDING * 2
+            ),
+          },
           { x: sep1X, h: Math.max(brushKitHeight, paletteHeight) },
           { x: sep2X, h: Math.max(paletteHeight, stageHeight) },
           { x: sep3X, h: Math.max(stageHeight, TRASH_SIZE) },
@@ -840,91 +880,91 @@ export namespace NoolStageBuilder {
           />
         ))}
 
+        {/* Section dividers (horizontal lines between brush kit sections) */}
+        {brushDividers.map(({ id, y }) => (
+          <line
+            id={id}
+            x1={brushKitX + LANE_PADDING}
+            y1={y}
+            x2={brushKitX + brushKitWidth - LANE_PADDING}
+            y2={y}
+            stroke="#ddd"
+            strokeWidth={1}
+            data-z-index={-10}
+          />
+        ))}
+
         {/* Brush kit items */}
-        {brushKitItemData.map(({ block, displayTree, size }, idx) => {
+        {brushKitItemData.map(({ block, displayTree }, idx) => {
           const toolkitIdx = state.toolkit.indexOf(block);
-          const hasTargets = itemHasTargets(block);
 
           return (
             <g
               id={`brush-item-${block.key}`}
-              transform={translate(brushKitX + LANE_PADDING, brushKitPositions[idx])}
-              data-brush-item={true}
+              transform={translate(
+                brushKitX + LANE_PADDING,
+                brushKitPositions[idx]
+              )}
             >
-              <text
-                x={BRUSH_PREFIX_W / 2}
-                y={size.h / 2}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={11}
-                fill="#ccc"
-                id={`brush-prefix-${block.key}`}
-                data-z-index={-5}
-              >
-                ◯&nbsp;→&nbsp;&nbsp;&nbsp;
-              </text>
-              <g transform={translate(BRUSH_PREFIX_W, 0)}>
-                {
-                  renderTree(displayTree, {
-                    pointerEventsNone: true,
-                    opacity: hasTargets ? undefined : 0.35,
-                    rootOnDrag: hasTargets
-                      ? drag(() => {
-                          const stateWithout = produce(state, (draft) => {
-                            draft.toolkit[toolkitIdx].key += "-r";
-                          });
-                          const node = makeNodeForItem(block);
+              {
+                renderTree(displayTree, {
+                  pointerEventsNone: true,
+                  rootOnDrag: drag(() => {
+                    const stateWithout = produce(state, (draft) => {
+                      draft.toolkit[toolkitIdx].key += "-r";
+                    });
+                    const node = makeNodeForItem(block);
 
-                          // Hole targets (for any section)
-                          const holeTargets = allHoles.map(
-                            ({ treeIdx, holeId }) => ({
-                              ...stateWithout,
-                              trees: replaceInTrees(
-                                stateWithout.trees,
-                                treeIdx,
-                                holeId,
-                                node
-                              ),
-                            })
-                          );
-
-                          // Variadic insertion targets
-                          const insertTargets =
-                            block.section === "variadic" ||
-                            block.section === "atoms"
-                              ? allInsertPts.map(
-                                  ({ treeIdx, parentId, index }) => ({
-                                    ...stateWithout,
-                                    trees: insertInTrees(
-                                      stateWithout.trees,
-                                      treeIdx,
-                                      parentId,
-                                      index,
-                                      node
-                                    ),
-                                  })
-                                )
-                              : [];
-
-                          // Stage insertion targets (add as new tree)
-                          const stageTargets = stageInsertionTargets(
-                            stateWithout,
+                    // Hole targets (for any section)
+                    const holeTargets = allHoles.map(
+                      ({ treeIdx, holeId }) =>
+                        removeStageHoles({
+                          ...stateWithout,
+                          trees: replaceInTrees(
+                            stateWithout.trees,
+                            treeIdx,
+                            holeId,
                             node
-                          );
-
-                          return floating(
-                            [
-                              ...holeTargets,
-                              ...insertTargets,
-                              ...stageTargets,
-                            ],
-                            { backdrop: stateWithout }
-                          );
+                          ),
                         })
-                      : undefined,
-                  }).element
-                }
-              </g>
+                    );
+
+                    // Variadic insertion targets
+                    const insertTargets =
+                      block.section === "variadic" ||
+                      block.section === "atoms"
+                        ? allInsertPts.map(
+                            ({ treeIdx, parentId, index }) =>
+                              removeStageHoles({
+                                ...stateWithout,
+                                trees: insertInTrees(
+                                  stateWithout.trees,
+                                  treeIdx,
+                                  parentId,
+                                  index,
+                                  node
+                                ),
+                              })
+                          )
+                        : [];
+
+                    // Stage insertion targets (add as new tree)
+                    const stageTargets = stageInsertionTargets(
+                      stateWithout,
+                      node
+                    ).map(removeStageHoles);
+
+                    return floating(
+                      [
+                        ...holeTargets,
+                        ...insertTargets,
+                        ...stageTargets,
+                      ],
+                      { backdrop: stateWithout }
+                    );
+                  }),
+                }).element
+              }
             </g>
           );
         })}
@@ -945,15 +985,16 @@ export namespace NoolStageBuilder {
                 });
                 const holes = findAllHolesInTrees(stateWithClone.trees);
                 const placeTargets = holes.map(
-                  ({ treeIdx: ti, holeId }) => ({
-                    ...stateWithClone,
-                    trees: replaceInTrees(
-                      stateWithClone.trees,
-                      ti,
-                      holeId,
-                      block
-                    ),
-                  })
+                  ({ treeIdx: ti, holeId }) =>
+                    removeStageHoles({
+                      ...stateWithClone,
+                      trees: replaceInTrees(
+                        stateWithClone.trees,
+                        ti,
+                        holeId,
+                        block
+                      ),
+                    })
                 );
                 const palTargets = paletteInsertionTargets(
                   stateWithClone,
@@ -962,7 +1003,7 @@ export namespace NoolStageBuilder {
                 const stageTargets = stageInsertionTargets(
                   stateWithClone,
                   block
-                );
+                ).map(removeStageHoles);
                 return floating(
                   [...placeTargets, ...palTargets, ...stageTargets, state],
                   { backdrop: stateWithClone }
@@ -974,21 +1015,25 @@ export namespace NoolStageBuilder {
               });
               const holes = findAllHolesInTrees(stateWithout.trees);
               const placeTargets = holes.map(
-                ({ treeIdx: ti, holeId }) => ({
-                  ...stateWithout,
-                  trees: replaceInTrees(
-                    stateWithout.trees,
-                    ti,
-                    holeId,
-                    block
-                  ),
-                })
+                ({ treeIdx: ti, holeId }) =>
+                  removeStageHoles({
+                    ...stateWithout,
+                    trees: replaceInTrees(
+                      stateWithout.trees,
+                      ti,
+                      holeId,
+                      block
+                    ),
+                  })
               );
               const reorderTargets = paletteInsertionTargets(
                 stateWithout,
                 block
               );
-              const stageTargets = stageInsertionTargets(stateWithout, block);
+              const stageTargets = stageInsertionTargets(
+                stateWithout,
+                block
+              ).map(removeStageHoles);
               const eraseState: State = { ...stateWithout, trashed: block };
               const cleanState: State = {
                 ...stateWithout,
@@ -999,7 +1044,10 @@ export namespace NoolStageBuilder {
                   ...placeTargets,
                   ...reorderTargets,
                   ...stageTargets,
-                  andThen(eraseState, cleanState),
+                  andThen(
+                    removeStageHoles(eraseState),
+                    removeStageHoles(cleanState)
+                  ),
                 ],
                 { backdrop: stateWithout }
               );

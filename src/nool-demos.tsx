@@ -1,5 +1,4 @@
 import { NoolStageBuilder } from "./demo-diagrams/nool-stage-builder";
-import { NoolStageBuilderVariant } from "./demo-diagrams/nool-stage-builder-variant";
 import { NoolTreeEditable } from "./demo-diagrams/nool-tree-editable";
 import { NoolTreeMacro } from "./demo-diagrams/nool-tree-macro";
 import { demoData, SomeDemoData } from "./demos";
@@ -9,12 +8,12 @@ import { demoData, SomeDemoData } from "./demos";
 export const noolDemos: SomeDemoData[] = [
   demoData({
     id: "nool-stage-builder",
-    title: "Stage Builder (Holes)",
+    title: "Stage Builder",
     notes: (
       <>
-        Build algebraic expressions from scratch. Drag blocks from the toolkit
-        onto holes (◯). Grab placed nodes to move them, to swap siblings, or
-        drag away toerase.
+        Build algebraic expressions from scratch. Toggle modes with the icons:
+        ◎ holes ops, ⊞ variadic ops, ◆ atoms. Drag blocks onto the stage,
+        grab placed nodes to move or swap them, or drag away to erase.
       </>
     ),
     manipulable: NoolStageBuilder.manipulable,
@@ -22,21 +21,6 @@ export const noolDemos: SomeDemoData[] = [
     height: 550,
     padding: 20,
     sourceFile: "nool-stage-builder.tsx",
-  }),
-  demoData({
-    id: "nool-stage-builder-variant",
-    title: "Stage Builder (Variadic)",
-    notes: (
-      <>
-        Operators will tolerate any number of children, but will be angry (red)
-        until their arity matches. Drag blocks into any op's child list.
-      </>
-    ),
-    manipulable: NoolStageBuilderVariant.manipulable,
-    initialStates: [NoolStageBuilderVariant.state1],
-    height: 550,
-    padding: 20,
-    sourceFile: "nool-stage-builder-variant.tsx",
   }),
   demoData({
     id: "nool-tree",
