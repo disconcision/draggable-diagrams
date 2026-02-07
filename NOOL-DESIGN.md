@@ -35,8 +35,8 @@ Start with a fixed grammar:
 
 Construction model:
 - Start with a **hole** (non-terminal)
-- Have a **toolkit/palette** of blocks (operations and atoms)
-- Drag blocks from toolkit onto holes to build up expressions
+- Have a **brushes** column of blocks (operations and atoms)
+- Drag blocks from brushes onto holes to build up expressions
 - When an operation is placed, it creates new holes for its operands
 
 ### UX Goals
@@ -72,7 +72,7 @@ LHS  →  RHS
 Use the same block-based UI as the Stage Builder:
 - The `→` (or `↔` for bidirectional) is an operation
 - LHS and RHS are expression slots
-- Build patterns using the same toolkit
+- Build patterns using the same brushes
 
 This means rules are just another kind of "expression" to construct.
 
@@ -136,8 +136,8 @@ Eventually: outputs from builders feed into Nool proper.
 
 ### Phase 2: Stage Builder
 - [ ] Study relevant demos (insert-and-remove, list-of-lists, etc.)
-- [ ] Design the "toolkit" UI
-- [ ] Implement drag-from-toolkit-to-hole interaction
+- [ ] Design the brushes UI
+- [ ] Implement drag-from-brushes-to-hole interaction
 - [ ] Nice expand-on-hover animations
 
 ### Phase 3: Rule Builder
@@ -156,7 +156,7 @@ Eventually: outputs from builders feed into Nool proper.
 
 | Demo | Relevant Aspect |
 |------|-----------------|
-| `insert-and-remove` | **KEY** - Has toolkit/store, items clone when dragged out |
+| `insert-and-remove` | **KEY** - Has brushes/store, items clone when dragged out |
 | `list-of-lists` | Floating pattern, moving between containers, `produceAmb` |
 | `perm-floating` | Simple floating reorder pattern |
 | `todo` | Uses `setState` directly for input, has Add button |
@@ -183,7 +183,7 @@ const statesWith = produceAmb(stateWithout, (draft) => {
 return floating(statesWith, { backdrop: stateWithout });
 ```
 
-This is the **toolkit pattern**: drag from palette, item stays in palette (cloned).
+This is the **brush pattern**: drag from brushes, item stays in brushes (cloned).
 
 ### `outline` (Tree Insertion)
 ```typescript
@@ -219,7 +219,7 @@ Options:
 
 Recommendation: Start with **explicit holes**. A hole is a leaf node that can accept operations or atoms.
 
-### Stage Builder: What's in the toolkit?
+### Stage Builder: What's in the brushes?
 - Binary operations: `+`, `×`
 - Atoms: A fixed set of emoji/variables
 - Maybe unary: `-` (negation)
@@ -230,7 +230,7 @@ Each is a "template" that gets cloned when dragged (like `insert-and-remove`).
 Start with **direct construction**. It's simpler and reuses Stage Builder patterns.
 - `→` is just another operation (binary, takes two expression slots)
 - LHS and RHS start as holes
-- Build both sides using the same toolkit
+- Build both sides using the same brushes
 
 Macro recording is interesting but adds complexity (need "free manipulation" mode).
 
@@ -263,7 +263,7 @@ Tried giving holes persistent IDs (swapping a hole's ID to the vacated position 
 
 ### Drop offside / "islands" for multi-step edits
 
-Associativity-style transforms require restructuring the tree, which means parking atoms temporarily while rearranging operator boundaries. Currently the only place to park is the toolkit (far away) or trash (destructive). An "islands" feature — drop elements offside, nearby, temporarily — would make multi-step edits less painful. Related to Josh's islands work.
+Associativity-style transforms require restructuring the tree, which means parking atoms temporarily while rearranging operator boundaries. Currently the only place to park is the brushes column (far away) or void (destructive). An "islands" feature — drop elements offside, nearby, temporarily — would make multi-step edits less painful. Related to Josh's islands work.
 
 ### Variable arity as an alternative to holes
 
@@ -272,8 +272,8 @@ Instead of fixed-arity operators with holes, operators could take variable-lengt
 ### Freeform root vs. placeholder root
 
 Two approaches for what you start with in the variable-arity builder:
-1. **Placeholder root** (current): Start with a single hole/placeholder. Toolkit or gutter items can replace it. Guarantees you always have a well-formed root before adding children. Simpler mental model.
-2. **Freeform root**: Start with nothing. Dragging a block creates the root directly. Would need a "no tree yet" state and special handling for the first drop. More flexible but adds edge cases (what does the empty canvas look like? what happens when you trash the root?). Deferred in favor of placeholder approach.
+1. **Placeholder root** (current): Start with a single hole/placeholder. Brush or palette items can replace it. Guarantees you always have a well-formed root before adding children. Simpler mental model.
+2. **Freeform root**: Start with nothing. Dragging a block creates the root directly. Would need a "no tree yet" state and special handling for the first drop. More flexible but adds edge cases (what does the empty canvas look like? what happens when you void the root?). Deferred in favor of placeholder approach.
 
 ### Stage Builder and Rewrite Builder may converge
 
@@ -367,7 +367,7 @@ The root has no special status in the rewrite system. It's only special-cased in
 ### Remaining design tensions
 
 - **IDs encode initial position but mean identity**: `"root-1-2"` suggests a position but the node keeps this ID when moved elsewhere. Not wrong, just potentially confusing.
-- **Ad-hoc ID generation**: Initial states use hand-written path IDs, toolkit uses `"tk-N"` with refresh suffixes, placeholders use `"placeholder-N"` with global counter, rewrites use `"${triggerId}-${patternId}-${counter}"`. No unified scheme.
+- **Ad-hoc ID generation**: Initial states use hand-written path IDs, brushes use `"tk-N"` with refresh suffixes, placeholders use `"placeholder-N"` with global counter, rewrites use `"${triggerId}-${patternId}-${counter}"`. No unified scheme.
 - **Pattern IDs become tree IDs**: When a rewrite is applied, the result tree contains a mix of original tree IDs (from wildcards) and pattern-derived IDs (from new/reused ops). These live in the same namespace without collision guarantees across multiple rewrite applications.
 
 ---
@@ -411,23 +411,25 @@ Likely implementation-path artifact rather than a deliberate decision. The stage
 
 - **Wildcard matching is too broad**: The current erase rule `#A → □` matches ANY node, not just filled positions. Would need guard conditions or a more refined pattern language.
 - **Performance**: `allPossibleRewrites` walks the whole tree for each rule. Direct manipulation knows exactly which holes exist.
-- **Trigger semantics differ**: In the stage builder, you drag FROM the toolkit TO a hole. In the rewrite system, you drag a node IN the tree. The interaction models are different.
-- **The toolkit is a UI concept, not a rule concept**: Rewrites don't naturally express "this item comes from a palette and the palette item is cloned."
+- **Trigger semantics differ**: In the stage builder, you drag FROM the brushes TO a hole. In the rewrite system, you drag a node IN the tree. The interaction models are different.
+- **Brushes are a UI concept, not a rule concept**: Rewrites don't naturally express "this item comes from a palette and the palette item is cloned."
 
 ### Possible hybrid
 
-Express the *data model* in terms of rewrites (the rules exist as `Rewrite` objects, the grammar is a rule set) but keep the *interaction model* as-is (toolkit drag, direct state computation). The rules would be the source of truth for what operations are available, but the drag handlers would still compute targets directly rather than calling `allPossibleRewrites`.
+Express the *data model* in terms of rewrites (the rules exist as `Rewrite` objects, the grammar is a rule set) but keep the *interaction model* as-is (brush drag, direct state computation). The rules would be the source of truth for what operations are available, but the drag handlers would still compute targets directly rather than calling `allPossibleRewrites`.
 
 ---
 
-## Terminology (evolving)
+## Terminology
 
-| Old term | New term | Notes |
-|----------|----------|-------|
-| Toolkit | Brush kit | The palette of available blocks/operations |
+| Old term | Canonical term | Notes |
+|----------|---------------|-------|
+| Toolkit / brush kit | Brushes | The column of available blocks/operations |
 | Toolkit item | Brush | A single block type (op or atom) |
 | Gutter | Palette | Parking area for temporarily displaced subtrees |
-| (unnamed) | (TBD) | The set of expansion rules defining available brushes |
+| Sections | Buckets | Categories of brush items (holes ops, variadic ops, atoms) |
+| Trash | Void | Discard zone |
+| Nool kit | Nolkit | Collective term for all non-stage stuff |
 
 ---
 
@@ -438,11 +440,11 @@ Express the *data model* in terms of rewrites (the rules exist as `Rewrite` obje
 All containers in the UI are vertical lanes of expressions, separated by thin vertical lines. No boxy backgrounds — just content columns with subtle separators.
 
 Lanes (left to right):
-1. **Icon column** — mode toggles and actions (small rounded-corner squares with abstract symbols)
-2. **Brush kit** (was "toolkit") — available blocks/operations. Drag from here creates a clone (productive). Relatively fixed/stable content.
+1. **Menu** — mode toggles and actions (small rounded-corner squares with abstract symbols)
+2. **Brushes** (was "toolkit") — available blocks/operations. Drag from here creates a clone (productive). Relatively fixed/stable content.
 3. **Palette** (was "gutter") — parking/inventory for composite structures. Short-to-mid-term storage. Move semantics (not clone).
 4. **Stage** (was "tree") — now a **list of trees**, not a single tree. Persistent things you're actively modifying. Each tree independently supports rewrite-rule drags. Cross-tree dragging is allowed.
-5. **Trash** — accepts drops for deletion.
+5. **Void** — accepts drops for deletion.
 
 ### Visual treatment
 
@@ -452,13 +454,13 @@ Lanes (left to right):
 - No background rectangles
 - Label above relevant column when a mode is active (e.g., "Transform" or "Construct" in small gray text)
 
-### Brush kit items are rewrite rules
+### Brushes are rewrite rules
 
 Each brush is actually a rewrite rule: `□ → (+ □ □)`, `□ → ⛅`, etc. The UI renders only the RHS by default. A subtle faded `□→` prefix to the left of each brush communicates the rule nature without being noisy. This prefix could become more visible on hover.
 
 This means the "grammar" (available operations and their arities) is defined by a set of rewrite rules, not a hardcoded array. This enables:
 - Editing the grammar = editing the rule set
-- Sharing rules between brush kit and other lanes
+- Sharing rules between brushes and other lanes
 - Recording new brush rules via the macro recorder
 
 ### Mode system
@@ -476,7 +478,7 @@ The **Record** function is orthogonal — you can record in either mode. When re
 - Stopping recording derives a rewrite rule from the before/after diff
 - The derived rule appears as a new entry in the stage
 
-### Icon column
+### Menu column
 
 Three icons initially:
 - Transform mode toggle
@@ -496,7 +498,7 @@ These could be a mode toggle. History mode deferred for now.
 ### Interaction precedence for applying transforms
 
 1. **Direct manipulation (primary)** — drag on syntax in-stage to apply rewrite rules. Used for rules where the manifold/snap interaction works (no conflicts, spatially distinguishable targets).
-2. **Drag-from-kit** — drag a rule from the brush kit/palette to a target in the stage. Used when direct manipulation is ambiguous or unavailable.
+2. **Drag-from-brushes** — drag a rule from the brushes/palette to a target in the stage. Used when direct manipulation is ambiguous or unavailable.
 3. **Selection + click (future)** — select a subtree, then click a rule to apply. Most general but most steps. Needed for keyboard/D-pad navigation.
 
 ### Future items (noted)
@@ -509,38 +511,76 @@ These could be a mode toggle. History mode deferred for now.
 
 ### Terminology
 
-| Old term | New term | Description |
-|----------|----------|-------------|
-| Toolkit | Brush kit | Available blocks/operations (clones on drag) |
+| Old term | Canonical term | Description |
+|----------|---------------|-------------|
+| Toolkit / brush kit | Brushes | Available blocks/operations (clones on drag) |
 | Toolkit item | Brush | A single block type or expansion rule |
 | Gutter | Palette | Parking/inventory for displaced subtrees |
 | Tree area | Stage | Active expressions being worked on (now a list) |
 | (new) | Lane | Any vertical column of expressions |
-| (new) | Nool kit | The overall UI structure containing all lanes |
+| Nool kit | Nolkit | All non-stage stuff (menu + brushes + palette) |
+| Sections | Buckets | Categories of brush items |
+| Trash | Void | Discard zone |
 
 ---
 
 ## Vocabulary
 
-Consolidated terminology for the Nool system. Canonical names with notes on code-level renames still pending.
+Consolidated terminology for the Nool system.
 
-- **Columns** / **lanes** — the vertical layout units separated by divider lines. The fundamental spatial organizing concept.
-- **Section icons** / **menu** — the leftmost column with toggle/reorder icons (`◯→`, `◎→`, `⊙→`). Name TBD. Contains folder toggles and action buttons.
-- **Brushes** / **brush kit** — the source items column. Drag from here creates a clone (productive). Currently `toolkit` / `ToolkitBlock` in code — rename to `brushes` / `BrushBlock` pending.
+- **Lanes** — the vertical layout units separated by divider lines. The fundamental spatial organizing concept.
+- **Menu** — the leftmost column with toggle/reorder icons (`◯→`, `◎→`, `⊙→`). Placeholder name, looking for better. Contains folder toggles and action buttons.
+- **Brushes** — the source items column. Drag from here creates a clone (productive).
 - **Palette** — the holding area between brushes and stage. Collapsible (see "Collapsible Palette" section). Move semantics, not clone.
 - **Stage** — where expressions are built and manipulated. Contains a list of trees (`trees: Tree[]`).
-- **Trash** — discard zone. Currently a bare floating icon.
-- **Nool kit** — collective term for all non-stage columns (section icons + brushes + palette). Everything that could optionally be hidden to give a "clean stage" view.
-- **Sections** — the three categories of brush items: holes ops, variadic ops, atoms. Each section is a collapsible folder in the brush kit.
+- **Void** — discard zone. Currently a bare floating icon.
+- **Nolkit** — collective term for all non-stage stuff (menu + brushes + palette). Everything that could optionally be hidden to give a "clean stage" view. One word, like "toolkit" — N-O-L-K-I-T.
+- **Buckets** — the categories of brush items: holes ops, variadic ops, atoms. Each bucket is a collapsible folder in the brushes column.
 
-### Code renames pending
+### Code renames — Done (this session)
 
-| Current code name | Target name | Where |
-|-------------------|-------------|-------|
-| `ToolkitBlock` | `BrushBlock` | Type definition and all usages |
-| `toolkit` (state field) | `brushes` | State type and all references |
-| `renderToolkitBlock` | `renderBrushBlock` | Render function |
-| `toolkitX` / `toolkitLaneX` | `brushesX` / `brushLaneX` | Layout constants |
+| Current | New |
+|---------|-----|
+| `ToolkitBlock` | `BrushBlock` |
+| `toolkit` (state field) | `brushes` |
+| `Section` (type) | `Bucket` |
+| `sectionOrder` | `bucketOrder` |
+| `SECTION_*` constants | `BUCKET_*` |
+| `ICON_*` constants | `MENU_*` |
+| `TRASH_SIZE` | `VOID_SIZE` |
+| `trashed` | `voided` |
+| `brushKit*` variables | `brushes*` |
+
+---
+
+## Palette vs Stage — Behavioral Differences
+
+Both palette and stage store `Tree[]` and render with the same `renderTree` function, same vertical stacking, same spacing. Three classes of behavioral difference:
+
+### 1. Interaction depth: whole-tree vs per-node
+
+Stage trees pass `pickUp` to `renderTree`, enabling per-node drag — any sub-node can be individually grabbed, swapped with siblings, moved to a hole, etc. Palette trees pass `rootOnDrag` + `pointerEventsNone`, so the whole tree is a single drag handle. You can move a palette tree elsewhere, but you can't reach inside it.
+
+**Implications of unifying:** If palette trees also used `pickUp`, you could restructure trees in the palette — pull a subtree out of a palette tree, rearrange children, etc. This would make the palette a true "workspace annex" rather than just a parking lot. The question is whether that added power is confusing or useful.
+
+### 2. Drop destination asymmetry
+
+Brush items can be dropped onto the stage (hole fill + stage insertion) but NOT the palette. This is an incidental asymmetry, not a principled one. It could go either way — allowing brush-to-palette drops would let you build up a collection of trees in the palette before moving them to the stage.
+
+Palette items can be dropped onto the stage, stage holes, other palette positions, and the void. Stage items can be dropped onto palette, stage holes, other stage positions, swapped with siblings, and the void. The target sets are similar but not identical.
+
+### 3. Z-index handling
+
+Palette uses `flatZIndex: true` (all nodes at z=0). Stage uses `depth`-based z-index so nested children render on top of parents, enabling per-node click targeting. This is a consequence of difference #1 — without per-node drag, nested z-index isn't needed.
+
+### Unification considerations
+
+Making palette behave exactly like stage would mean:
+- Palette trees use `pickUp` (per-node drag)
+- Brush items target both palette and stage insertion
+- Palette and stage share identical drag handler logic (parameterized by which `Tree[]` they operate on)
+
+This is straightforward wiring — no new framework features needed. The question is whether the simplified "grab the whole tree" palette behavior is actually preferable for its simplicity, or whether full stage-like interaction is worth the added complexity.
 
 ---
 
@@ -548,7 +588,7 @@ Consolidated terminology for the Nool system. Canonical names with notes on code
 
 ### The problem
 
-Stage is now a list of trees (`trees: Tree[]`), but there's no way to add new trees. Need to be able to drag from brush kit or palette and drop into the stage to create a new tree entry.
+Stage is now a list of trees (`trees: Tree[]`), but there's no way to add new trees. Need to be able to drag from brushes or palette and drop into the stage to create a new tree entry.
 
 ### Desired interaction
 
@@ -559,7 +599,7 @@ Stage is now a list of trees (`trees: Tree[]`), but there's no way to add new tr
 
 ### Implementation
 
-Brush kit and palette drag handlers need additional targets: for each possible insertion index in `state.trees`, generate a state where a new tree is inserted. Currently drag targets only fill holes within existing trees.
+Brush and palette drag handlers need additional targets: for each possible insertion index in `state.trees`, generate a state where a new tree is inserted. Currently drag targets only fill holes within existing trees.
 
 ### Spring-to-position
 
@@ -567,15 +607,15 @@ Need to check existing demos for a "drop anywhere in a region, snap to specific 
 
 ---
 
-## Brush Kit Layout Evolution
+## Brushes Layout Evolution
 
 ### Two-column layout for atoms
 
 Atoms (1x1 items: 0, 1, ⛅, 🍄, etc.) should be rendered two per row to save vertical space. Binary ops (2x2 visual) and unary ops (1x2) stay one per row. This creates a Diablo/inventory-slot aesthetic.
 
-### Rearrangeable brush kit
+### Rearrangeable brushes
 
-A "malleable" toggle above each column. When active, contents can be reorranged by dragging. Palette and stage are malleable by default; brush kit is not (toggle to enable).
+A "malleable" toggle above each column. When active, contents can be reorranged by dragging. Palette and stage are malleable by default; brushes are not (toggle to enable).
 
 When rearranging 1x1 items, implicit horizontal containers are created — a row with a 1x1 item automatically becomes a container that can accept another 1x1 item next to it. These containers are invisible but provide the layout structure. Think: flat list that can optionally nest one level for horizontal grouping.
 
@@ -589,10 +629,10 @@ When dragging a 1x1 item and there's space, show subtle gray rounded-rect outlin
 
 ### Per-column reorder toggle
 
-Each column (brush kit, palette, stage) can have a toggle at its top — a lock/unlock icon — controlling whether items within that column can be reordered by dragging.
+Each column (brushes, palette, stage) can have a toggle at its top — a lock/unlock icon — controlling whether items within that column can be reordered by dragging.
 
 - **Palette and stage** are malleable by default (unlocked).
-- **Brush kit** is NOT malleable by default (locked). Toggle to enable reordering.
+- **Brushes** are NOT malleable by default (locked). Toggle to enable reordering.
 
 ### Atom pairs and the list-of-lists state model
 
@@ -619,7 +659,7 @@ A small circle icon sits just above where the separator line between brushes and
 - **Default**: same gray as separators (`#ddd`)
 - **Hover**: darkened (`#999`)
 - **Active/pressed**: dark (`#333`)
-- Same visual language as the section icons in the icon column.
+- Same visual language as the icons in the menu.
 
 ### Expand/collapse animation
 
@@ -645,17 +685,17 @@ The unified system has three categories of brushes, each expandable/collapsible:
 
 These are NOT mutually exclusive. Can have both holes and variadic expanded simultaneously. But a convenience toggle can make them exclusive (close one when opening the other).
 
-### Icon column as folder toggles
+### Menu as folder toggles
 
-Each icon in the leftmost column corresponds to a folder. Clicking toggles expand/collapse. Icons are bare (no border rectangle) to distinguish them from brush items.
+Each icon in the menu corresponds to a folder. Clicking toggles expand/collapse. Icons are bare (no border rectangle) to distinguish them from brush items.
 
-### Trash reconsideration
+### Void reconsideration
 
-- Remove dotted border around trash (DONE)
-- Trash semantically = "transform to hole" in the holes context
-- In variadic context, trash = remove node (holes auto-cleaned?)
-- Consider: trash icon could be in the icon column instead of a separate lane
-- Or: trash is just "the abyss" — drag off any edge to discard
+- Remove dotted border around void (DONE)
+- Void semantically = "transform to hole" in the holes context
+- In variadic context, void = remove node (holes auto-cleaned?)
+- Consider: void icon could be in the menu instead of a separate lane
+- Or: void is just "the abyss" — drag off any edge to discard
 - Decision deferred — leave as bare floating icon for now
 
 ---
@@ -666,7 +706,7 @@ Changed internal hole representation from `□` (U+25A1, White Square) to `◯` 
 - `nool-stage-builder.tsx` — brush rules, hole detection, initial state, pickup handler, prefix text
 - `nool-stage-builder-variant.tsx` — isPlaceholder, initial state, placeholder creation
 - `nool-tree-macro.tsx` — placeholder creation in macro mode
-- The `◯→` prefix in the brush kit now reads as "hole becomes..."
+- The `◯→` prefix in the brushes column now reads as "hole becomes..."
 
 ---
 
@@ -677,24 +717,24 @@ Changed internal hole representation from `□` (U+25A1, White Square) to `◯` 
 - [x] Stage as list (`trees: Tree[]`) with cross-tree dragging
 - [x] Brush rules as `Rewrite[]` data model with `◯→` prefix
 - [x] Hole char `□` → `◯` everywhere
-- [x] Trash border removed
+- [x] Void border removed
 - [x] ◯→ prefix size increased (11px, 22px width)
 - [x] Design notes recorded extensively
 - [x] ID scheme fix for derived rules (`tree.id` instead of `tree.label`)
 - [x] Auto-derive both forward and reverse rules in macro recorder
 
 ### Actionable next (parallelizable)
-- [ ] Stage list extensibility: add "create new tree" targets to brush kit and palette drags
-- [ ] Two-column layout for atoms in brush kit
+- [ ] Stage list extensibility: add "create new tree" targets to brush and palette drags
+- [ ] Two-column layout for atoms in brushes
 - [ ] Apply separator-line visual redesign to variadic builder and macro recorder
-- [ ] Icon column with folder toggles (transform, construct, record)
+- [ ] Menu with folder toggles (transform, construct, record)
 - [ ] Malleable toggle for columns (rearrange brushes)
 - [ ] Merge variadic builder into unified system (three folders)
 - [ ] Spring-to-position drop interaction — check existing demos
 
 ### Questions for user
 1. Should atoms always be visible (not collapsible), or collapsible like the other folders?
-2. For the icon column: are ◇ (transform), ◐ (construct), ◉ (record) still the right symbols?
+2. For the menu: are ◇ (transform), ◐ (construct), ◉ (record) still the right symbols?
 3. When merging variadic and holes builders, should the current separate demo entries remain as presets, or collapse into one configurable demo?
 
 ---
@@ -711,14 +751,78 @@ The framework re-renders all SVG on `pointerdown`, destroying DOM elements. This
 
 When a floating drag generates many target states (e.g., all possible hole-fill positions across multiple trees), the "nearest target" can flip rapidly between states with very different layouts as the cursor moves. This causes the background (non-dragged elements) to "jump" between configurations. The effect is disorienting. Mitigation strategies: reduce target count, add hysteresis, or constrain targets to the local region.
 
-### Spring-to-bottom doesn't work with absolute proximity
+### Lane-aware drop zones (unsolved)
 
-The desired behavior of "dropping below a column should place at the bottom" doesn't work well because floating drag proximity is measured in absolute SVG coordinates. If the drop point is spatially far from where the item would appear in any target state, no target wins — the item just snaps back. The framework has no concept of "project onto the nearest column axis" to handle out-of-bounds drops gracefully.
+**The ask:** When dragging an item and releasing within a lane's horizontal bounds, the item should snap to the nearest slot in that lane — even if the cursor is well below the lane's actual content. The "active region" of each lane extends to the height of the tallest lane, so the full bounding box of the lane system is droppable.
+
+```
+  menu │ brushes    │ pal. │ stage │ void
+  ─────┤────────────┤──────┤───────┤──
+       │ ┌────────┐ │      │ ┌───┐ │
+  ◯ →  │ │ + ◯ ◯  │ │      │ │ A │ │ 🗑
+       │ └────────┘ │      │ └───┘ │
+  ◎ →  │ ┌────────┐ │      │ ┌───┐ │
+       │ │ × ◯ ◯  │ │      │ │ B │ │
+  ⊙ →  │ └────────┘ │      │ └───┘ │
+       │ ── ── ── ─ │      │       │
+       │ ┌──┐ ┌──┐  │      │       │
+       │ │0 │ │1 │  │      │       │
+       │ └──┘ └──┘  │      │       │
+       │ ┌──┐ ┌──┐  │      │       │    The whole region
+       │ │⛅│ │🍄│  │      │  ↑    │    between the lane's
+       │ └──┘ └──┘  │......│..|....│    X bounds, down to
+       ╵             ╵      : 🍄   :    max lane height,
+                            :  ↑   :    should be a valid
+                            :drop  :    drop zone. 🍄 should
+                            :here  :    spring up to below B.
+                            :......:
+```
+
+**Why it's hard — the framework has no lane concept:** Floating drag proximity measures Euclidean distance from the cursor to where the dragged element would appear in each target state. All targets across all lanes compete on equal footing. In the diagram above:
+
+- "Insert 🍄 at end of stage" target: element appears at roughly (stageX, 100). Cursor at (stageX, 250). Distance ≈ 150px.
+- "Return 🍄 to brushes" target: element appears at (brushesX, 180). Distance ≈ sqrt(100² + 70²) ≈ 120px. **Brushes wins.**
+
+The cursor's horizontal position (clearly in the stage lane) has no special meaning to the framework. It just sees points in 2D space and picks the nearest one.
+
+**Possible approaches (none attempted yet):**
+
+1. **Framework: lane-aware proximity** — Add a `laneHints` option to `floating()` that maps X-ranges to target subsets. When the cursor X falls within a lane, bias distance toward that lane's targets (e.g., only measure Y-distance for in-lane targets, or apply a multiplier). Cleanest, but requires framework change.
+
+2. **Framework: custom distance metric** — Let `floating()` accept a custom distance function `(cursor, elementPos) → number` instead of always using Euclidean. More general than lane hints, but puts the burden on the user.
+
+3. **Rendering workaround: extend lane heights** — Make every lane render with min-height = max-lane-height (transparent padding). This pushes "insert at end" target positions further down, making them geometrically closer. But doesn't guarantee the right target always wins — depends on exact geometry.
+
+4. **Rendering workaround: ghost targets** — Create duplicate insertion targets with artificially lowered element positions. Hackiest.
+
+None of these are obviously right. Parking this as a known limitation.
+
+### Variadic vs fixed-arity ops — annotation approach (APPROVED, implementing)
+
+**Problem:** Holes ops (`+` with 2 sockets) and variadic ops (`+` with any children) share the same label. The system can't distinguish them, so: variadic ops get arity-checked against 2 (wrong), removing a child from variadic ops leaves a hole (wrong), and fixed-arity ops accept insertion when variadic mode is on (wrong).
+
+**Solution:** Add `variadic?: boolean` to `Tree` in `asts.ts`. Label stays `"+"` everywhere — rewrite rules match on label and ignore the flag. The flag only affects builder drag behavior.
+
+**Key changes:**
+
+1. **`Tree` type** (`asts.ts`): add `variadic?: boolean`
+2. **`makeNodeForItem`**: variadic bucket items get `variadic: true`, start with 0 children (no holes)
+3. **`arityOk`**: if `tree.variadic` → always OK; otherwise current fixed-arity check
+4. **Pick-up drag handler** (`renderTree`): check `parent.variadic`:
+   - Variadic parent: splice child out (no hole). `+(A,B,C)` minus `B` → `+(A,C)`. Uses new `removeChild` helper (inverse of existing `insertChild`).
+   - Fixed parent: leave `◯` hole (current behavior). `+(A,B)` minus `B` → `+(A,◯)`.
+5. **`allInsertionPoints`**: check `tree.variadic` instead of `isOp(tree.label)`. Only variadic nodes accept new children at arbitrary positions.
+6. **`cloneTreeWithFreshIds`**: copy `variadic: tree.variadic`
+7. **Global `variadicEnabled` toggle**: becomes irrelevant for insertion behavior. `showVariadicOps` just controls bucket visibility in brushes lane.
+
+**Why this is in the grain of draggable diagrams:** The framework doesn't care how target states are computed — it just interpolates. `removeChild` is the same level of abstraction as existing helpers (`insertChild`, `replaceNode`, `swapChildrenAtParent`). The drag spec (`floating(targets, { backdrop })`) is identical for both fixed and variadic. The only difference is which `stateWithout` you compute.
+
+**Conceptual model:**
+- Fixed-arity ops have **sockets** — fixed positions that are either filled (child) or empty (◯). Count never changes.
+- Variadic ops have **lists** — children can be added or removed freely. No holes concept.
+- Both can coexist in the same tree. Parent's `variadic` flag determines removal behavior.
+- `BRUSH_RULES` (Rewrite[]) are used as data source for arity, but execution is direct state manipulation via drag handlers.
 
 ### Everything is ONE manipulable
 
-The entire stage builder (brush kit + palette + stage + trash) is a single manipulable. The framework doesn't natively support modular composition of independent draggable regions within a single SVG. Cross-region drags (e.g., brush kit to stage, stage to trash) require all regions to share state and target generation. This means every drag handler must reason about the global state, and target generation scales with the total number of drop positions across all columns.
-
-### Suggestion: projection mode for floating drags
-
-The framework could benefit from a "projection" mode for floating drags where out-of-bounds cursor positions are projected onto the nearest column axis before computing proximity. This would fix the spring-to-bottom problem and generally make drops more forgiving when the cursor drifts away from the target region. The projection axis could be specified per-manipulable or inferred from the target state layout.
+The entire stage builder (brushes + palette + stage + void) is a single manipulable. The framework doesn't natively support modular composition of independent draggable regions within a single SVG. Cross-region drags (e.g., brushes to stage, stage to void) require all regions to share state and target generation. This means every drag handler must reason about the global state, and target generation scales with the total number of drop positions across all lanes.

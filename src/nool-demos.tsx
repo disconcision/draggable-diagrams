@@ -11,9 +11,9 @@ export const noolDemos: SomeDemoData[] = [
     title: "Stage Builder",
     notes: (
       <>
-        Build algebraic expressions from scratch. Toggle modes with the icons:
-        ◎ holes ops, ⊞ variadic ops, ◆ atoms. Drag blocks onto the stage,
-        grab placed nodes to move or swap them, or drag away to erase.
+        Build algebraic expressions from scratch. Toggle buckets with the menu:
+        ◯→ holes ops, ◎→ variadic ops, ⊙→ atoms. Drag brushes onto the stage,
+        grab placed nodes to move or swap them, or drag to the void to erase.
       </>
     ),
     manipulable: NoolStageBuilder.manipulable,

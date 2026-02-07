@@ -1,5 +1,5 @@
 // Unified Stage Builder: construct algebraic expressions with holes-based and/or variadic ops.
-// Three toggleable sections with draggable icons to reorder.
+// Three toggleable buckets with draggable menu icons to reorder.
 //
 // TODO: Palette could behave as the same kind of list container as the stage
 // (same rootTransform-based hoisting, same insertion targets). Currently palette
@@ -22,35 +22,36 @@ import { translate } from "../svgx/helpers";
 export namespace NoolStageBuilder {
   // # Types
 
-  type Section = "atoms" | "holes" | "variadic";
+  type Bucket = "atoms" | "holes" | "variadic";
 
-  type ToolkitBlock = {
+  type BrushBlock = {
     key: string;
     label: string;
-    section: Section;
+    bucket: Bucket;
   };
 
   export type State = {
     trees: Tree[];
-    toolkit: ToolkitBlock[];
+    brushes: BrushBlock[];
     palette: Tree[];
-    trashed?: Tree;
+    paletteExpanded: boolean;
+    voided?: Tree;
     showAtoms: boolean;
     showHolesOps: boolean;
     showVariadicOps: boolean;
-    sectionOrder: Section[];
+    bucketOrder: Bucket[];
   };
 
-  // # Section metadata
+  // # Bucket metadata
 
-  const SECTION_ICONS: Record<Section, string> = {
+  const BUCKET_ICONS: Record<Bucket, string> = {
     holes: "◯ →",
     variadic: "◎ →",
     atoms: "⊙ →",
   };
 
-  const SECTION_STATE_KEYS: Record<
-    Section,
+  const BUCKET_STATE_KEYS: Record<
+    Bucket,
     "showHolesOps" | "showVariadicOps" | "showAtoms"
   > = {
     holes: "showHolesOps",
@@ -60,7 +61,7 @@ export namespace NoolStageBuilder {
 
   // # Block definitions
 
-  const ATOM_LABELS = ["0", "1", "⛅", "🍄", "🎲", "🦠", "🐝"];
+  const ATOM_LABELS = ["⛅", "🍄", "🎲", "🧊", "🪨", "🐝", "🌕", "🌘"];
 
   const OP_DEFS: { label: string; arity: number }[] = [
     { label: "→", arity: 2 },
@@ -96,22 +97,22 @@ export namespace NoolStageBuilder {
     brushRule(d.label, d.arity)
   );
 
-  // Full toolkit: holes ops + variadic ops + atoms
-  const ALL_TOOLKIT: ToolkitBlock[] = [
+  // Full brushes: holes ops + variadic ops + atoms
+  const ALL_BRUSHES: BrushBlock[] = [
     ...OP_DEFS.map((d, i) => ({
       key: `tk-h-${i}`,
       label: d.label,
-      section: "holes" as Section,
+      bucket: "holes" as Bucket,
     })),
     ...OP_DEFS.map((d, i) => ({
       key: `tk-v-${i}`,
       label: d.label,
-      section: "variadic" as Section,
+      bucket: "variadic" as Bucket,
     })),
     ...ATOM_LABELS.map((label, i) => ({
       key: `tk-a-${i}`,
       label,
-      section: "atoms" as Section,
+      bucket: "atoms" as Bucket,
     })),
   ];
 
@@ -165,8 +166,8 @@ export namespace NoolStageBuilder {
     };
   }
 
-  function makeNodeForItem(block: ToolkitBlock): Tree {
-    if (block.section === "holes") return makeExpansion(block.key, block.label);
+  function makeNodeForItem(block: BrushBlock): Tree {
+    if (block.bucket === "holes") return makeExpansion(block.key, block.label);
     return { id: block.key, label: block.label, children: [] };
   }
 
@@ -316,12 +317,13 @@ export namespace NoolStageBuilder {
 
   export const state1: State = {
     trees: [],
-    toolkit: ALL_TOOLKIT,
+    brushes: ALL_BRUSHES,
     palette: [],
+    paletteExpanded: false,
     showAtoms: true,
     showHolesOps: true,
     showVariadicOps: false,
-    sectionOrder: ["holes", "variadic", "atoms"],
+    bucketOrder: ["holes", "variadic", "atoms"],
   };
 
   // # Tree layout constants
@@ -480,10 +482,11 @@ export namespace NoolStageBuilder {
                       })
                   )
                 : [];
-              const paletteTargets = paletteInsertionTargets(
-                stateWithClone,
-                tree
-              ).map(removeStageHoles);
+              const paletteTargets = fullState.paletteExpanded
+                ? paletteInsertionTargets(stateWithClone, tree).map(
+                    removeStageHoles
+                  )
+                : [];
               const stageTargets = stageInsertionTargets(
                 stateWithClone,
                 tree
@@ -560,10 +563,11 @@ export namespace NoolStageBuilder {
               }
             }
 
-            const paletteTargets = paletteInsertionTargets(
-              stateWithout,
-              tree
-            ).map(removeStageHoles);
+            const paletteTargets = fullState.paletteExpanded
+              ? paletteInsertionTargets(stateWithout, tree).map(
+                  removeStageHoles
+                )
+              : [];
             // Stage reordering: clean up the bare pickup hole, then
             // generate all positions where the tree can be re-inserted.
             const cleanedWithout = removeStageHoles(stateWithout);
@@ -571,10 +575,10 @@ export namespace NoolStageBuilder {
               cleanedWithout,
               tree
             ).map(removeStageHoles);
-            const eraseState: State = { ...stateWithout, trashed: tree };
+            const eraseState: State = { ...stateWithout, voided: tree };
             const cleanState: State = {
               ...stateWithout,
-              trashed: undefined,
+              voided: undefined,
             };
 
             return floating(
@@ -667,10 +671,10 @@ export namespace NoolStageBuilder {
   const SEP_INSET = 4;
   const PALETTE_MIN_WIDTH = 46;
   const STAGE_MIN_WIDTH = 46;
-  const TRASH_SIZE = 30;
-  const SECTION_GAP = 12;
-  const ICON_FONT_SIZE = 14;
-  const ICON_COL_WIDTH = 48;
+  const VOID_SIZE = 30;
+  const BUCKET_GAP = 12;
+  const MENU_FONT_SIZE = 14;
+  const MENU_COL_WIDTH = 48;
 
   // # Manipulable
 
@@ -679,102 +683,116 @@ export namespace NoolStageBuilder {
     drag,
     setState,
   }) => {
-    // Filter toolkit items by active sections, ordered by sectionOrder
-    const visibleItems = state.toolkit.filter(
+    // Filter brushes items by active buckets, ordered by bucketOrder
+    const visibleItems = state.brushes.filter(
       (b) =>
-        (b.section === "atoms" && state.showAtoms) ||
-        (b.section === "holes" && state.showHolesOps) ||
-        (b.section === "variadic" && state.showVariadicOps)
+        (b.bucket === "atoms" && state.showAtoms) ||
+        (b.bucket === "holes" && state.showHolesOps) ||
+        (b.bucket === "variadic" && state.showVariadicOps)
     );
 
-    const sectionOrder = state.sectionOrder;
-    const orderedItems: { block: ToolkitBlock; sectionStart: boolean }[] = [];
-    let firstSection = true;
-    for (const sec of sectionOrder) {
-      const items = visibleItems.filter((b) => b.section === sec);
+    const bucketOrder = state.bucketOrder;
+    const orderedItems: { block: BrushBlock; bucketStart: boolean }[] = [];
+    let firstBucket = true;
+    for (const sec of bucketOrder) {
+      const items = visibleItems.filter((b) => b.bucket === sec);
       if (items.length > 0) {
         items.forEach((b, i) => {
           orderedItems.push({
             block: b,
-            sectionStart: i === 0 && !firstSection,
+            bucketStart: i === 0 && !firstBucket,
           });
         });
-        firstSection = false;
+        firstBucket = false;
       }
     }
 
-    // -- Brush kit layout --
-    const brushKitItemData = orderedItems.map(({ block, sectionStart }) => {
+    // -- Brushes layout --
+    const brushesItemData = orderedItems.map(({ block, bucketStart }) => {
       const displayTree = makeNodeForItem(block);
       return {
         block,
         displayTree,
         size: treeSize(displayTree),
-        sectionStart,
+        bucketStart,
       };
     });
 
-    const brushKitContentW =
-      brushKitItemData.length > 0
-        ? _.max(brushKitItemData.map((t) => t.size.w))!
+    let brushesContentW =
+      brushesItemData.length > 0
+        ? _.max(brushesItemData.map((t) => t.size.w))!
         : 30;
-    const brushKitWidth = LANE_PADDING + brushKitContentW + LANE_PADDING;
+    // Account for atom pairs (two per row) — their combined width may exceed
+    // the max single-item width and determines the lane's actual width.
+    for (let i = 0; i < brushesItemData.length - 1; i++) {
+      if (
+        brushesItemData[i].block.bucket === "atoms" &&
+        brushesItemData[i + 1].block.bucket === "atoms" &&
+        !brushesItemData[i + 1].bucketStart
+      ) {
+        const pairW =
+          brushesItemData[i].size.w + BLOCK_GAP + brushesItemData[i + 1].size.w;
+        brushesContentW = Math.max(brushesContentW, pairW);
+        i++; // skip paired atom
+      }
+    }
+    const brushesWidth = LANE_PADDING + brushesContentW + LANE_PADDING;
 
-    // Compute (x, y) positions for brush kit items.
+    // Compute (x, y) positions for brushes items.
     // Atoms are paired two-per-row to save vertical space.
-    let brushKitY = LANE_PADDING;
+    let brushesY = LANE_PADDING;
     let atomCol = 0; // 0 = left, 1 = right within atom pair
-    const brushKitPositions: number[] = [];
-    const brushKitXOffsets: number[] = [];
+    const brushesPositions: number[] = [];
+    const brushesXOffsets: number[] = [];
 
-    brushKitItemData.forEach((item, idx) => {
-      if (item.sectionStart) {
-        // Flush unpaired atom from previous section
+    brushesItemData.forEach((item, idx) => {
+      if (item.bucketStart) {
+        // Flush unpaired atom from previous bucket
         if (atomCol === 1) {
-          brushKitY += brushKitItemData[idx - 1].size.h + BLOCK_GAP;
+          brushesY += brushesItemData[idx - 1].size.h + BLOCK_GAP;
           atomCol = 0;
         }
-        brushKitY += SECTION_GAP;
+        brushesY += BUCKET_GAP;
       }
 
-      if (item.block.section === "atoms") {
+      if (item.block.bucket === "atoms") {
         if (atomCol === 0) {
-          brushKitPositions.push(brushKitY);
-          brushKitXOffsets.push(0);
+          brushesPositions.push(brushesY);
+          brushesXOffsets.push(0);
           atomCol = 1;
         } else {
           // Right atom — same Y as left atom
-          brushKitPositions.push(brushKitPositions[brushKitPositions.length - 1]);
-          brushKitXOffsets.push(brushKitItemData[idx - 1].size.w + BLOCK_GAP);
-          const rowH = Math.max(item.size.h, brushKitItemData[idx - 1].size.h);
-          brushKitY += rowH + BLOCK_GAP;
+          brushesPositions.push(brushesPositions[brushesPositions.length - 1]);
+          brushesXOffsets.push(brushesItemData[idx - 1].size.w + BLOCK_GAP);
+          const rowH = Math.max(item.size.h, brushesItemData[idx - 1].size.h);
+          brushesY += rowH + BLOCK_GAP;
           atomCol = 0;
         }
       } else {
         if (atomCol === 1) {
-          brushKitY += brushKitItemData[idx - 1].size.h + BLOCK_GAP;
+          brushesY += brushesItemData[idx - 1].size.h + BLOCK_GAP;
           atomCol = 0;
         }
-        brushKitPositions.push(brushKitY);
-        brushKitXOffsets.push(0);
-        brushKitY += item.size.h + BLOCK_GAP;
+        brushesPositions.push(brushesY);
+        brushesXOffsets.push(0);
+        brushesY += item.size.h + BLOCK_GAP;
       }
     });
 
     // Flush final unpaired atom
     if (atomCol === 1) {
-      brushKitY +=
-        brushKitItemData[brushKitItemData.length - 1].size.h + BLOCK_GAP;
+      brushesY +=
+        brushesItemData[brushesItemData.length - 1].size.h + BLOCK_GAP;
     }
-    const brushKitHeight = brushKitY + LANE_PADDING - BLOCK_GAP;
+    const brushesHeight = brushesY + LANE_PADDING - BLOCK_GAP;
 
-    // Section dividers (thin horizontal lines between sections)
-    const brushDividers: { id: string; y: number }[] = [];
-    brushKitItemData.forEach((item, idx) => {
-      if (item.sectionStart) {
-        brushDividers.push({
-          id: `brush-div-${brushDividers.length}`,
-          y: brushKitPositions[idx] - (BLOCK_GAP + SECTION_GAP) / 2,
+    // Bucket dividers (thin horizontal lines between buckets)
+    const bucketDividers: { id: string; y: number }[] = [];
+    brushesItemData.forEach((item, idx) => {
+      if (item.bucketStart) {
+        bucketDividers.push({
+          id: `brush-div-${bucketDividers.length}`,
+          y: brushesPositions[idx] - (BLOCK_GAP + BUCKET_GAP) / 2,
         });
       }
     });
@@ -834,65 +852,99 @@ export namespace NoolStageBuilder {
       LANE_PADDING * 2 + STAGE_MIN_WIDTH
     );
 
-    // -- Horizontal positions --
-    const iconsX = 0;
-    const brushKitX = ICON_COL_WIDTH + COL_GAP;
-    const paletteX = brushKitX + brushKitWidth + COL_GAP;
-    const stageX = paletteX + paletteWidth + COL_GAP;
-    const trashX = stageX + stageWidth + COL_GAP;
+    // -- Horizontal positions (palette lane omitted when collapsed) --
+    const menuX = 0;
+    const brushesX = MENU_COL_WIDTH + COL_GAP;
+    const paletteX = brushesX + brushesWidth + COL_GAP;
+    const stageX = state.paletteExpanded
+      ? paletteX + paletteWidth + COL_GAP
+      : brushesX + brushesWidth + COL_GAP;
+    const voidX = stageX + stageWidth + COL_GAP;
 
-    // -- Separator lines --
-    const sep0X = ICON_COL_WIDTH + COL_GAP / 2;
-    const sep1X = brushKitX + brushKitWidth + COL_GAP / 2;
-    const sep2X = paletteX + paletteWidth + COL_GAP / 2;
-    const sep3X = stageX + stageWidth + COL_GAP / 2;
+    // -- Separator data (palette toggle circle sits on brushes|next separator) --
+    const toggleSepX = brushesX + brushesWidth + COL_GAP / 2;
+    const separators: { x: number; h: number }[] = [
+      {
+        x: MENU_COL_WIDTH + COL_GAP / 2,
+        h: Math.max(
+          brushesHeight,
+          MENU_FONT_SIZE * 3 + BLOCK_GAP * 2 + LANE_PADDING * 2
+        ),
+      },
+    ];
+    if (state.paletteExpanded) {
+      separators.push({
+        x: toggleSepX,
+        h: Math.max(brushesHeight, paletteHeight),
+      });
+      separators.push({
+        x: paletteX + paletteWidth + COL_GAP / 2,
+        h: Math.max(paletteHeight, stageHeight),
+      });
+    } else {
+      separators.push({
+        x: toggleSepX,
+        h: Math.max(brushesHeight, stageHeight),
+      });
+    }
+    separators.push({
+      x: stageX + stageWidth + COL_GAP / 2,
+      h: Math.max(stageHeight, VOID_SIZE),
+    });
 
-    // -- Icon column: click to toggle, drag to reorder --
-    const iconDefs = sectionOrder.map((section, idx) => {
-      const stateKey = SECTION_STATE_KEYS[section];
+    // -- Menu: click to toggle, drag to reorder --
+    const menuDefs = bucketOrder.map((bucket, idx) => {
+      const stateKey = BUCKET_STATE_KEYS[bucket];
       return {
-        id: `icon-${section}`,
-        icon: SECTION_ICONS[section],
+        id: `icon-${bucket}`,
+        icon: BUCKET_ICONS[bucket],
         active: state[stateKey],
         stateKey,
-        section,
+        bucket,
         y:
           LANE_PADDING +
-          idx * (ICON_FONT_SIZE + BLOCK_GAP) +
-          ICON_FONT_SIZE / 2,
+          idx * (MENU_FONT_SIZE + BLOCK_GAP) +
+          MENU_FONT_SIZE / 2,
       };
     });
 
     return (
       <g>
-        {/* CSS for icon hover */}
+        {/* CSS for menu hover */}
         <defs>
           <style>{`
-            [data-section-active], [data-section-inactive] {
+            [data-bucket-active], [data-bucket-inactive] {
               transition: fill 0.1s;
               cursor: pointer;
             }
-            [data-section-active]:hover {
+            [data-bucket-active]:hover {
               fill: #111 !important;
             }
-            [data-section-inactive]:hover {
+            [data-bucket-inactive]:hover {
               fill: #999 !important;
+            }
+            [data-palette-toggle] {
+              transition: fill 0.1s;
+              cursor: pointer;
+            }
+            [data-palette-toggle]:hover {
+              fill: #333 !important;
             }
           `}</style>
         </defs>
 
-        {/* Icon column — click to toggle, drag to reorder (uses dragThreshold) */}
-        {iconDefs.map(({ id, icon, active, stateKey, section, y }) => (
+        {/* Menu — click to toggle, drag to reorder (uses dragThreshold) */}
+        {menuDefs.map(({ id, icon, active, stateKey, bucket, y }) => (
           <g
             id={id}
-            transform={translate(iconsX + LANE_PADDING, y)}
+            transform={translate(menuX + LANE_PADDING, y)}
             data-on-drag={drag(() => {
-              const others = sectionOrder.filter((s) => s !== section);
+              const others = bucketOrder.filter((s) => s !== bucket);
               const targets = _.range(others.length + 1).map((pos) => ({
                 ...state,
-                sectionOrder: [
+                bucketOrder: [
                   ...others.slice(0, pos),
-                  section,
+                  bucket,
                   ...others.slice(pos),
                 ],
               }));
@@ -909,11 +961,11 @@ export namespace NoolStageBuilder {
             <text
               textAnchor="start"
               dominantBaseline="middle"
-              fontSize={ICON_FONT_SIZE}
+              fontSize={MENU_FONT_SIZE}
               fill={active ? "#333" : "#ccc"}
               {...(active
-                ? { "data-section-active": true }
-                : { "data-section-inactive": true })}
+                ? { "data-bucket-active": true }
+                : { "data-bucket-inactive": true })}
             >
               {icon}
             </text>
@@ -921,18 +973,7 @@ export namespace NoolStageBuilder {
         ))}
 
         {/* Separator lines */}
-        {[
-          {
-            x: sep0X,
-            h: Math.max(
-              brushKitHeight,
-              ICON_FONT_SIZE * 3 + BLOCK_GAP * 2 + LANE_PADDING * 2
-            ),
-          },
-          { x: sep1X, h: Math.max(brushKitHeight, paletteHeight) },
-          { x: sep2X, h: Math.max(paletteHeight, stageHeight) },
-          { x: sep3X, h: Math.max(stageHeight, TRASH_SIZE) },
-        ].map(({ x, h }, idx) => (
+        {separators.map(({ x, h }, idx) => (
           <line
             x1={x}
             y1={SEP_INSET}
@@ -946,13 +987,30 @@ export namespace NoolStageBuilder {
           />
         ))}
 
-        {/* Section dividers (horizontal lines between brush kit sections) */}
-        {brushDividers.map(({ id, y }) => (
+        {/* Palette toggle */}
+        <circle
+          id="palette-toggle"
+          cx={toggleSepX}
+          cy={SEP_INSET + 6}
+          r={4}
+          fill={state.paletteExpanded ? "#999" : "#ddd"}
+          data-palette-toggle={true}
+          data-z-index={-5}
+          onClick={() =>
+            setState(
+              { ...state, paletteExpanded: !state.paletteExpanded },
+              { seconds: 0, immediate: true }
+            )
+          }
+        />
+
+        {/* Bucket dividers */}
+        {bucketDividers.map(({ id, y }) => (
           <line
             id={id}
-            x1={brushKitX + LANE_PADDING}
+            x1={brushesX + LANE_PADDING}
             y1={y}
-            x2={brushKitX + brushKitWidth - LANE_PADDING}
+            x2={brushesX + brushesWidth - LANE_PADDING}
             y2={y}
             stroke="#ddd"
             strokeWidth={1}
@@ -960,16 +1018,16 @@ export namespace NoolStageBuilder {
           />
         ))}
 
-        {/* Brush kit items */}
-        {brushKitItemData.map(({ block, displayTree }, idx) => {
-          const toolkitIdx = state.toolkit.indexOf(block);
+        {/* Brushes */}
+        {brushesItemData.map(({ block, displayTree }, idx) => {
+          const brushIdx = state.brushes.indexOf(block);
 
           return (
             <g
               id={`brush-item-${block.key}`}
               transform={translate(
-                brushKitX + LANE_PADDING + brushKitXOffsets[idx],
-                brushKitPositions[idx]
+                brushesX + LANE_PADDING + brushesXOffsets[idx],
+                brushesPositions[idx]
               )}
             >
               {
@@ -977,11 +1035,11 @@ export namespace NoolStageBuilder {
                   pointerEventsNone: true,
                   rootOnDrag: drag(() => {
                     const stateWithout = produce(state, (draft) => {
-                      draft.toolkit[toolkitIdx].key += "-r";
+                      draft.brushes[brushIdx].key += "-r";
                     });
                     const node = makeNodeForItem(block);
 
-                    // Hole targets (for any section)
+                    // Hole targets (for any bucket)
                     const holeTargets = allHoles.map(
                       ({ treeIdx, holeId }) =>
                         removeStageHoles({
@@ -997,8 +1055,8 @@ export namespace NoolStageBuilder {
 
                     // Variadic insertion targets
                     const insertTargets =
-                      block.section === "variadic" ||
-                      block.section === "atoms"
+                      block.bucket === "variadic" ||
+                      block.bucket === "atoms"
                         ? allInsertPts.map(
                             ({ treeIdx, parentId, index }) =>
                               removeStageHoles({
@@ -1035,91 +1093,83 @@ export namespace NoolStageBuilder {
           );
         })}
 
-        {/* Palette items */}
-        {paletteItems.map(({ block }, idx) =>
-          renderTree(block, {
-            rootTransform: translate(
-              paletteX + LANE_PADDING,
-              palettePositions[idx]
-            ),
-            pointerEventsNone: true,
-            flatZIndex: true,
-            rootOnDrag: drag(({ altKey }) => {
-              if (altKey) {
-                const stateWithClone = produce(state, (draft) => {
-                  draft.palette[idx] = cloneTreeWithFreshIds(block);
+        {/* Palette items (only when expanded) */}
+        {state.paletteExpanded &&
+          paletteItems.map(({ block }, idx) =>
+            renderTree(block, {
+              rootTransform: translate(
+                paletteX + LANE_PADDING,
+                palettePositions[idx]
+              ),
+              pointerEventsNone: true,
+              flatZIndex: true,
+              rootOnDrag: drag(({ altKey }) => {
+                if (altKey) {
+                  const stateWithClone = produce(state, (draft) => {
+                    draft.palette[idx] = cloneTreeWithFreshIds(block);
+                  });
+                  const holes = findAllHolesInTrees(stateWithClone.trees);
+                  const placeTargets = holes.map(
+                    ({ treeIdx: ti, holeId }) =>
+                      removeStageHoles({
+                        ...stateWithClone,
+                        trees: replaceInTrees(
+                          stateWithClone.trees,
+                          ti,
+                          holeId,
+                          block
+                        ),
+                      })
+                  );
+                  const palTargets = paletteInsertionTargets(
+                    stateWithClone,
+                    block
+                  );
+                  return floating(
+                    [...placeTargets, ...palTargets, state],
+                    { backdrop: stateWithClone }
+                  );
+                }
+
+                const stateWithout = produce(state, (draft) => {
+                  draft.palette.splice(idx, 1);
                 });
-                const holes = findAllHolesInTrees(stateWithClone.trees);
+                const holes = findAllHolesInTrees(stateWithout.trees);
                 const placeTargets = holes.map(
                   ({ treeIdx: ti, holeId }) =>
                     removeStageHoles({
-                      ...stateWithClone,
+                      ...stateWithout,
                       trees: replaceInTrees(
-                        stateWithClone.trees,
+                        stateWithout.trees,
                         ti,
                         holeId,
                         block
                       ),
                     })
                 );
-                const palTargets = paletteInsertionTargets(
-                  stateWithClone,
+                const reorderTargets = paletteInsertionTargets(
+                  stateWithout,
                   block
                 );
-                const stageTargets = stageInsertionTargets(
-                  stateWithClone,
-                  block
-                ).map(removeStageHoles);
+                const eraseState: State = { ...stateWithout, voided: block };
+                const cleanState: State = {
+                  ...stateWithout,
+                  voided: undefined,
+                };
                 return floating(
-                  [...placeTargets, ...palTargets, ...stageTargets, state],
-                  { backdrop: stateWithClone }
-                );
-              }
-
-              const stateWithout = produce(state, (draft) => {
-                draft.palette.splice(idx, 1);
-              });
-              const holes = findAllHolesInTrees(stateWithout.trees);
-              const placeTargets = holes.map(
-                ({ treeIdx: ti, holeId }) =>
-                  removeStageHoles({
-                    ...stateWithout,
-                    trees: replaceInTrees(
-                      stateWithout.trees,
-                      ti,
-                      holeId,
-                      block
+                  [
+                    ...placeTargets,
+                    ...reorderTargets,
+                    andThen(
+                      removeStageHoles(eraseState),
+                      removeStageHoles(cleanState)
                     ),
-                  })
-              );
-              const reorderTargets = paletteInsertionTargets(
-                stateWithout,
-                block
-              );
-              const stageTargets = stageInsertionTargets(
-                stateWithout,
-                block
-              ).map(removeStageHoles);
-              const eraseState: State = { ...stateWithout, trashed: block };
-              const cleanState: State = {
-                ...stateWithout,
-                trashed: undefined,
-              };
-              return floating(
-                [
-                  ...placeTargets,
-                  ...reorderTargets,
-                  ...stageTargets,
-                  andThen(
-                    removeStageHoles(eraseState),
-                    removeStageHoles(cleanState)
-                  ),
-                ],
-                { backdrop: stateWithout }
-              );
-            }),
-          }).element
-        )}
+                  ],
+                  { backdrop: stateWithout }
+                );
+              }),
+            }).element
+          )}
 
         {/* Stage trees — using rootTransform so root elements are hoisted directly */}
         {stageRendered.map((_, idx) =>
@@ -1137,11 +1187,11 @@ export namespace NoolStageBuilder {
           }).element
         )}
 
-        {/* Trash zone — bare icon */}
-        <g transform={translate(trashX, 0)}>
+        {/* Void */}
+        <g transform={translate(voidX, 0)}>
           <text
-            x={TRASH_SIZE / 2}
-            y={TRASH_SIZE / 2}
+            x={VOID_SIZE / 2}
+            y={VOID_SIZE / 2}
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize={16}
@@ -1150,8 +1200,8 @@ export namespace NoolStageBuilder {
           >
             🗑
           </text>
-          {state.trashed &&
-            renderTree(state.trashed, { pointerEventsNone: true }).element}
+          {state.voided &&
+            renderTree(state.voided, { pointerEventsNone: true }).element}
         </g>
       </g>
     );
