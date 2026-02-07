@@ -720,13 +720,52 @@ export namespace NoolStageBuilder {
         : 30;
     const brushKitWidth = LANE_PADDING + brushKitContentW + LANE_PADDING;
 
+    // Compute (x, y) positions for brush kit items.
+    // Atoms are paired two-per-row to save vertical space.
     let brushKitY = LANE_PADDING;
-    const brushKitPositions = brushKitItemData.map((item) => {
-      if (item.sectionStart) brushKitY += SECTION_GAP;
-      const y = brushKitY;
-      brushKitY += item.size.h + BLOCK_GAP;
-      return y;
+    let atomCol = 0; // 0 = left, 1 = right within atom pair
+    const brushKitPositions: number[] = [];
+    const brushKitXOffsets: number[] = [];
+
+    brushKitItemData.forEach((item, idx) => {
+      if (item.sectionStart) {
+        // Flush unpaired atom from previous section
+        if (atomCol === 1) {
+          brushKitY += brushKitItemData[idx - 1].size.h + BLOCK_GAP;
+          atomCol = 0;
+        }
+        brushKitY += SECTION_GAP;
+      }
+
+      if (item.block.section === "atoms") {
+        if (atomCol === 0) {
+          brushKitPositions.push(brushKitY);
+          brushKitXOffsets.push(0);
+          atomCol = 1;
+        } else {
+          // Right atom — same Y as left atom
+          brushKitPositions.push(brushKitPositions[brushKitPositions.length - 1]);
+          brushKitXOffsets.push(brushKitItemData[idx - 1].size.w + BLOCK_GAP);
+          const rowH = Math.max(item.size.h, brushKitItemData[idx - 1].size.h);
+          brushKitY += rowH + BLOCK_GAP;
+          atomCol = 0;
+        }
+      } else {
+        if (atomCol === 1) {
+          brushKitY += brushKitItemData[idx - 1].size.h + BLOCK_GAP;
+          atomCol = 0;
+        }
+        brushKitPositions.push(brushKitY);
+        brushKitXOffsets.push(0);
+        brushKitY += item.size.h + BLOCK_GAP;
+      }
     });
+
+    // Flush final unpaired atom
+    if (atomCol === 1) {
+      brushKitY +=
+        brushKitItemData[brushKitItemData.length - 1].size.h + BLOCK_GAP;
+    }
     const brushKitHeight = brushKitY + LANE_PADDING - BLOCK_GAP;
 
     // Section dividers (thin horizontal lines between sections)
@@ -929,7 +968,7 @@ export namespace NoolStageBuilder {
             <g
               id={`brush-item-${block.key}`}
               transform={translate(
-                brushKitX + LANE_PADDING,
+                brushKitX + LANE_PADDING + brushKitXOffsets[idx],
                 brushKitPositions[idx]
               )}
             >
