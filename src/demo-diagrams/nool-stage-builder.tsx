@@ -484,11 +484,16 @@ export namespace NoolStageBuilder {
                 stateWithClone,
                 tree
               ).map(removeStageHoles);
+              const stageTargets = stageInsertionTargets(
+                stateWithClone,
+                tree
+              ).map(removeStageHoles);
               return floating(
                 [
                   ...holeTargets,
                   ...insertTargets,
                   ...paletteTargets,
+                  ...stageTargets,
                   fullState,
                 ],
                 { backdrop: stateWithClone }
@@ -559,6 +564,13 @@ export namespace NoolStageBuilder {
               stateWithout,
               tree
             ).map(removeStageHoles);
+            // Stage reordering: clean up the bare pickup hole, then
+            // generate all positions where the tree can be re-inserted.
+            const cleanedWithout = removeStageHoles(stateWithout);
+            const stageReorderTargets = stageInsertionTargets(
+              cleanedWithout,
+              tree
+            ).map(removeStageHoles);
             const eraseState: State = { ...stateWithout, trashed: tree };
             const cleanState: State = {
               ...stateWithout,
@@ -571,6 +583,7 @@ export namespace NoolStageBuilder {
                 ...insertTargets,
                 ...swapTargets,
                 ...paletteTargets,
+                ...stageReorderTargets,
                 fullState,
                 andThen(
                   removeStageHoles(eraseState),
