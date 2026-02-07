@@ -1,6 +1,6 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { span } from "../DragSpec2";
+import { span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -68,7 +68,7 @@ export namespace PermDouble {
                       );
                     }
                   }
-                  return span(states);
+                  return withSnapRadius(span(states), 10);
                 })}
               >
                 <rect

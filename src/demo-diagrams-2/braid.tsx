@@ -1,6 +1,6 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { closest, just, span, withSnapRadius } from "../DragSpec2";
+import { closest, span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -128,11 +128,12 @@ export namespace Braid {
               const specs = [span(spanStates)];
               if (state.seq.length > 0) {
                 specs.push(
-                  just(
+                  span([
+                    state,
                     produce(state, (s) => {
                       s.seq.pop();
-                    })
-                  )
+                    }),
+                  ])
                 );
               }
               return withSnapRadius(closest(specs), 1, { chain: true });

@@ -17,6 +17,13 @@ export namespace Bezier {
     p3: { x: 300, y: 150 },
   };
 
+  export const state2: State = {
+    p0: { x: 50, y: 50 },
+    p1: { x: 200, y: 50 },
+    p2: { x: 100, y: 200 },
+    p3: { x: 300, y: 200 },
+  };
+
   /** cubic bezier at t ∈ [0, 1] */
   function evalBezier(state: State, t: number): { x: number; y: number } {
     const { p0, p1, p2, p3 } = state;

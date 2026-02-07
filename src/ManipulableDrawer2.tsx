@@ -52,6 +52,7 @@ type DragState<T extends object> = { springingFrom: SpringingFrom | null } & (
   | { type: "idle"; state: T }
   | {
       type: "dragging";
+      startState: T;
       behavior: DragBehavior<T>;
       spec: DragSpec<T>;
       behaviorCtx: BehaviorContext<T>;
@@ -130,7 +131,8 @@ export function ManipulableDrawer<T extends object>({
         let springingFrom = ds.springingFrom;
 
         // Handle chaining: restart drag from new state
-        if (result.chainNow) {
+        // TODO: detection of "new state" probably isn't robust
+        if (result.chainNow && result.dropState !== ds.startState) {
           const newState = result.dropState;
           const newDraggedId =
             typeof result.chainNow === "string"
@@ -164,14 +166,16 @@ export function ManipulableDrawer<T extends object>({
               const newDraggedPath = getPath(element);
               assert(!!newDraggedPath, "Chained element must have a path");
 
-              const accTransform = getAccumulatedTransform(element);
-              const transforms = parseTransform(accTransform || "");
-              const pointerLocal = globalToLocal(
-                transforms,
-                pointerRef.current!
-              );
+              // const accTransform = getAccumulatedTransform(element);
+              // const transforms = parseTransform(accTransform || "");
+              // const pointerLocal = globalToLocal(
+              //   transforms,
+              //   pointerRef.current!
+              // );
+              const pointerLocal = ds.behaviorCtx.pointerLocal;
 
-              const { floatLayered: _, ...behaviorCtxWithoutFloat } = ds.behaviorCtx;
+              const { floatLayered: _, ...behaviorCtxWithoutFloat } =
+                ds.behaviorCtx;
               const { dragState: chainedState, debugInfo } = initDrag(
                 newDragSpec,
                 {
@@ -326,7 +330,7 @@ export function ManipulableDrawer<T extends object>({
  * Blends a target render with a spring's startLayered.
  * The target is used as the base (first arg to lerpLayered) so its
  * non-interpolatable props (like event handlers) are preserved.
- * Elements with data-transition={false} are never sprung — they
+ * Layers with data-transition={false} are never sprung — they
  * always show the target's version so they track the cursor.
  */
 function runSpring(
@@ -337,7 +341,7 @@ function runSpring(
   const elapsed = performance.now() - springingFrom.time;
   const t = d3Ease.easeCubicOut(Math.min(elapsed / SPRING_DURATION, 1));
   const lerped = lerpLayered(target, springingFrom.layered, 1 - t);
-  // Replace non-transitioning elements with the target's version so they
+  // Replace non-transitioning layers with the target's version so they
   // track the cursor without spring lag.
   for (const [key, element] of lerped.byId.entries()) {
     if (element.props["data-transition"] === false) {
@@ -369,19 +373,30 @@ function initDrag<T extends object>(
   frame: DragFrame,
   pointerStart: Vec2,
   springingFrom: SpringingFrom | null
-): { dragState: DragState<T> & { type: "dragging" }; debugInfo: DebugDragInfo<T> } {
+): {
+  dragState: DragState<T> & { type: "dragging" };
+  debugInfo: DebugDragInfo<T>;
+} {
   const { manipulable, draggedId } = behaviorCtxWithoutFloat;
   let floatLayered: LayeredSvgx | null = null;
   if (draggedId) {
-    const startLayered = renderReadOnly(manipulable, { state, draggedId, ghostId: null });
+    const startLayered = renderReadOnly(manipulable, {
+      state,
+      draggedId,
+      ghostId: null,
+    });
     floatLayered = layeredExtract(startLayered, draggedId).extracted;
   }
-  const behaviorCtx: BehaviorContext<T> = { ...behaviorCtxWithoutFloat, floatLayered };
+  const behaviorCtx: BehaviorContext<T> = {
+    ...behaviorCtxWithoutFloat,
+    floatLayered,
+  };
   const behavior = dragSpecToBehavior(spec, behaviorCtx);
   const result = behavior(frame);
   return {
     dragState: {
       type: "dragging",
+      startState: state,
       behavior,
       spec,
       behaviorCtx,
@@ -444,7 +459,12 @@ function postProcessForInteraction<T extends object>(
             const frame: DragFrame = { pointer, pointerStart: pointer };
             const { dragState, debugInfo } = initDrag(
               dragSpec,
-              { manipulable: ctx.manipulable, draggedPath, draggedId, pointerLocal },
+              {
+                manipulable: ctx.manipulable,
+                draggedPath,
+                draggedId,
+                pointerLocal,
+              },
               state,
               frame,
               pointer,

@@ -1,10 +1,7 @@
 import _ from "lodash";
-import { straightTo } from "../DragSpec";
-import { Manipulable } from "../manipulable";
-import { Vec2 } from "../math/vec2";
-import { inXYWH } from "../math/xywh";
+import { closest, span, withSnapRadius } from "../DragSpec2";
+import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
-import { defined } from "../utils";
 
 export namespace Fifteen {
   export type State = {
@@ -60,9 +57,37 @@ export namespace Fifteen {
 
         {/* Tiles */}
         {Object.entries(state.tiles).map(([key, tile]) => (
-          <g transform={translate(tile.x * TILE_SIZE, tile.y * TILE_SIZE)}>
+          <g
+            id={`tile-${key}`}
+            transform={translate(tile.x * TILE_SIZE, tile.y * TILE_SIZE)}
+            data-on-drag={drag(() => {
+              const spans = (
+                [
+                  [-1, 0],
+                  [1, 0],
+                  [0, -1],
+                  [0, 1],
+                ] as const
+              ).map(([dx, dy]) => {
+                const adjX = tile.x + dx;
+                const adjY = tile.y + dy;
+                if (adjX < 0 || adjX >= state.w || adjY < 0 || adjY >= state.h)
+                  return;
+                const adjTileKey = _.findKey(
+                  state.tiles,
+                  (t) => t.x === adjX && t.y === adjY
+                );
+                if (!adjTileKey) return;
+                if (!(key === " " || adjTileKey === " ")) return;
+                const newState = structuredClone(state);
+                newState.tiles[key] = { x: adjX, y: adjY };
+                newState.tiles[adjTileKey] = { x: tile.x, y: tile.y };
+                return span([state, newState]);
+              });
+              return withSnapRadius(closest(spans), 10, { chain: true });
+            })}
+          >
             <rect
-              id={`tile-${key}`}
               x={0}
               y={0}
               width={TILE_SIZE}
@@ -70,37 +95,6 @@ export namespace Fifteen {
               fill={key === " " ? "transparent" : "#eee"}
               stroke={key === " " ? "transparent" : "black"}
               strokeWidth={2}
-              data-on-drag={drag(() => {
-                // Calculate adjacent positions for dragging
-                const dragLoc = Vec2(tile);
-                return (
-                  [
-                    [-1, 0],
-                    [1, 0],
-                    [0, -1],
-                    [0, 1],
-                  ] as const
-                )
-                  .map((d) => {
-                    const adjLoc = dragLoc.add(d);
-                    if (!inXYWH(adjLoc, [0, 0, state.w - 1, state.h - 1]))
-                      return;
-                    const adjTileKey = _.findKey(state.tiles, (t) =>
-                      adjLoc.eq(t)
-                    );
-                    if (!adjTileKey) return;
-                    if (!(key === " " || adjTileKey === " ")) return;
-                    return straightTo({
-                      ...state,
-                      tiles: {
-                        ...state.tiles,
-                        [key]: adjLoc.xy(),
-                        [adjTileKey]: dragLoc.xy(),
-                      },
-                    });
-                  })
-                  .filter(defined);
-              })}
             />
             {key !== " " && (
               <text

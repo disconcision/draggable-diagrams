@@ -538,7 +538,7 @@ export function dragSpecToBehavior<T extends object>(
       return {
         rendered,
         dropState: closest.state,
-        distance: closest.position.dist(frame.pointer),
+        distance: projection.dist,
         activePath: "span",
       };
     };

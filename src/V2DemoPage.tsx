@@ -11,6 +11,8 @@ import { ConstrainedPoint } from "./demo-diagrams-2/constrained-point";
 import { ConstrainedSlider } from "./demo-diagrams-2/constrained-slider";
 import { Clock } from "./demo-diagrams-2/clock";
 import { Dragon } from "./demo-diagrams-2/dragon";
+import { Fifteen } from "./demo-diagrams-2/fifteen";
+import { Graph } from "./demo-diagrams-2/graph";
 import { GridPoly } from "./demo-diagrams-2/grid-poly";
 import { Hanoi } from "./demo-diagrams-2/hanoi";
 import { Kanban } from "./demo-diagrams-2/kanban";
@@ -28,9 +30,11 @@ import { Perm } from "./demo-diagrams-2/perm";
 import { PermDouble } from "./demo-diagrams-2/perm-double";
 import { PermFloating } from "./demo-diagrams-2/perm-floating";
 import { RushHour } from "./demo-diagrams-2/rush-hour";
+import { SecondSimplest } from "./demo-diagrams-2/second-simplest";
 import { Simplest } from "./demo-diagrams-2/simplest";
 import { SimplestClicker } from "./demo-diagrams-2/simplest-clicker";
 import { SimplestJust } from "./demo-diagrams-2/simplest-just";
+import { Spinny } from "./demo-diagrams-2/spinny";
 import { Manipulable } from "./manipulable2";
 export function V2DemoPage() {
   const [showTree, setShowTree] = useState(false);
@@ -88,6 +92,14 @@ export function V2DemoPage() {
         initialState={SimplestJust.state1}
         width={250}
         height={150}
+      />
+
+      <h2 className="text-xl font-semibold mt-8 mb-2">second-simplest</h2>
+      <Drawer
+        manipulable={SecondSimplest.manipulable}
+        initialState={SecondSimplest.state1}
+        width={450}
+        height={200}
       />
 
       <h2 className="text-xl font-semibold mt-8 mb-2">simplest-clicker</h2>
@@ -240,6 +252,14 @@ export function V2DemoPage() {
         height={350}
       />
 
+      <h2 className="text-xl font-semibold mt-8 mb-2">fifteen</h2>
+      <Drawer
+        manipulable={Fifteen.manipulable}
+        initialState={Fifteen.state1}
+        width={250}
+        height={250}
+      />
+
       <h2 className="text-xl font-semibold mt-8 mb-2">hanoi</h2>
       <Drawer
         manipulable={Hanoi.manipulable}
@@ -254,6 +274,22 @@ export function V2DemoPage() {
         initialState={Kanban.state1}
         width={400}
         height={300}
+      />
+
+      <h2 className="text-xl font-semibold mt-8 mb-2">spinny</h2>
+      <Drawer
+        manipulable={Spinny.manipulable}
+        initialState={Spinny.state1}
+        width={250}
+        height={250}
+      />
+
+      <h2 className="text-xl font-semibold mt-8 mb-2">graph</h2>
+      <Drawer
+        manipulable={Graph.manipulable}
+        initialState={Graph.state1}
+        width={200}
+        height={200}
       />
 
       <h2 className="text-xl font-semibold mt-8 mb-2">angle</h2>
@@ -275,7 +311,7 @@ export function V2DemoPage() {
       <h2 className="text-xl font-semibold mt-8 mb-2">bezier</h2>
       <Drawer
         manipulable={Bezier.manipulable}
-        initialState={Bezier.state1}
+        initialState={Bezier.state2}
         width={400}
         height={250}
       />
