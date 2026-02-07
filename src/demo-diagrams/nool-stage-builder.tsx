@@ -1,58 +1,114 @@
-// Stage Builder: construct algebraic expressions by dragging blocks from a toolkit onto holes
-// Based on the "clone from store" pattern from insert-and-remove
+// Unified Stage Builder: construct algebraic expressions with holes-based and/or variadic ops.
+// Three toggleable sections: holes ops (◎), variadic ops (⊞), atoms (◆).
 
 import { produce } from "immer";
 import _ from "lodash";
-import { Tree } from "../asts";
+import { Pattern, Rewrite, Tree } from "../asts";
 import { andThen, floating } from "../DragSpec";
 import { Drag, Manipulable } from "../manipulable";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
 export namespace NoolStageBuilder {
+  // # Types
+
+  type Section = "atoms" | "holes" | "variadic";
+
   type ToolkitBlock = {
     key: string;
     label: string;
+    section: Section;
   };
 
   export type State = {
-    tree: Tree;
+    trees: Tree[];
     toolkit: ToolkitBlock[];
-    gutter: Tree[];
+    palette: Tree[];
     trashed?: Tree;
+    showAtoms: boolean;
+    showHolesOps: boolean;
+    showVariadicOps: boolean;
   };
 
-  const BLOCK_DEFS: { label: string; arity: number }[] = [
+  // # Block definitions
+
+  const ATOM_LABELS = ["0", "1", "⛅", "🍄", "🎲", "🦠", "🐝"];
+
+  const OP_DEFS: { label: string; arity: number }[] = [
     { label: "→", arity: 2 },
     { label: "+", arity: 2 },
     { label: "×", arity: 2 },
     { label: "-", arity: 1 },
-    { label: "0", arity: 0 },
-    { label: "1", arity: 0 },
-    { label: "⛅", arity: 0 },
-    { label: "🍄", arity: 0 },
-    { label: "🎲", arity: 0 },
-    { label: "🦠", arity: 0 },
-    { label: "🐝", arity: 0 },
   ];
+
+  // Brush rules for holes ops
+  const holePattern: Pattern = {
+    type: "op",
+    label: "◯",
+    id: "◯",
+    children: [],
+    isTrigger: true,
+  };
+
+  function brushRule(label: string, arity: number): Rewrite {
+    const children: Pattern[] = _.range(arity).map((i) => ({
+      type: "op" as const,
+      label: "◯",
+      id: `◯-${label}-${i}`,
+      children: [],
+      isTrigger: false,
+    }));
+    return {
+      from: holePattern,
+      to: { type: "op", label, id: label, children, isTrigger: false },
+    };
+  }
+
+  const BRUSH_RULES: Rewrite[] = OP_DEFS.map((d) =>
+    brushRule(d.label, d.arity)
+  );
+
+  // Full toolkit: holes ops + variadic ops + atoms
+  const ALL_TOOLKIT: ToolkitBlock[] = [
+    ...OP_DEFS.map((d, i) => ({
+      key: `tk-h-${i}`,
+      label: d.label,
+      section: "holes" as Section,
+    })),
+    ...OP_DEFS.map((d, i) => ({
+      key: `tk-v-${i}`,
+      label: d.label,
+      section: "variadic" as Section,
+    })),
+    ...ATOM_LABELS.map((label, i) => ({
+      key: `tk-a-${i}`,
+      label,
+      section: "atoms" as Section,
+    })),
+  ];
+
+  // # Helpers
 
   function isRewriteArrow(label: string): boolean {
     return label === "→";
   }
 
-  export const state1: State = {
-    tree: { id: "root", label: "□", children: [] },
-    toolkit: BLOCK_DEFS.map((def, i) => ({
-      key: `tk-${i}`,
-      label: def.label,
-    })),
-    gutter: [],
-  };
+  function expectedArity(label: string): number {
+    return OP_DEFS.find((d) => d.label === label)?.arity ?? 0;
+  }
 
-  // # Helpers
+  function isOp(label: string): boolean {
+    return expectedArity(label) > 0;
+  }
+
+  function arityOk(tree: Tree): boolean {
+    const expected = expectedArity(tree.label);
+    if (expected === 0) return tree.children.length === 0;
+    return tree.children.length === expected;
+  }
 
   function findAllHoles(tree: Tree): string[] {
-    if (tree.label === "□") return [tree.id];
+    if (tree.label === "◯") return [tree.id];
     return tree.children.flatMap(findAllHoles);
   }
 
@@ -66,17 +122,24 @@ export namespace NoolStageBuilder {
   }
 
   function makeExpansion(blockKey: string, blockLabel: string): Tree {
-    const def = BLOCK_DEFS.find((d) => d.label === blockLabel);
-    const arity = def?.arity ?? 0;
+    const rule = BRUSH_RULES.find(
+      (r) => r.to.type === "op" && r.to.label === blockLabel
+    );
+    const arity = rule && rule.to.type === "op" ? rule.to.children.length : 0;
     return {
       id: blockKey,
       label: blockLabel,
       children: _.range(arity).map((i) => ({
         id: `${blockKey}-c${i}`,
-        label: "□",
+        label: "◯",
         children: [],
       })),
     };
+  }
+
+  function makeNodeForItem(block: ToolkitBlock): Tree {
+    if (block.section === "holes") return makeExpansion(block.key, block.label);
+    return { id: block.key, label: block.label, children: [] };
   }
 
   function findParentAndIndex(
@@ -84,9 +147,8 @@ export namespace NoolStageBuilder {
     nodeId: string
   ): { parent: Tree; index: number } | null {
     for (let i = 0; i < tree.children.length; i++) {
-      if (tree.children[i].id === nodeId) {
+      if (tree.children[i].id === nodeId)
         return { parent: tree, index: i };
-      }
       const result = findParentAndIndex(tree.children[i], nodeId);
       if (result) return result;
     }
@@ -122,14 +184,105 @@ export namespace NoolStageBuilder {
     return { ...tree, children: newChildren };
   }
 
-  // Generate all gutter insertion targets for a given subtree
-  function gutterInsertionTargets(baseState: State, subtree: Tree): State[] {
-    return _.range(baseState.gutter.length + 1).map((insertIdx) =>
+  function insertChild(
+    tree: Tree,
+    parentId: string,
+    index: number,
+    child: Tree
+  ): Tree {
+    if (tree.id === parentId) {
+      const newChildren = [...tree.children];
+      newChildren.splice(index, 0, child);
+      return { ...tree, children: newChildren };
+    }
+    const newChildren = tree.children.map((c) =>
+      insertChild(c, parentId, index, child)
+    );
+    if (newChildren.every((c, i) => c === tree.children[i])) return tree;
+    return { ...tree, children: newChildren };
+  }
+
+  // Find all positions in op child lists where a new child could be inserted
+  function allInsertionPoints(
+    tree: Tree
+  ): { parentId: string; index: number }[] {
+    const points: { parentId: string; index: number }[] = [];
+    if (isOp(tree.label)) {
+      for (let i = 0; i <= tree.children.length; i++) {
+        points.push({ parentId: tree.id, index: i });
+      }
+    }
+    for (const child of tree.children) {
+      points.push(...allInsertionPoints(child));
+    }
+    return points;
+  }
+
+  function allInsertionPointsInTrees(
+    trees: Tree[]
+  ): { treeIdx: number; parentId: string; index: number }[] {
+    return trees.flatMap((tree, treeIdx) =>
+      allInsertionPoints(tree).map((pt) => ({ treeIdx, ...pt }))
+    );
+  }
+
+  function paletteInsertionTargets(baseState: State, subtree: Tree): State[] {
+    return _.range(baseState.palette.length + 1).map((insertIdx) =>
       produce(baseState, (draft) => {
-        draft.gutter.splice(insertIdx, 0, subtree);
+        draft.palette.splice(insertIdx, 0, subtree);
       })
     );
   }
+
+  function stageInsertionTargets(baseState: State, newTree: Tree): State[] {
+    return _.range(baseState.trees.length + 1).map((insertIdx) =>
+      produce(baseState, (draft) => {
+        draft.trees.splice(insertIdx, 0, newTree);
+      })
+    );
+  }
+
+  function findAllHolesInTrees(
+    trees: Tree[]
+  ): { treeIdx: number; holeId: string }[] {
+    return trees.flatMap((tree, treeIdx) =>
+      findAllHoles(tree).map((holeId) => ({ treeIdx, holeId }))
+    );
+  }
+
+  function replaceInTrees(
+    trees: Tree[],
+    treeIdx: number,
+    targetId: string,
+    replacement: Tree
+  ): Tree[] {
+    return trees.map((t, i) =>
+      i === treeIdx ? replaceNode(t, targetId, replacement) : t
+    );
+  }
+
+  function insertInTrees(
+    trees: Tree[],
+    treeIdx: number,
+    parentId: string,
+    index: number,
+    child: Tree
+  ): Tree[] {
+    return trees.map((t, i) =>
+      i === treeIdx ? insertChild(t, parentId, index, child) : t
+    );
+  }
+
+  // # Initial state
+
+  export const state1: State = {
+    trees: [{ id: "root", label: "◯", children: [] }],
+    toolkit: ALL_TOOLKIT,
+    palette: [],
+    showAtoms: true,
+    showHolesOps: true,
+    showVariadicOps: false,
+  };
 
   // # Tree layout constants
 
@@ -137,17 +290,29 @@ export namespace NoolStageBuilder {
   const T_PADDING = 5;
   const T_LABEL_WIDTH = 20;
   const T_LABEL_MIN_HEIGHT = 20;
+  const T_EMPTY_CHILD_W = 12;
+  const T_EMPTY_CHILD_H = 12;
 
-  // Compute tree size without rendering (for toolkit layout)
   function treeSize(tree: Tree): { w: number; h: number } {
     const childSizes = tree.children.map(treeSize);
-    const innerW =
-      T_LABEL_WIDTH +
-      (childSizes.length > 0 ? T_GAP + _.max(childSizes.map((c) => c.w))! : 0);
-    const innerH =
+    const isOpNode = isOp(tree.label);
+    const hasChildArea = childSizes.length > 0 || isOpNode;
+    const childAreaW =
+      childSizes.length > 0
+        ? _.max(childSizes.map((c) => c.w))!
+        : isOpNode
+        ? T_EMPTY_CHILD_W
+        : 0;
+    const childAreaH =
       childSizes.length > 0
         ? _.sumBy(childSizes, (c) => c.h) + T_GAP * (childSizes.length - 1)
+        : isOpNode
+        ? T_EMPTY_CHILD_H
         : T_LABEL_MIN_HEIGHT;
+    const innerW = T_LABEL_WIDTH + (hasChildArea ? T_GAP + childAreaW : 0);
+    const innerH = hasChildArea
+      ? Math.max(childAreaH, T_LABEL_MIN_HEIGHT)
+      : T_LABEL_MIN_HEIGHT;
     return { w: innerW + T_PADDING * 2, h: innerH + T_PADDING * 2 };
   }
 
@@ -156,35 +321,29 @@ export namespace NoolStageBuilder {
   function renderTree(
     tree: Tree,
     opts?: {
-      // For tree nodes: enables pick-up drag (move/erase/swap)
-      pickUp?: { drag: Drag<State>; fullState: State };
-      // For toolkit/gutter blocks: disables pointer events on text
+      pickUp?: {
+        drag: Drag<State>;
+        fullState: State;
+        treeIdx: number;
+        variadicEnabled: boolean;
+      };
       pointerEventsNone?: boolean;
-      // For toolkit/gutter blocks: attaches drag handler to the root <g>
       rootOnDrag?: ReturnType<Drag<State>>;
-      // Transform applied to the root <g> (puts position on the id-bearing element
-      // so variable-count containers don't need non-id wrapper <g> elements)
       rootTransform?: string;
-      // Depth in tree (for z-index: children drawn on top of parents)
       depth?: number;
-      // Visual opacity (applied to the id-bearing <g> so it survives hoisting)
       opacity?: number;
-      // When true, all nodes get z-index 0 (parent drawn on top, captures clicks)
       flatZIndex?: boolean;
-      // When true, this node is inside a rewrite arrow — holes get purple tinting
       insideArrow?: boolean;
     }
-  ): {
-    element: Svgx;
-    w: number;
-    h: number;
-  } {
-    const isHole = tree.label === "□";
+  ): { element: Svgx; w: number; h: number } {
+    const isHole = tree.label === "◯";
     const isArrow = isRewriteArrow(tree.label);
+    const isOpNode = isOp(tree.label);
     const depth = opts?.depth ?? 0;
+    const valid = arityOk(tree);
 
-    // Children inherit opts but NOT rootOnDrag/rootTransform (only root gets those)
-    const childOpts = opts
+    // Children use rootTransform for positioning (variadic-safe: no non-id wrapper)
+    const baseChildOpts = opts
       ? {
           ...opts,
           rootOnDrag: undefined,
@@ -193,124 +352,181 @@ export namespace NoolStageBuilder {
           insideArrow: opts.insideArrow || isArrow,
         }
       : undefined;
-    const renderedChildren = tree.children.map((child) =>
-      renderTree(child, childOpts)
-    );
-
-    const renderedChildrenElements: Svgx[] = [];
+    const renderedChildren: { element: Svgx; w: number; h: number }[] = [];
     let childY = 0;
-    for (const childR of renderedChildren) {
-      renderedChildrenElements.push(
-        <g transform={translate(0, childY)}>{childR.element}</g>
+    for (const child of tree.children) {
+      const r = renderTree(
+        child,
+        baseChildOpts
+          ? { ...baseChildOpts, rootTransform: translate(0, childY) }
+          : undefined
       );
-      childY += childR.h + T_GAP;
+      renderedChildren.push(r);
+      childY += r.h + T_GAP;
     }
+    const renderedChildrenElements = renderedChildren.map((r) => r.element);
 
-    const innerW =
-      T_LABEL_WIDTH +
-      (renderedChildren.length > 0
-        ? T_GAP + _.max(renderedChildren.map((c) => c.w))!
-        : 0);
-    const innerH =
+    const hasChildArea = renderedChildren.length > 0 || isOpNode;
+    const childAreaW =
+      renderedChildren.length > 0
+        ? _.max(renderedChildren.map((c) => c.w))!
+        : isOpNode
+        ? T_EMPTY_CHILD_W
+        : 0;
+    const childAreaH =
       renderedChildren.length > 0
         ? _.sumBy(renderedChildren, (c) => c.h) +
           T_GAP * (renderedChildren.length - 1)
+        : isOpNode
+        ? T_EMPTY_CHILD_H
         : T_LABEL_MIN_HEIGHT;
+    const innerW = T_LABEL_WIDTH + (hasChildArea ? T_GAP + childAreaW : 0);
+    const innerH = hasChildArea
+      ? Math.max(childAreaH, T_LABEL_MIN_HEIGHT)
+      : T_LABEL_MIN_HEIGHT;
 
     const w = innerW + T_PADDING * 2;
     const h = innerH + T_PADDING * 2;
-    const rx = isHole
-      ? (h - 6) / 2
-      : Math.min(14, 0.3 * Math.min(w, h));
+    const rx = isHole ? (h - 6) / 2 : Math.min(14, 0.3 * Math.min(w, h));
 
-    // Pick-up drag: non-hole tree nodes can be grabbed, moved, swapped, or erased
+    // Pick-up drag
     const pickUpDrag =
       opts?.pickUp && !isHole
         ? opts.pickUp.drag(({ altKey }) => {
-            const { fullState } = opts.pickUp!;
+            const { fullState, treeIdx, variadicEnabled } = opts.pickUp!;
             const nodeId = tree.id;
-            const parentInfo = findParentAndIndex(fullState.tree, nodeId);
+            const thisTree = fullState.trees[treeIdx];
+            const parentInfo = findParentAndIndex(thisTree, nodeId);
 
-            // Alt-drag: duplicate (clone stays at original position)
             if (altKey) {
               const clone = cloneTreeWithFreshIds(tree);
               const stateWithClone: State = {
                 ...fullState,
-                tree: replaceNode(fullState.tree, nodeId, clone),
+                trees: replaceInTrees(
+                  fullState.trees,
+                  treeIdx,
+                  nodeId,
+                  clone
+                ),
               };
-              // Holes NOT inside the clone (avoid recursive nesting)
               const cloneHoles = new Set(findAllHoles(clone));
-              const availableHoles = findAllHoles(stateWithClone.tree).filter(
-                (hId) => !cloneHoles.has(hId)
+              const availableHoles = findAllHolesInTrees(
+                stateWithClone.trees
+              ).filter(({ holeId }) => !cloneHoles.has(holeId));
+              const holeTargets = availableHoles.map(
+                ({ treeIdx: ti, holeId }) => ({
+                  ...stateWithClone,
+                  trees: replaceInTrees(
+                    stateWithClone.trees,
+                    ti,
+                    holeId,
+                    tree
+                  ),
+                })
               );
-              const placeTargets = availableHoles.map((hId) => ({
-                ...stateWithClone,
-                tree: replaceNode(stateWithClone.tree, hId, tree),
-              }));
-              const gutterTargets = gutterInsertionTargets(
+              const insertTargets = variadicEnabled
+                ? allInsertionPointsInTrees(stateWithClone.trees).map(
+                    ({ treeIdx: ti, parentId, index }) => ({
+                      ...stateWithClone,
+                      trees: insertInTrees(
+                        stateWithClone.trees,
+                        ti,
+                        parentId,
+                        index,
+                        tree
+                      ),
+                    })
+                  )
+                : [];
+              const paletteTargets = paletteInsertionTargets(
                 stateWithClone,
                 tree
               );
               return floating(
-                [...placeTargets, ...gutterTargets, fullState],
+                [
+                  ...holeTargets,
+                  ...insertTargets,
+                  ...paletteTargets,
+                  fullState,
+                ],
                 { backdrop: stateWithClone }
               );
             }
 
-            // Backdrop: fresh hole at vacated position (unique ID that
-            // doesn't collide with any real hole)
+            // Backdrop: fresh hole at vacated position
             const pickupHoleId = `pickup-${nextPickupId++}`;
+            const hole: Tree = {
+              id: pickupHoleId,
+              label: "◯",
+              children: [],
+            };
             const stateWithout: State = {
               ...fullState,
-              tree: replaceNode(fullState.tree, nodeId, {
-                id: pickupHoleId,
-                label: "□",
-                children: [],
-              }),
+              trees: replaceInTrees(
+                fullState.trees,
+                treeIdx,
+                nodeId,
+                hole
+              ),
             };
 
-            // Placement targets: drop in any hole in the modified tree
-            // (pickup hole excluded — it's not a real placement target)
-            const holes = findAllHoles(stateWithout.tree).filter(
-              (hId) => hId !== pickupHoleId
+            const allHoles = findAllHolesInTrees(stateWithout.trees).filter(
+              ({ holeId }) => holeId !== pickupHoleId
             );
-            const placeTargets = holes.map((hId) => ({
+            const holeTargets = allHoles.map(({ treeIdx: ti, holeId }) => ({
               ...stateWithout,
-              tree: replaceNode(stateWithout.tree, hId, tree),
+              trees: replaceInTrees(stateWithout.trees, ti, holeId, tree),
             }));
 
-            // Swap targets: exchange with non-hole siblings
+            const insertTargets = variadicEnabled
+              ? allInsertionPointsInTrees(stateWithout.trees).map(
+                  ({ treeIdx: ti, parentId, index }) => ({
+                    ...stateWithout,
+                    trees: insertInTrees(
+                      stateWithout.trees,
+                      ti,
+                      parentId,
+                      index,
+                      tree
+                    ),
+                  })
+                )
+              : [];
+
             const swapTargets: State[] = [];
             if (parentInfo) {
               const { parent, index } = parentInfo;
               for (let i = 0; i < parent.children.length; i++) {
-                if (i !== index && parent.children[i].label !== "□") {
+                if (i !== index && parent.children[i].label !== "◯") {
                   swapTargets.push({
                     ...fullState,
-                    tree: swapChildrenAtParent(
-                      fullState.tree,
-                      parent.id,
-                      index,
-                      i
+                    trees: fullState.trees.map((t, ti) =>
+                      ti === treeIdx
+                        ? swapChildrenAtParent(t, parent.id, index, i)
+                        : t
                     ),
                   });
                 }
               }
             }
 
-            // Gutter targets: park in the gutter
-            const gutterTargets = gutterInsertionTargets(stateWithout, tree);
-
-            // Erase target: node parks in trash area, vanishes on release
+            const paletteTargets = paletteInsertionTargets(
+              stateWithout,
+              tree
+            );
             const eraseState: State = { ...stateWithout, trashed: tree };
-            const cleanState: State = { ...stateWithout, trashed: undefined };
+            const cleanState: State = {
+              ...stateWithout,
+              trashed: undefined,
+            };
 
             return floating(
               [
-                ...placeTargets,
+                ...holeTargets,
+                ...insertTargets,
                 ...swapTargets,
-                ...gutterTargets,
-                fullState, // "put back" at original position
+                ...paletteTargets,
+                fullState,
                 andThen(eraseState, cleanState),
               ],
               { backdrop: stateWithout }
@@ -319,6 +535,24 @@ export namespace NoolStageBuilder {
         : undefined;
 
     const zIndex = opts?.flatZIndex ? 0 : depth;
+
+    // Arity-aware styling
+    const strokeColor = isHole
+      ? opts?.insideArrow
+        ? "#c4b5fd"
+        : "#bbb"
+      : !valid
+      ? "#dd3333"
+      : isArrow
+      ? "#7c3aed"
+      : "gray";
+    const labelColor = isHole
+      ? "#999"
+      : !valid
+      ? "#dd3333"
+      : isArrow
+      ? "#7c3aed"
+      : "black";
 
     const element = (
       <g
@@ -334,9 +568,11 @@ export namespace NoolStageBuilder {
           width={isHole ? w - 6 : w}
           height={isHole ? h - 6 : h}
           rx={rx}
-          stroke={isHole ? (opts?.insideArrow ? "#c4b5fd" : "#bbb") : isArrow ? "#7c3aed" : "gray"}
+          stroke={strokeColor}
           strokeWidth={isArrow ? 2 : 1}
-          fill={isHole ? (opts?.insideArrow ? "#ede9fe" : "#eee") : "transparent"}
+          fill={
+            isHole ? (opts?.insideArrow ? "#ede9fe" : "#eee") : "transparent"
+          }
         />
         <text
           x={T_PADDING + T_LABEL_WIDTH / 2}
@@ -344,12 +580,12 @@ export namespace NoolStageBuilder {
           dominantBaseline="middle"
           textAnchor="middle"
           fontSize={isHole ? 0 : 20}
-          fill={isHole ? "#999" : isArrow ? "#7c3aed" : "black"}
+          fill={labelColor}
           pointerEvents={opts?.pointerEventsNone ? "none" : undefined}
         >
           {tree.label}
         </text>
-        {renderedChildren.length > 0 && (
+        {hasChildArea && (
           <g
             transform={translate(T_PADDING + T_LABEL_WIDTH + T_GAP, T_PADDING)}
           >
@@ -365,217 +601,430 @@ export namespace NoolStageBuilder {
   // # Main layout constants
 
   const BLOCK_GAP = 8;
-  const TOOLKIT_PADDING = 8;
-  const ZONE_GAP = 15;
-  const GUTTER_MIN_WIDTH = 46;
+  const LANE_PADDING = 8;
+  const COL_GAP = 12;
+  const SEP_INSET = 4;
+  const PALETTE_MIN_WIDTH = 46;
+  const STAGE_MIN_WIDTH = 46;
   const TRASH_SIZE = 30;
+  const BRUSH_PREFIX_W = 22;
+  const SECTION_GAP = 12;
+  const ICON_FONT_SIZE = 14;
+  const ICON_COL_WIDTH = LANE_PADDING * 2 + ICON_FONT_SIZE;
 
   // # Manipulable
 
-  export const manipulable: Manipulable<State> = ({ state, drag }) => {
-    // Compute toolkit item sizes for layout
-    const toolkitItemData = state.toolkit.map((block) => {
-      const expansion = makeExpansion(block.key, block.label);
-      return { block, expansion, size: treeSize(expansion) };
+  export const manipulable: Manipulable<State> = ({
+    state,
+    drag,
+    setState,
+  }) => {
+    // Filter toolkit items by active sections
+    const visibleItems = state.toolkit.filter(
+      (b) =>
+        (b.section === "atoms" && state.showAtoms) ||
+        (b.section === "holes" && state.showHolesOps) ||
+        (b.section === "variadic" && state.showVariadicOps)
+    );
+
+    // Group by section order with gaps between sections
+    const sectionOrder: Section[] = ["holes", "variadic", "atoms"];
+    const orderedItems: { block: ToolkitBlock; sectionStart: boolean }[] = [];
+    let firstSection = true;
+    for (const sec of sectionOrder) {
+      const items = visibleItems.filter((b) => b.section === sec);
+      if (items.length > 0) {
+        items.forEach((b, i) => {
+          orderedItems.push({
+            block: b,
+            sectionStart: i === 0 && !firstSection,
+          });
+        });
+        firstSection = false;
+      }
+    }
+
+    // -- Brush kit layout --
+    const brushKitItemData = orderedItems.map(({ block, sectionStart }) => {
+      const displayTree = makeNodeForItem(block);
+      return {
+        block,
+        displayTree,
+        size: treeSize(displayTree),
+        sectionStart,
+      };
     });
 
-    const maxToolkitW = _.max(toolkitItemData.map((t) => t.size.w)) ?? 30;
-    const toolkitWidth = maxToolkitW + TOOLKIT_PADDING * 2;
+    const brushKitContentW =
+      brushKitItemData.length > 0
+        ? _.max(brushKitItemData.map((t) => t.size.w))!
+        : 30;
+    const brushKitWidth =
+      LANE_PADDING + BRUSH_PREFIX_W + brushKitContentW + LANE_PADDING;
 
-    let toolkitY = TOOLKIT_PADDING;
-    const toolkitPositions = toolkitItemData.map((item) => {
-      const y = toolkitY;
-      toolkitY += item.size.h + BLOCK_GAP;
+    let brushKitY = LANE_PADDING;
+    const brushKitPositions = brushKitItemData.map((item) => {
+      if (item.sectionStart) brushKitY += SECTION_GAP;
+      const y = brushKitY;
+      brushKitY += item.size.h + BLOCK_GAP;
       return y;
     });
-    const toolkitHeight = toolkitY + TOOLKIT_PADDING - BLOCK_GAP;
+    const brushKitHeight = brushKitY + LANE_PADDING - BLOCK_GAP;
 
-    const holeIds = findAllHoles(state.tree);
+    const allHoles = findAllHolesInTrees(state.trees);
+    const hasHoles = allHoles.length > 0;
+    const allInsertPts = allInsertionPointsInTrees(state.trees);
 
-    // Compute gutter layout
-    const gutterItemData = state.gutter.map((block) => ({
+    function itemHasTargets(block: ToolkitBlock): boolean {
+      if (block.section === "holes") return hasHoles;
+      if (block.section === "variadic")
+        return allInsertPts.length > 0;
+      // atoms: can fill holes, insert variadically, or create new stage tree
+      return hasHoles || allInsertPts.length > 0 || true;
+    }
+
+    // -- Palette layout --
+    const paletteItems = state.palette.map((block) => ({
       block,
       size: treeSize(block),
     }));
-    const maxGutterW =
-      gutterItemData.length > 0
-        ? _.max(gutterItemData.map((g) => g.size.w))!
+    const paletteContentW =
+      paletteItems.length > 0
+        ? _.max(paletteItems.map((p) => p.size.w))!
         : 0;
-    const gutterContentWidth = Math.max(
-      GUTTER_MIN_WIDTH,
-      maxGutterW + TOOLKIT_PADDING * 2
+    const paletteWidth = Math.max(
+      PALETTE_MIN_WIDTH,
+      paletteContentW + LANE_PADDING * 2
     );
 
-    let gutterY = TOOLKIT_PADDING;
-    const gutterPositions = gutterItemData.map((item) => {
-      const y = gutterY;
-      gutterY += item.size.h + BLOCK_GAP;
+    let paletteY = LANE_PADDING;
+    const palettePositions = paletteItems.map((item) => {
+      const y = paletteY;
+      paletteY += item.size.h + BLOCK_GAP;
       return y;
     });
-    const gutterHeight = Math.max(
-      gutterY + TOOLKIT_PADDING - BLOCK_GAP,
-      TOOLKIT_PADDING * 2 + GUTTER_MIN_WIDTH
+    const paletteHeight = Math.max(
+      paletteY + LANE_PADDING - BLOCK_GAP,
+      LANE_PADDING * 2 + PALETTE_MIN_WIDTH
     );
 
-    const gutterOffsetX = toolkitWidth + ZONE_GAP;
-    const treeOffsetX = gutterOffsetX + gutterContentWidth + ZONE_GAP;
-    const treeR = renderTree(state.tree, {
-      pickUp: { drag, fullState: state },
-    });
+    // -- Stage layout --
+    const variadicEnabled = state.showVariadicOps;
+    const stageRendered = state.trees.map((tree, treeIdx) =>
+      renderTree(tree, {
+        pickUp: { drag, fullState: state, treeIdx, variadicEnabled },
+      })
+    );
+    const stageContentW =
+      stageRendered.length > 0
+        ? _.max(stageRendered.map((r) => r.w))!
+        : STAGE_MIN_WIDTH;
+    const stageWidth = Math.max(
+      STAGE_MIN_WIDTH,
+      stageContentW + LANE_PADDING * 2
+    );
 
-    // Trash zone: positioned to the right of the tree
-    const trashX = treeOffsetX + treeR.w + ZONE_GAP;
-    const trashY = 0;
+    let stageY = LANE_PADDING;
+    const stagePositions = stageRendered.map((r) => {
+      const y = stageY;
+      stageY += r.h + BLOCK_GAP;
+      return y;
+    });
+    const stageHeight = Math.max(
+      stageY + LANE_PADDING - BLOCK_GAP,
+      LANE_PADDING * 2 + STAGE_MIN_WIDTH
+    );
+
+    // -- Horizontal positions --
+    const iconsX = 0;
+    const brushKitX = ICON_COL_WIDTH + COL_GAP;
+    const paletteX = brushKitX + brushKitWidth + COL_GAP;
+    const stageX = paletteX + paletteWidth + COL_GAP;
+    const trashX = stageX + stageWidth + COL_GAP;
+
+    // -- Separator lines --
+    const sep0X = ICON_COL_WIDTH + COL_GAP / 2;
+    const sep1X = brushKitX + brushKitWidth + COL_GAP / 2;
+    const sep2X = paletteX + paletteWidth + COL_GAP / 2;
+    const sep3X = stageX + stageWidth + COL_GAP / 2;
+
+    // -- Icon column layout --
+    const iconDefs: {
+      id: string;
+      icon: string;
+      active: boolean;
+      stateKey: "showHolesOps" | "showVariadicOps" | "showAtoms";
+    }[] = [
+      {
+        id: "icon-holes",
+        icon: "◎",
+        active: state.showHolesOps,
+        stateKey: "showHolesOps",
+      },
+      {
+        id: "icon-variadic",
+        icon: "⊞",
+        active: state.showVariadicOps,
+        stateKey: "showVariadicOps",
+      },
+      {
+        id: "icon-atoms",
+        icon: "◆",
+        active: state.showAtoms,
+        stateKey: "showAtoms",
+      },
+    ];
 
     return (
       <g>
-        {/* Toolkit background */}
-        <rect
-          x={0}
-          y={0}
-          width={toolkitWidth}
-          height={toolkitHeight}
-          fill="#f0f0f0"
-          stroke="#ccc"
-          strokeWidth={1}
-          rx={Math.min(14, 0.3 * Math.min(toolkitWidth, toolkitHeight))}
-          id="toolkit-bg"
-          data-z-index={-10}
-        />
-
-        {/* Toolkit blocks - rendered with renderTree so SVG structure
-            matches the placed version (avoids lerp child count mismatch) */}
-        {toolkitItemData.map(({ block, expansion }, idx) => (
-          <g transform={translate(TOOLKIT_PADDING, toolkitPositions[idx])}>
-            {
-              renderTree(expansion, {
-                pointerEventsNone: true,
-                opacity: holeIds.length > 0 ? undefined : 0.35,
-                rootOnDrag:
-                  holeIds.length > 0
-                    ? drag(() => {
-                        // Clone pattern: refresh toolkit slot key
-                        const stateWithout = produce(state, (draft) => {
-                          draft.toolkit[idx].key += "-r";
-                        });
-
-                        const targetStates = holeIds.map((holeId) => ({
-                          ...stateWithout,
-                          tree: replaceNode(
-                            stateWithout.tree,
-                            holeId,
-                            makeExpansion(block.key, block.label)
-                          ),
-                        }));
-
-                        return floating(targetStates, {
-                          backdrop: stateWithout,
-                        });
-                      })
-                    : undefined,
-              }).element
+        {/* CSS for hover-reveal on brush prefixes and icon hover */}
+        <defs>
+          <style>{`
+            [id^="brush-prefix-"] {
+              opacity: 0;
+              transition: opacity 0.15s;
             }
-          </g>
+            [data-brush-item]:hover [id^="brush-prefix-"] {
+              opacity: 0.6;
+            }
+            [data-section-icon] {
+              transition: fill 0.1s;
+            }
+            [data-section-icon]:hover {
+              fill: #333 !important;
+            }
+          `}</style>
+        </defs>
+
+        {/* Icon column */}
+        {iconDefs.map(({ id, icon, active, stateKey }, idx) => (
+          <text
+            id={id}
+            x={iconsX + ICON_COL_WIDTH / 2}
+            y={LANE_PADDING + idx * (ICON_FONT_SIZE + BLOCK_GAP) + ICON_FONT_SIZE / 2}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={ICON_FONT_SIZE}
+            fill={active ? "#999" : "#ccc"}
+            style={{ cursor: "pointer" }}
+            data-section-icon={true}
+            data-z-index={-5}
+            onClick={() =>
+              setState(
+                { ...state, [stateKey]: !active },
+                { seconds: 0, immediate: true }
+              )
+            }
+          >
+            {icon}
+          </text>
         ))}
 
-        {/* Gutter background */}
-        <rect
-          x={gutterOffsetX}
-          y={0}
-          width={gutterContentWidth}
-          height={Math.max(gutterHeight, toolkitHeight)}
-          fill="#f8f8f8"
-          stroke="#ddd"
-          strokeWidth={1}
-          strokeDasharray="4,4"
-          rx={Math.min(14, 0.3 * Math.min(gutterContentWidth, Math.max(gutterHeight, toolkitHeight)))}
-          id="gutter-bg"
-          data-z-index={-10}
-        />
+        {/* Separator lines */}
+        {[
+          { x: sep0X, h: Math.max(brushKitHeight, ICON_FONT_SIZE * 3 + BLOCK_GAP * 2 + LANE_PADDING * 2) },
+          { x: sep1X, h: Math.max(brushKitHeight, paletteHeight) },
+          { x: sep2X, h: Math.max(paletteHeight, stageHeight) },
+          { x: sep3X, h: Math.max(stageHeight, TRASH_SIZE) },
+        ].map(({ x, h }, idx) => (
+          <line
+            x1={x}
+            y1={SEP_INSET}
+            x2={x}
+            y2={h - SEP_INSET}
+            stroke="#ddd"
+            strokeWidth={1}
+            strokeLinecap="round"
+            id={`sep-${idx}`}
+            data-z-index={-10}
+          />
+        ))}
 
-        {/* Gutter items — rootTransform puts position on the id-bearing element
-            so no wrapper <g> is needed (avoids variable child count in lerp) */}
-        {gutterItemData.map(
-          ({ block }, idx) =>
-            renderTree(block, {
-              rootTransform: translate(
-                gutterOffsetX + TOOLKIT_PADDING,
-                gutterPositions[idx]
-              ),
-              pointerEventsNone: true,
-              flatZIndex: true,
-              rootOnDrag: drag(({ altKey }) => {
-                if (altKey) {
-                  // Duplicate: clone stays in gutter, original moves
-                  const stateWithClone = produce(state, (draft) => {
-                    draft.gutter[idx] = cloneTreeWithFreshIds(block);
-                  });
-                  const holes = findAllHoles(stateWithClone.tree);
-                  const placeTargets = holes.map((hId) => ({
-                    ...stateWithClone,
-                    tree: replaceNode(stateWithClone.tree, hId, block),
-                  }));
-                  const gutterTargets = gutterInsertionTargets(
-                    stateWithClone,
-                    block
-                  );
-                  return floating(
-                    [...placeTargets, ...gutterTargets, state],
-                    { backdrop: stateWithClone }
-                  );
+        {/* Brush kit items */}
+        {brushKitItemData.map(({ block, displayTree, size }, idx) => {
+          const toolkitIdx = state.toolkit.indexOf(block);
+          const hasTargets = itemHasTargets(block);
+
+          return (
+            <g
+              id={`brush-item-${block.key}`}
+              transform={translate(brushKitX + LANE_PADDING, brushKitPositions[idx])}
+              data-brush-item={true}
+            >
+              <text
+                x={BRUSH_PREFIX_W / 2}
+                y={size.h / 2}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={11}
+                fill="#ccc"
+                id={`brush-prefix-${block.key}`}
+                data-z-index={-5}
+              >
+                ◯&nbsp;→&nbsp;&nbsp;&nbsp;
+              </text>
+              <g transform={translate(BRUSH_PREFIX_W, 0)}>
+                {
+                  renderTree(displayTree, {
+                    pointerEventsNone: true,
+                    opacity: hasTargets ? undefined : 0.35,
+                    rootOnDrag: hasTargets
+                      ? drag(() => {
+                          const stateWithout = produce(state, (draft) => {
+                            draft.toolkit[toolkitIdx].key += "-r";
+                          });
+                          const node = makeNodeForItem(block);
+
+                          // Hole targets (for any section)
+                          const holeTargets = allHoles.map(
+                            ({ treeIdx, holeId }) => ({
+                              ...stateWithout,
+                              trees: replaceInTrees(
+                                stateWithout.trees,
+                                treeIdx,
+                                holeId,
+                                node
+                              ),
+                            })
+                          );
+
+                          // Variadic insertion targets
+                          const insertTargets =
+                            block.section === "variadic" ||
+                            block.section === "atoms"
+                              ? allInsertPts.map(
+                                  ({ treeIdx, parentId, index }) => ({
+                                    ...stateWithout,
+                                    trees: insertInTrees(
+                                      stateWithout.trees,
+                                      treeIdx,
+                                      parentId,
+                                      index,
+                                      node
+                                    ),
+                                  })
+                                )
+                              : [];
+
+                          // Stage insertion targets (add as new tree)
+                          const stageTargets = stageInsertionTargets(
+                            stateWithout,
+                            node
+                          );
+
+                          return floating(
+                            [
+                              ...holeTargets,
+                              ...insertTargets,
+                              ...stageTargets,
+                            ],
+                            { backdrop: stateWithout }
+                          );
+                        })
+                      : undefined,
+                  }).element
                 }
+              </g>
+            </g>
+          );
+        })}
 
-                // Remove from gutter
-                const stateWithout = produce(state, (draft) => {
-                  draft.gutter.splice(idx, 1);
+        {/* Palette items */}
+        {paletteItems.map(({ block }, idx) =>
+          renderTree(block, {
+            rootTransform: translate(
+              paletteX + LANE_PADDING,
+              palettePositions[idx]
+            ),
+            pointerEventsNone: true,
+            flatZIndex: true,
+            rootOnDrag: drag(({ altKey }) => {
+              if (altKey) {
+                const stateWithClone = produce(state, (draft) => {
+                  draft.palette[idx] = cloneTreeWithFreshIds(block);
                 });
-
-                // Place in any hole in the tree
-                const holes = findAllHoles(stateWithout.tree);
-                const placeTargets = holes.map((hId) => ({
-                  ...stateWithout,
-                  tree: replaceNode(stateWithout.tree, hId, block),
-                }));
-
-                // Reorder within gutter (includes "put back" at original position)
-                const reorderTargets = gutterInsertionTargets(
-                  stateWithout,
+                const holes = findAllHolesInTrees(stateWithClone.trees);
+                const placeTargets = holes.map(
+                  ({ treeIdx: ti, holeId }) => ({
+                    ...stateWithClone,
+                    trees: replaceInTrees(
+                      stateWithClone.trees,
+                      ti,
+                      holeId,
+                      block
+                    ),
+                  })
+                );
+                const palTargets = paletteInsertionTargets(
+                  stateWithClone,
                   block
                 );
-
-                // Erase
-                const eraseState: State = { ...stateWithout, trashed: block };
-                const cleanState: State = {
-                  ...stateWithout,
-                  trashed: undefined,
-                };
-
-                return floating(
-                  [
-                    ...placeTargets,
-                    ...reorderTargets,
-                    andThen(eraseState, cleanState),
-                  ],
-                  { backdrop: stateWithout }
+                const stageTargets = stageInsertionTargets(
+                  stateWithClone,
+                  block
                 );
-              }),
-            }).element
+                return floating(
+                  [...placeTargets, ...palTargets, ...stageTargets, state],
+                  { backdrop: stateWithClone }
+                );
+              }
+
+              const stateWithout = produce(state, (draft) => {
+                draft.palette.splice(idx, 1);
+              });
+              const holes = findAllHolesInTrees(stateWithout.trees);
+              const placeTargets = holes.map(
+                ({ treeIdx: ti, holeId }) => ({
+                  ...stateWithout,
+                  trees: replaceInTrees(
+                    stateWithout.trees,
+                    ti,
+                    holeId,
+                    block
+                  ),
+                })
+              );
+              const reorderTargets = paletteInsertionTargets(
+                stateWithout,
+                block
+              );
+              const stageTargets = stageInsertionTargets(stateWithout, block);
+              const eraseState: State = { ...stateWithout, trashed: block };
+              const cleanState: State = {
+                ...stateWithout,
+                trashed: undefined,
+              };
+              return floating(
+                [
+                  ...placeTargets,
+                  ...reorderTargets,
+                  ...stageTargets,
+                  andThen(eraseState, cleanState),
+                ],
+                { backdrop: stateWithout }
+              );
+            }),
+          }).element
         )}
 
-        {/* Trash zone - subtle indicator to the right */}
-        <g transform={translate(trashX, trashY)}>
-          <rect
-            x={0}
-            y={0}
-            width={TRASH_SIZE}
-            height={TRASH_SIZE}
-            fill="transparent"
-            stroke="#ccc"
-            strokeWidth={1}
-            strokeDasharray="4,4"
-            rx={4}
-            id="trash-bg"
-          />
+        {/* Stage trees — using rootTransform so root elements are hoisted directly */}
+        {stageRendered.map((_, idx) =>
+          renderTree(state.trees[idx], {
+            pickUp: {
+              drag,
+              fullState: state,
+              treeIdx: idx,
+              variadicEnabled,
+            },
+            rootTransform: translate(
+              stageX + LANE_PADDING,
+              stagePositions[idx]
+            ),
+          }).element
+        )}
+
+        {/* Trash zone — bare icon */}
+        <g transform={translate(trashX, 0)}>
           <text
             x={TRASH_SIZE / 2}
             y={TRASH_SIZE / 2}
@@ -590,9 +1039,6 @@ export namespace NoolStageBuilder {
           {state.trashed &&
             renderTree(state.trashed, { pointerEventsNone: true }).element}
         </g>
-
-        {/* Tree area */}
-        <g transform={translate(treeOffsetX, 0)}>{treeR.element}</g>
       </g>
     );
   };
