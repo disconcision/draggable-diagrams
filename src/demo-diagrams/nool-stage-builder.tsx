@@ -590,7 +590,7 @@ export namespace NoolStageBuilder {
                   removeStageHoles(cleanState)
                 ),
               ],
-              { backdrop: stateWithout }
+              { backdrop: cleanedWithout }
             );
           })
         : undefined;
