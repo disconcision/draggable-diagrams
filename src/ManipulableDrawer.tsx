@@ -95,6 +95,9 @@ export function ManipulableDrawer<T extends object>({
   });
   const [paused, setPaused] = useState(false);
   const pointerRef = useRef<Vec2 | undefined>(undefined);
+  // Cleanup for pending drag-threshold listeners (pointerdown happened,
+  // waiting for movement to exceed threshold before starting real drag).
+  const pendingDragCleanupRef = useRef<(() => void) | null>(null);
 
   const drawerConfigWithDefaults = useMemo(
     () => ({
@@ -102,6 +105,7 @@ export function ManipulableDrawer<T extends object>({
       chainDrags: drawerConfig.chainDrags ?? true,
       relativePointerMotion: drawerConfig.relativePointerMotion ?? false,
       animationDuration: drawerConfig.animationDuration ?? 300,
+      dragThreshold: drawerConfig.dragThreshold ?? 4,
     }),
     [drawerConfig]
   );
@@ -232,6 +236,7 @@ export function ManipulableDrawer<T extends object>({
       setPointerFromEvent,
       setDragState: setDragStateWithoutByproducts,
       catchToRenderError,
+      pendingDragCleanupRef,
     };
   }, [
     dragContext,
@@ -394,24 +399,66 @@ function postProcessForInteraction<T extends object>(
           onPointerDown: ctx.catchToRenderError((e: React.PointerEvent) => {
             // console.log("onPointerDown");
             e.stopPropagation();
-            const pointer = ctx.setPointerFromEvent(e.nativeEvent);
+
+            const threshold = ctx.drawerConfig.dragThreshold;
+            const startX = e.clientX;
+            const startY = e.clientY;
+
+            // Capture values we'll need if/when the drag actually starts.
             const accumulatedTransform = getAccumulatedTransform(el);
             const transforms = parseTransform(accumulatedTransform || "");
-            const pointerLocal = globalToLocal(transforms, pointer);
             const path = getPath(el);
             assert(!!path, "Draggable element must have a path");
             const dragStartInfo: DragStartInfo = { altKey: e.altKey };
-            ctx.setDragState(
-              dragStateFromSpec(
-                state,
-                path,
-                el.props.id || null,
-                dragSpecCallback(dragStartInfo),
-                pointerLocal,
-                pointer,
-                ctx.manipulable
-              )
-            );
+
+            const startDrag = (me: globalThis.PointerEvent) => {
+              const pointer = ctx.setPointerFromEvent(me);
+              const pointerLocal = globalToLocal(transforms, pointer);
+              ctx.setDragState(
+                dragStateFromSpec(
+                  state,
+                  path,
+                  el.props.id || null,
+                  dragSpecCallback(dragStartInfo),
+                  pointerLocal,
+                  pointer,
+                  ctx.manipulable
+                )
+              );
+            };
+
+            if (threshold <= 0) {
+              // No threshold — start drag immediately (old behavior).
+              startDrag(e.nativeEvent);
+              return;
+            }
+
+            // Defer drag start until pointer moves beyond threshold.
+            // Until then, the DOM stays intact, so onClick etc. fire normally.
+            ctx.pendingDragCleanupRef.current?.();
+            const onMove = (me: globalThis.PointerEvent) => {
+              const dx = me.clientX - startX;
+              const dy = me.clientY - startY;
+              if (dx * dx + dy * dy > threshold * threshold) {
+                cleanup();
+                startDrag(me);
+              }
+            };
+            const onUp = () => {
+              // Pointer released before threshold — not a drag. Clean up
+              // and let the browser synthesize a click event normally.
+              cleanup();
+            };
+            const cleanup = () => {
+              document.removeEventListener("pointermove", onMove);
+              document.removeEventListener("pointerup", onUp);
+              if (ctx.pendingDragCleanupRef.current === cleanup) {
+                ctx.pendingDragCleanupRef.current = null;
+              }
+            };
+            document.addEventListener("pointermove", onMove);
+            document.addEventListener("pointerup", onUp);
+            ctx.pendingDragCleanupRef.current = cleanup;
           }),
         };
       }),
@@ -994,6 +1041,7 @@ type RenderContext<T extends object> = DragContext<T> & {
   setDragState: (newDragState: DOmit<DragState<T>, "byproducts">) => void;
   catchToRenderError: CatchToRenderError;
   setPointerFromEvent: (e: globalThis.PointerEvent) => Vec2;
+  pendingDragCleanupRef: React.RefObject<(() => void) | null>;
 };
 
 type DrawModeProps<T extends object, Type> = {
@@ -1203,4 +1251,12 @@ export type DrawerConfig = {
   chainDrags: boolean;
   relativePointerMotion: boolean;
   animationDuration: number;
+  /**
+   * Minimum pointer movement (in px) before a pointerdown becomes a drag.
+   * Below this threshold, the gesture is treated as a click — the DOM is
+   * not re-rendered, so onClick handlers on the element (or its children)
+   * fire normally. Set to 0 to start drags immediately (old behavior).
+   * Default: 4.
+   */
+  dragThreshold: number;
 };

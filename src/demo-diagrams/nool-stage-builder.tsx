@@ -14,7 +14,7 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { Pattern, Rewrite, Tree } from "../asts";
-import { andThen, floating } from "../DragSpec";
+import { andThen, floating, span } from "../DragSpec";
 import { Drag, Manipulable } from "../manipulable";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
@@ -795,7 +795,7 @@ export namespace NoolStageBuilder {
     const sep2X = paletteX + paletteWidth + COL_GAP / 2;
     const sep3X = stageX + stageWidth + COL_GAP / 2;
 
-    // -- Icon column: click-to-toggle section icons --
+    // -- Icon column: click to toggle, drag to reorder --
     const iconDefs = sectionOrder.map((section, idx) => {
       const stateKey = SECTION_STATE_KEYS[section];
       return {
@@ -803,6 +803,7 @@ export namespace NoolStageBuilder {
         icon: SECTION_ICONS[section],
         active: state[stateKey],
         stateKey,
+        section,
         y:
           LANE_PADDING +
           idx * (ICON_FONT_SIZE + BLOCK_GAP) +
@@ -828,11 +829,24 @@ export namespace NoolStageBuilder {
           `}</style>
         </defs>
 
-        {/* Icon column — click to toggle sections */}
-        {iconDefs.map(({ id, icon, active, stateKey, y }) => (
+        {/* Icon column — click to toggle, drag to reorder (uses dragThreshold) */}
+        {iconDefs.map(({ id, icon, active, stateKey, section, y }) => (
           <g
             id={id}
             transform={translate(iconsX + LANE_PADDING, y)}
+            data-on-drag={drag(() => {
+              const others = sectionOrder.filter((s) => s !== section);
+              const targets = _.range(others.length + 1).map((pos) => ({
+                ...state,
+                sectionOrder: [
+                  ...others.slice(0, pos),
+                  section,
+                  ...others.slice(pos),
+                ],
+              }));
+              return span(targets);
+            })}
+            data-z-index={-5}
             onClick={() =>
               setState(
                 { ...state, [stateKey]: !active },
