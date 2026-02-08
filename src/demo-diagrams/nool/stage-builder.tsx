@@ -13,11 +13,33 @@
 
 import { produce } from "immer";
 import _ from "lodash";
-import { Pattern, Rewrite, Tree } from "../asts";
-import { andThen, floating, span } from "../DragSpec";
-import { Drag, Manipulable } from "../manipulable";
-import { Svgx } from "../svgx";
-import { translate } from "../svgx/helpers";
+import { Pattern, Rewrite, Tree } from "../../asts";
+import { andThen, floating, span } from "../../DragSpec";
+import { Drag, Manipulable } from "../../manipulable";
+import { Svgx } from "../../svgx";
+import { translate } from "../../svgx/helpers";
+import {
+  OP_DEFS,
+  isRewriteArrow,
+  isOp,
+  arityOk,
+  findAllHoles,
+  findParentAndIndex,
+  cloneTreeWithFreshIds,
+  swapChildrenAtParent,
+  allInsertionPointsInTrees,
+  findAllHolesInTrees,
+  replaceInTrees,
+  insertInTrees,
+  removeInTrees,
+  treeSize,
+  T_GAP,
+  T_PADDING,
+  T_LABEL_WIDTH,
+  T_LABEL_MIN_HEIGHT,
+  T_EMPTY_CHILD_W,
+  T_EMPTY_CHILD_H,
+} from "./nool-tree";
 
 export namespace NoolStageBuilder {
   // # Types
@@ -62,13 +84,6 @@ export namespace NoolStageBuilder {
   // # Block definitions
 
   const ATOM_LABELS = ["⛅", "🍄", "🎲", "🧊", "🪨", "🐝", "🌕", "🌘"];
-
-  const OP_DEFS: { label: string; arity: number }[] = [
-    { label: "→", arity: 2 },
-    { label: "+", arity: 2 },
-    { label: "×", arity: 2 },
-    { label: "-", arity: 1 },
-  ];
 
   // Brush rules for holes ops
   const holePattern: Pattern = {
@@ -116,39 +131,7 @@ export namespace NoolStageBuilder {
     })),
   ];
 
-  // # Helpers
-
-  function isRewriteArrow(label: string): boolean {
-    return label === "→";
-  }
-
-  function expectedArity(label: string): number {
-    return OP_DEFS.find((d) => d.label === label)?.arity ?? 0;
-  }
-
-  function isOp(label: string): boolean {
-    return expectedArity(label) > 0;
-  }
-
-  function arityOk(tree: Tree): boolean {
-    const expected = expectedArity(tree.label);
-    if (expected === 0) return tree.children.length === 0;
-    return tree.children.length === expected;
-  }
-
-  function findAllHoles(tree: Tree): string[] {
-    if (tree.label === "◯") return [tree.id];
-    return tree.children.flatMap(findAllHoles);
-  }
-
-  function replaceNode(tree: Tree, targetId: string, replacement: Tree): Tree {
-    if (tree.id === targetId) return replacement;
-    const newChildren = tree.children.map((c) =>
-      replaceNode(c, targetId, replacement)
-    );
-    if (newChildren.every((c, i) => c === tree.children[i])) return tree;
-    return { ...tree, children: newChildren };
-  }
+  // # Stage-specific helpers
 
   function makeExpansion(blockKey: string, blockLabel: string): Tree {
     const rule = BRUSH_RULES.find(
@@ -168,91 +151,9 @@ export namespace NoolStageBuilder {
 
   function makeNodeForItem(block: BrushBlock): Tree {
     if (block.bucket === "holes") return makeExpansion(block.key, block.label);
+    if (block.bucket === "variadic")
+      return { id: block.key, label: block.label, children: [], variadic: true };
     return { id: block.key, label: block.label, children: [] };
-  }
-
-  function findParentAndIndex(
-    tree: Tree,
-    nodeId: string
-  ): { parent: Tree; index: number } | null {
-    for (let i = 0; i < tree.children.length; i++) {
-      if (tree.children[i].id === nodeId)
-        return { parent: tree, index: i };
-      const result = findParentAndIndex(tree.children[i], nodeId);
-      if (result) return result;
-    }
-    return null;
-  }
-
-  let nextPickupId = 0;
-  let nextCloneId = 0;
-
-  function cloneTreeWithFreshIds(tree: Tree): Tree {
-    return {
-      id: `clone-${nextCloneId++}`,
-      label: tree.label,
-      children: tree.children.map(cloneTreeWithFreshIds),
-    };
-  }
-
-  function swapChildrenAtParent(
-    tree: Tree,
-    parentId: string,
-    i: number,
-    j: number
-  ): Tree {
-    if (tree.id === parentId) {
-      const newChildren = [...tree.children];
-      [newChildren[i], newChildren[j]] = [newChildren[j], newChildren[i]];
-      return { ...tree, children: newChildren };
-    }
-    const newChildren = tree.children.map((c) =>
-      swapChildrenAtParent(c, parentId, i, j)
-    );
-    if (newChildren.every((c, idx) => c === tree.children[idx])) return tree;
-    return { ...tree, children: newChildren };
-  }
-
-  function insertChild(
-    tree: Tree,
-    parentId: string,
-    index: number,
-    child: Tree
-  ): Tree {
-    if (tree.id === parentId) {
-      const newChildren = [...tree.children];
-      newChildren.splice(index, 0, child);
-      return { ...tree, children: newChildren };
-    }
-    const newChildren = tree.children.map((c) =>
-      insertChild(c, parentId, index, child)
-    );
-    if (newChildren.every((c, i) => c === tree.children[i])) return tree;
-    return { ...tree, children: newChildren };
-  }
-
-  // Find all positions in op child lists where a new child could be inserted
-  function allInsertionPoints(
-    tree: Tree
-  ): { parentId: string; index: number }[] {
-    const points: { parentId: string; index: number }[] = [];
-    if (isOp(tree.label)) {
-      for (let i = 0; i <= tree.children.length; i++) {
-        points.push({ parentId: tree.id, index: i });
-      }
-    }
-    for (const child of tree.children) {
-      points.push(...allInsertionPoints(child));
-    }
-    return points;
-  }
-
-  function allInsertionPointsInTrees(
-    trees: Tree[]
-  ): { treeIdx: number; parentId: string; index: number }[] {
-    return trees.flatMap((tree, treeIdx) =>
-      allInsertionPoints(tree).map((pt) => ({ treeIdx, ...pt }))
-    );
   }
 
   function paletteInsertionTargets(baseState: State, subtree: Tree): State[] {
@@ -263,43 +164,10 @@ export namespace NoolStageBuilder {
     );
   }
 
-  function stageInsertionTargets(baseState: State, newTree: Tree): State[] {
-    return _.range(baseState.trees.length + 1).map((insertIdx) =>
-      produce(baseState, (draft) => {
-        draft.trees.splice(insertIdx, 0, newTree);
-      })
-    );
-  }
-
-  function findAllHolesInTrees(
-    trees: Tree[]
-  ): { treeIdx: number; holeId: string }[] {
-    return trees.flatMap((tree, treeIdx) =>
-      findAllHoles(tree).map((holeId) => ({ treeIdx, holeId }))
-    );
-  }
-
-  function replaceInTrees(
-    trees: Tree[],
-    treeIdx: number,
-    targetId: string,
-    replacement: Tree
-  ): Tree[] {
-    return trees.map((t, i) =>
-      i === treeIdx ? replaceNode(t, targetId, replacement) : t
-    );
-  }
-
-  function insertInTrees(
-    trees: Tree[],
-    treeIdx: number,
-    parentId: string,
-    index: number,
-    child: Tree
-  ): Tree[] {
-    return trees.map((t, i) =>
-      i === treeIdx ? insertChild(t, parentId, index, child) : t
-    );
+  // Place on stage only when empty (single-item stage).
+  function emptyStageTarget(baseState: State, tree: Tree): State[] {
+    if (baseState.trees.length > 0) return [];
+    return [{ ...baseState, trees: [tree] }];
   }
 
   // Remove bare root-level holes from the stage (leftover after node removal).
@@ -326,36 +194,297 @@ export namespace NoolStageBuilder {
     bucketOrder: ["holes", "variadic", "atoms"],
   };
 
-  // # Tree layout constants
+  // # UI layout constants
 
-  const T_GAP = 10;
-  const T_PADDING = 5;
-  const T_LABEL_WIDTH = 20;
-  const T_LABEL_MIN_HEIGHT = 20;
-  const T_EMPTY_CHILD_W = 12;
-  const T_EMPTY_CHILD_H = 12;
+  const BLOCK_GAP = 8;
+  const LANE_PADDING = 8;
+  const COL_GAP = 12;
+  const SEP_INSET = 4;
+  const PALETTE_MIN_WIDTH = 46;
+  const STAGE_MIN_WIDTH = 46;
+  const VOID_SIZE = 30;
+  const BUCKET_GAP = 12;
+  const MENU_FONT_SIZE = 14;
+  const MENU_COL_WIDTH = 48;
 
-  function treeSize(tree: Tree): { w: number; h: number } {
-    const childSizes = tree.children.map(treeSize);
-    const isOpNode = isOp(tree.label);
-    const hasChildArea = childSizes.length > 0 || isOpNode;
-    const childAreaW =
-      childSizes.length > 0
-        ? _.max(childSizes.map((c) => c.w))!
-        : isOpNode
-        ? T_EMPTY_CHILD_W
-        : 0;
-    const childAreaH =
-      childSizes.length > 0
-        ? _.sumBy(childSizes, (c) => c.h) + T_GAP * (childSizes.length - 1)
-        : isOpNode
-        ? T_EMPTY_CHILD_H
-        : T_LABEL_MIN_HEIGHT;
-    const innerW = T_LABEL_WIDTH + (hasChildArea ? T_GAP + childAreaW : 0);
-    const innerH = hasChildArea
-      ? Math.max(childAreaH, T_LABEL_MIN_HEIGHT)
-      : T_LABEL_MIN_HEIGHT;
-    return { w: innerW + T_PADDING * 2, h: innerH + T_PADDING * 2 };
+  let nextPickupId = 0;
+
+  // # Extracted drag handlers
+
+  function makePickupDrag(
+    tree: Tree,
+    drag: Drag<State>,
+    fullState: State,
+    treeIdx: number
+  ): ReturnType<Drag<State>> | undefined {
+    const isHole = tree.label === "◯";
+    if (isHole) return undefined;
+
+    return drag(({ altKey }) => {
+      const nodeId = tree.id;
+      const thisTree = fullState.trees[treeIdx];
+      const parentInfo = findParentAndIndex(thisTree, nodeId);
+
+      if (altKey) {
+        const clone = cloneTreeWithFreshIds(tree);
+        const stateWithClone: State = {
+          ...fullState,
+          trees: replaceInTrees(fullState.trees, treeIdx, nodeId, clone),
+        };
+        const cloneHoles = new Set(findAllHoles(clone));
+        const availableHoles = findAllHolesInTrees(stateWithClone.trees).filter(
+          ({ holeId }) => !cloneHoles.has(holeId)
+        );
+        const holeTargets = availableHoles.map(({ treeIdx: ti, holeId }) =>
+          removeStageHoles({
+            ...stateWithClone,
+            trees: replaceInTrees(stateWithClone.trees, ti, holeId, tree),
+          })
+        );
+        const insertTargets = allInsertionPointsInTrees(
+          stateWithClone.trees
+        ).map(({ treeIdx: ti, parentId, index }) =>
+          removeStageHoles({
+            ...stateWithClone,
+            trees: insertInTrees(
+              stateWithClone.trees,
+              ti,
+              parentId,
+              index,
+              tree
+            ),
+          })
+        );
+        const paletteTargets = fullState.paletteExpanded
+          ? paletteInsertionTargets(stateWithClone, tree).map(removeStageHoles)
+          : [];
+        const stageTargets = emptyStageTarget(stateWithClone, tree);
+        return floating(
+          [
+            ...holeTargets,
+            ...insertTargets,
+            ...paletteTargets,
+            ...stageTargets,
+            fullState,
+          ],
+          { backdrop: stateWithClone }
+        );
+      }
+
+      // Backdrop: variadic parent → splice out, fixed parent → leave ◯ hole
+      let stateWithout: State;
+      let pickupHoleId: string | null = null;
+      if (parentInfo && parentInfo.parent.variadic) {
+        stateWithout = {
+          ...fullState,
+          trees: removeInTrees(
+            fullState.trees,
+            treeIdx,
+            parentInfo.parent.id,
+            parentInfo.index
+          ),
+        };
+      } else {
+        pickupHoleId = `pickup-${nextPickupId++}`;
+        const hole: Tree = { id: pickupHoleId, label: "◯", children: [] };
+        stateWithout = {
+          ...fullState,
+          trees: replaceInTrees(fullState.trees, treeIdx, nodeId, hole),
+        };
+      }
+
+      const allHoles = findAllHolesInTrees(stateWithout.trees).filter(
+        ({ holeId }) => holeId !== pickupHoleId
+      );
+      const holeTargets = allHoles.map(({ treeIdx: ti, holeId }) =>
+        removeStageHoles({
+          ...stateWithout,
+          trees: replaceInTrees(stateWithout.trees, ti, holeId, tree),
+        })
+      );
+
+      const insertTargets = allInsertionPointsInTrees(stateWithout.trees).map(
+        ({ treeIdx: ti, parentId, index }) =>
+          removeStageHoles({
+            ...stateWithout,
+            trees: insertInTrees(
+              stateWithout.trees,
+              ti,
+              parentId,
+              index,
+              tree
+            ),
+          })
+      );
+
+      const swapTargets: State[] = [];
+      if (parentInfo) {
+        const { parent, index } = parentInfo;
+        for (let i = 0; i < parent.children.length; i++) {
+          if (i !== index && parent.children[i].label !== "◯") {
+            swapTargets.push({
+              ...fullState,
+              trees: fullState.trees.map((t, ti) =>
+                ti === treeIdx
+                  ? swapChildrenAtParent(t, parent.id, index, i)
+                  : t
+              ),
+            });
+          }
+        }
+      }
+
+      const paletteTargets = fullState.paletteExpanded
+        ? paletteInsertionTargets(stateWithout, tree).map(removeStageHoles)
+        : [];
+      // Clean up bare pickup hole, offer "put back on stage" only if stage is now empty.
+      const cleanedWithout = removeStageHoles(stateWithout);
+      const stageTargets = emptyStageTarget(cleanedWithout, tree);
+      const eraseState: State = { ...stateWithout, voided: tree };
+      const cleanState: State = { ...stateWithout, voided: undefined };
+
+      return floating(
+        [
+          ...holeTargets,
+          ...insertTargets,
+          ...swapTargets,
+          ...paletteTargets,
+          ...stageTargets,
+          fullState,
+          andThen(removeStageHoles(eraseState), removeStageHoles(cleanState)),
+        ],
+        { backdrop: cleanedWithout }
+      );
+    });
+  }
+
+  function makeBrushDrag(
+    state: State,
+    drag: Drag<State>,
+    block: BrushBlock,
+    brushIdx: number,
+    allHoles: { treeIdx: number; holeId: string }[],
+    allInsertPts: { treeIdx: number; parentId: string; index: number }[]
+  ): ReturnType<Drag<State>> {
+    return drag(() => {
+      const stateWithout = produce(state, (draft) => {
+        draft.brushes[brushIdx].key += "-r";
+      });
+      const node = makeNodeForItem(block);
+
+      const holeTargets = allHoles.map(({ treeIdx, holeId }) =>
+        removeStageHoles({
+          ...stateWithout,
+          trees: replaceInTrees(stateWithout.trees, treeIdx, holeId, node),
+        })
+      );
+
+      const insertTargets = allInsertPts.map(
+        ({ treeIdx, parentId, index }) =>
+          removeStageHoles({
+            ...stateWithout,
+            trees: insertInTrees(
+              stateWithout.trees,
+              treeIdx,
+              parentId,
+              index,
+              node
+            ),
+          })
+      );
+
+      const stageTargets = emptyStageTarget(stateWithout, node);
+
+      const paletteTargets = state.paletteExpanded
+        ? paletteInsertionTargets(stateWithout, node)
+        : [];
+
+      return floating(
+        [...holeTargets, ...insertTargets, ...stageTargets, ...paletteTargets],
+        { backdrop: stateWithout }
+      );
+    });
+  }
+
+  function makePaletteDrag(
+    state: State,
+    drag: Drag<State>,
+    block: Tree,
+    idx: number
+  ): ReturnType<Drag<State>> {
+    return drag(({ altKey }) => {
+      if (altKey) {
+        const stateWithClone = produce(state, (draft) => {
+          draft.palette[idx] = cloneTreeWithFreshIds(block);
+        });
+        const holes = findAllHolesInTrees(stateWithClone.trees);
+        const placeTargets = holes.map(({ treeIdx: ti, holeId }) =>
+          removeStageHoles({
+            ...stateWithClone,
+            trees: replaceInTrees(stateWithClone.trees, ti, holeId, block),
+          })
+        );
+        const insertTargets = allInsertionPointsInTrees(
+          stateWithClone.trees
+        ).map(({ treeIdx: ti, parentId, index }) =>
+          removeStageHoles({
+            ...stateWithClone,
+            trees: insertInTrees(
+              stateWithClone.trees,
+              ti,
+              parentId,
+              index,
+              block
+            ),
+          })
+        );
+        const stageTargets = emptyStageTarget(stateWithClone, block);
+        const palTargets = paletteInsertionTargets(stateWithClone, block);
+        return floating(
+          [...placeTargets, ...insertTargets, ...stageTargets, ...palTargets, state],
+          { backdrop: stateWithClone }
+        );
+      }
+
+      const stateWithout = produce(state, (draft) => {
+        draft.palette.splice(idx, 1);
+      });
+      const holes = findAllHolesInTrees(stateWithout.trees);
+      const placeTargets = holes.map(({ treeIdx: ti, holeId }) =>
+        removeStageHoles({
+          ...stateWithout,
+          trees: replaceInTrees(stateWithout.trees, ti, holeId, block),
+        })
+      );
+      const insertTargets = allInsertionPointsInTrees(
+        stateWithout.trees
+      ).map(({ treeIdx: ti, parentId, index }) =>
+        removeStageHoles({
+          ...stateWithout,
+          trees: insertInTrees(
+            stateWithout.trees,
+            ti,
+            parentId,
+            index,
+            block
+          ),
+        })
+      );
+      const stageTargets = emptyStageTarget(stateWithout, block);
+      const reorderTargets = paletteInsertionTargets(stateWithout, block);
+      const eraseState: State = { ...stateWithout, voided: block };
+      const cleanState: State = { ...stateWithout, voided: undefined };
+      return floating(
+        [
+          ...placeTargets,
+          ...insertTargets,
+          ...stageTargets,
+          ...reorderTargets,
+          andThen(removeStageHoles(eraseState), removeStageHoles(cleanState)),
+        ],
+        { backdrop: stateWithout }
+      );
+    });
   }
 
   // # Tree rendering
@@ -367,7 +496,6 @@ export namespace NoolStageBuilder {
         drag: Drag<State>;
         fullState: State;
         treeIdx: number;
-        variadicEnabled: boolean;
       };
       pointerEventsNone?: boolean;
       rootOnDrag?: ReturnType<Drag<State>>;
@@ -433,170 +561,13 @@ export namespace NoolStageBuilder {
 
     // Pick-up drag
     const pickUpDrag =
-      opts?.pickUp && !isHole
-        ? opts.pickUp.drag(({ altKey }) => {
-            const { fullState, treeIdx, variadicEnabled } = opts.pickUp!;
-            const nodeId = tree.id;
-            const thisTree = fullState.trees[treeIdx];
-            const parentInfo = findParentAndIndex(thisTree, nodeId);
-
-            if (altKey) {
-              const clone = cloneTreeWithFreshIds(tree);
-              const stateWithClone: State = {
-                ...fullState,
-                trees: replaceInTrees(
-                  fullState.trees,
-                  treeIdx,
-                  nodeId,
-                  clone
-                ),
-              };
-              const cloneHoles = new Set(findAllHoles(clone));
-              const availableHoles = findAllHolesInTrees(
-                stateWithClone.trees
-              ).filter(({ holeId }) => !cloneHoles.has(holeId));
-              const holeTargets = availableHoles.map(
-                ({ treeIdx: ti, holeId }) =>
-                  removeStageHoles({
-                    ...stateWithClone,
-                    trees: replaceInTrees(
-                      stateWithClone.trees,
-                      ti,
-                      holeId,
-                      tree
-                    ),
-                  })
-              );
-              const insertTargets = variadicEnabled
-                ? allInsertionPointsInTrees(stateWithClone.trees).map(
-                    ({ treeIdx: ti, parentId, index }) =>
-                      removeStageHoles({
-                        ...stateWithClone,
-                        trees: insertInTrees(
-                          stateWithClone.trees,
-                          ti,
-                          parentId,
-                          index,
-                          tree
-                        ),
-                      })
-                  )
-                : [];
-              const paletteTargets = fullState.paletteExpanded
-                ? paletteInsertionTargets(stateWithClone, tree).map(
-                    removeStageHoles
-                  )
-                : [];
-              const stageTargets = stageInsertionTargets(
-                stateWithClone,
-                tree
-              ).map(removeStageHoles);
-              return floating(
-                [
-                  ...holeTargets,
-                  ...insertTargets,
-                  ...paletteTargets,
-                  ...stageTargets,
-                  fullState,
-                ],
-                { backdrop: stateWithClone }
-              );
-            }
-
-            // Backdrop: fresh hole at vacated position
-            const pickupHoleId = `pickup-${nextPickupId++}`;
-            const hole: Tree = {
-              id: pickupHoleId,
-              label: "◯",
-              children: [],
-            };
-            const stateWithout: State = {
-              ...fullState,
-              trees: replaceInTrees(
-                fullState.trees,
-                treeIdx,
-                nodeId,
-                hole
-              ),
-            };
-
-            const allHoles = findAllHolesInTrees(stateWithout.trees).filter(
-              ({ holeId }) => holeId !== pickupHoleId
-            );
-            const holeTargets = allHoles.map(({ treeIdx: ti, holeId }) =>
-              removeStageHoles({
-                ...stateWithout,
-                trees: replaceInTrees(stateWithout.trees, ti, holeId, tree),
-              })
-            );
-
-            const insertTargets = variadicEnabled
-              ? allInsertionPointsInTrees(stateWithout.trees).map(
-                  ({ treeIdx: ti, parentId, index }) =>
-                    removeStageHoles({
-                      ...stateWithout,
-                      trees: insertInTrees(
-                        stateWithout.trees,
-                        ti,
-                        parentId,
-                        index,
-                        tree
-                      ),
-                    })
-                )
-              : [];
-
-            const swapTargets: State[] = [];
-            if (parentInfo) {
-              const { parent, index } = parentInfo;
-              for (let i = 0; i < parent.children.length; i++) {
-                if (i !== index && parent.children[i].label !== "◯") {
-                  swapTargets.push({
-                    ...fullState,
-                    trees: fullState.trees.map((t, ti) =>
-                      ti === treeIdx
-                        ? swapChildrenAtParent(t, parent.id, index, i)
-                        : t
-                    ),
-                  });
-                }
-              }
-            }
-
-            const paletteTargets = fullState.paletteExpanded
-              ? paletteInsertionTargets(stateWithout, tree).map(
-                  removeStageHoles
-                )
-              : [];
-            // Stage reordering: clean up the bare pickup hole, then
-            // generate all positions where the tree can be re-inserted.
-            const cleanedWithout = removeStageHoles(stateWithout);
-            const stageReorderTargets = stageInsertionTargets(
-              cleanedWithout,
-              tree
-            ).map(removeStageHoles);
-            const eraseState: State = { ...stateWithout, voided: tree };
-            const cleanState: State = {
-              ...stateWithout,
-              voided: undefined,
-            };
-
-            return floating(
-              [
-                ...holeTargets,
-                ...insertTargets,
-                ...swapTargets,
-                ...paletteTargets,
-                ...stageReorderTargets,
-                fullState,
-                andThen(
-                  removeStageHoles(eraseState),
-                  removeStageHoles(cleanState)
-                ),
-              ],
-              { backdrop: cleanedWithout }
-            );
-          })
+      opts?.pickUp
+        ? makePickupDrag(
+            tree,
+            opts.pickUp.drag,
+            opts.pickUp.fullState,
+            opts.pickUp.treeIdx
+          )
         : undefined;
 
     const zIndex = opts?.flatZIndex ? 0 : depth;
@@ -663,26 +634,58 @@ export namespace NoolStageBuilder {
     return { element, w, h };
   }
 
-  // # Main layout constants
+  // # Layout computation
 
-  const BLOCK_GAP = 8;
-  const LANE_PADDING = 8;
-  const COL_GAP = 12;
-  const SEP_INSET = 4;
-  const PALETTE_MIN_WIDTH = 46;
-  const STAGE_MIN_WIDTH = 46;
-  const VOID_SIZE = 30;
-  const BUCKET_GAP = 12;
-  const MENU_FONT_SIZE = 14;
-  const MENU_COL_WIDTH = 48;
+  type StageLayout = {
+    brushes: {
+      itemData: {
+        block: BrushBlock;
+        displayTree: Tree;
+        size: { w: number; h: number };
+        bucketStart: boolean;
+      }[];
+      positions: number[];
+      xOffsets: number[];
+      width: number;
+      height: number;
+      dividers: { id: string; y: number }[];
+    };
+    palette: {
+      items: { block: Tree; size: { w: number; h: number } }[];
+      positions: number[];
+      width: number;
+      height: number;
+    };
+    stage: {
+      rendered: { element: Svgx; w: number; h: number }[];
+      positions: number[];
+      width: number;
+      height: number;
+    };
+    x: {
+      menu: number;
+      brushes: number;
+      palette: number;
+      stage: number;
+      void: number;
+      toggleSep: number;
+    };
+    separators: { x: number; h: number }[];
+    menu: {
+      defs: {
+        id: string;
+        icon: string;
+        active: boolean;
+        stateKey: "showHolesOps" | "showVariadicOps" | "showAtoms";
+        bucket: Bucket;
+        y: number;
+      }[];
+    };
+    holes: { treeIdx: number; holeId: string }[];
+    insertPts: { treeIdx: number; parentId: string; index: number }[];
+  };
 
-  // # Manipulable
-
-  export const manipulable: Manipulable<State> = ({
-    state,
-    drag,
-    setState,
-  }) => {
+  function computeLayout(state: State, drag: Drag<State>): StageLayout {
     // Filter brushes items by active buckets, ordered by bucketOrder
     const visibleItems = state.brushes.filter(
       (b) =>
@@ -722,8 +725,6 @@ export namespace NoolStageBuilder {
       brushesItemData.length > 0
         ? _.max(brushesItemData.map((t) => t.size.w))!
         : 30;
-    // Account for atom pairs (two per row) — their combined width may exceed
-    // the max single-item width and determines the lane's actual width.
     for (let i = 0; i < brushesItemData.length - 1; i++) {
       if (
         brushesItemData[i].block.bucket === "atoms" &&
@@ -731,23 +732,22 @@ export namespace NoolStageBuilder {
         !brushesItemData[i + 1].bucketStart
       ) {
         const pairW =
-          brushesItemData[i].size.w + BLOCK_GAP + brushesItemData[i + 1].size.w;
+          brushesItemData[i].size.w +
+          BLOCK_GAP +
+          brushesItemData[i + 1].size.w;
         brushesContentW = Math.max(brushesContentW, pairW);
-        i++; // skip paired atom
+        i++;
       }
     }
     const brushesWidth = LANE_PADDING + brushesContentW + LANE_PADDING;
 
-    // Compute (x, y) positions for brushes items.
-    // Atoms are paired two-per-row to save vertical space.
     let brushesY = LANE_PADDING;
-    let atomCol = 0; // 0 = left, 1 = right within atom pair
+    let atomCol = 0;
     const brushesPositions: number[] = [];
     const brushesXOffsets: number[] = [];
 
     brushesItemData.forEach((item, idx) => {
       if (item.bucketStart) {
-        // Flush unpaired atom from previous bucket
         if (atomCol === 1) {
           brushesY += brushesItemData[idx - 1].size.h + BLOCK_GAP;
           atomCol = 0;
@@ -761,7 +761,6 @@ export namespace NoolStageBuilder {
           brushesXOffsets.push(0);
           atomCol = 1;
         } else {
-          // Right atom — same Y as left atom
           brushesPositions.push(brushesPositions[brushesPositions.length - 1]);
           brushesXOffsets.push(brushesItemData[idx - 1].size.w + BLOCK_GAP);
           const rowH = Math.max(item.size.h, brushesItemData[idx - 1].size.h);
@@ -779,14 +778,12 @@ export namespace NoolStageBuilder {
       }
     });
 
-    // Flush final unpaired atom
     if (atomCol === 1) {
       brushesY +=
         brushesItemData[brushesItemData.length - 1].size.h + BLOCK_GAP;
     }
     const brushesHeight = brushesY + LANE_PADDING - BLOCK_GAP;
 
-    // Bucket dividers (thin horizontal lines between buckets)
     const bucketDividers: { id: string; y: number }[] = [];
     brushesItemData.forEach((item, idx) => {
       if (item.bucketStart) {
@@ -826,10 +823,9 @@ export namespace NoolStageBuilder {
     );
 
     // -- Stage layout --
-    const variadicEnabled = state.showVariadicOps;
     const stageRendered = state.trees.map((tree, treeIdx) =>
       renderTree(tree, {
-        pickUp: { drag, fullState: state, treeIdx, variadicEnabled },
+        pickUp: { drag, fullState: state, treeIdx },
       })
     );
     const stageContentW =
@@ -852,7 +848,7 @@ export namespace NoolStageBuilder {
       LANE_PADDING * 2 + STAGE_MIN_WIDTH
     );
 
-    // -- Horizontal positions (palette lane omitted when collapsed) --
+    // -- Horizontal positions --
     const menuX = 0;
     const brushesX = MENU_COL_WIDTH + COL_GAP;
     const paletteX = brushesX + brushesWidth + COL_GAP;
@@ -860,9 +856,9 @@ export namespace NoolStageBuilder {
       ? paletteX + paletteWidth + COL_GAP
       : brushesX + brushesWidth + COL_GAP;
     const voidX = stageX + stageWidth + COL_GAP;
-
-    // -- Separator data (palette toggle circle sits on brushes|next separator) --
     const toggleSepX = brushesX + brushesWidth + COL_GAP / 2;
+
+    // -- Separator data --
     const separators: { x: number; h: number }[] = [
       {
         x: MENU_COL_WIDTH + COL_GAP / 2,
@@ -892,7 +888,7 @@ export namespace NoolStageBuilder {
       h: Math.max(stageHeight, VOID_SIZE),
     });
 
-    // -- Menu: click to toggle, drag to reorder --
+    // -- Menu defs --
     const menuDefs = bucketOrder.map((bucket, idx) => {
       const stateKey = BUCKET_STATE_KEYS[bucket];
       return {
@@ -907,6 +903,51 @@ export namespace NoolStageBuilder {
           MENU_FONT_SIZE / 2,
       };
     });
+
+    return {
+      brushes: {
+        itemData: brushesItemData,
+        positions: brushesPositions,
+        xOffsets: brushesXOffsets,
+        width: brushesWidth,
+        height: brushesHeight,
+        dividers: bucketDividers,
+      },
+      palette: {
+        items: paletteItems,
+        positions: palettePositions,
+        width: paletteWidth,
+        height: paletteHeight,
+      },
+      stage: {
+        rendered: stageRendered,
+        positions: stagePositions,
+        width: stageWidth,
+        height: stageHeight,
+      },
+      x: {
+        menu: menuX,
+        brushes: brushesX,
+        palette: paletteX,
+        stage: stageX,
+        void: voidX,
+        toggleSep: toggleSepX,
+      },
+      separators,
+      menu: { defs: menuDefs },
+      holes: allHoles,
+      insertPts: allInsertPts,
+    };
+  }
+
+  // # Manipulable
+
+  export const manipulable: Manipulable<State> = ({
+    state,
+    drag,
+    setState,
+  }) => {
+    const layout = computeLayout(state, drag);
 
     return (
       <g>
@@ -934,12 +975,12 @@ export namespace NoolStageBuilder {
         </defs>
 
         {/* Menu — click to toggle, drag to reorder (uses dragThreshold) */}
-        {menuDefs.map(({ id, icon, active, stateKey, bucket, y }) => (
+        {layout.menu.defs.map(({ id, icon, active, stateKey, bucket, y }) => (
           <g
             id={id}
-            transform={translate(menuX + LANE_PADDING, y)}
+            transform={translate(layout.x.menu + LANE_PADDING, y)}
             data-on-drag={drag(() => {
-              const others = bucketOrder.filter((s) => s !== bucket);
+              const others = state.bucketOrder.filter((s) => s !== bucket);
               const targets = _.range(others.length + 1).map((pos) => ({
                 ...state,
                 bucketOrder: [
@@ -973,7 +1014,7 @@ export namespace NoolStageBuilder {
         ))}
 
         {/* Separator lines */}
-        {separators.map(({ x, h }, idx) => (
+        {layout.separators.map(({ x, h }, idx) => (
           <line
             x1={x}
             y1={SEP_INSET}
@@ -990,7 +1031,7 @@ export namespace NoolStageBuilder {
         {/* Palette toggle */}
         <circle
           id="palette-toggle"
-          cx={toggleSepX}
+          cx={layout.x.toggleSep}
           cy={SEP_INSET + 6}
           r={4}
           fill={state.paletteExpanded ? "#999" : "#ddd"}
@@ -1005,12 +1046,12 @@ export namespace NoolStageBuilder {
         />
 
         {/* Bucket dividers */}
-        {bucketDividers.map(({ id, y }) => (
+        {layout.brushes.dividers.map(({ id, y }) => (
           <line
             id={id}
-            x1={brushesX + LANE_PADDING}
+            x1={layout.x.brushes + LANE_PADDING}
             y1={y}
-            x2={brushesX + brushesWidth - LANE_PADDING}
+            x2={layout.x.brushes + layout.brushes.width - LANE_PADDING}
             y2={y}
             stroke="#ddd"
             strokeWidth={1}
@@ -1019,74 +1060,29 @@ export namespace NoolStageBuilder {
         ))}
 
         {/* Brushes */}
-        {brushesItemData.map(({ block, displayTree }, idx) => {
+        {layout.brushes.itemData.map(({ block, displayTree }, idx) => {
           const brushIdx = state.brushes.indexOf(block);
-
           return (
             <g
               id={`brush-item-${block.key}`}
               transform={translate(
-                brushesX + LANE_PADDING + brushesXOffsets[idx],
-                brushesPositions[idx]
+                layout.x.brushes +
+                  LANE_PADDING +
+                  layout.brushes.xOffsets[idx],
+                layout.brushes.positions[idx]
               )}
             >
               {
                 renderTree(displayTree, {
                   pointerEventsNone: true,
-                  rootOnDrag: drag(() => {
-                    const stateWithout = produce(state, (draft) => {
-                      draft.brushes[brushIdx].key += "-r";
-                    });
-                    const node = makeNodeForItem(block);
-
-                    // Hole targets (for any bucket)
-                    const holeTargets = allHoles.map(
-                      ({ treeIdx, holeId }) =>
-                        removeStageHoles({
-                          ...stateWithout,
-                          trees: replaceInTrees(
-                            stateWithout.trees,
-                            treeIdx,
-                            holeId,
-                            node
-                          ),
-                        })
-                    );
-
-                    // Variadic insertion targets
-                    const insertTargets =
-                      block.bucket === "variadic" ||
-                      block.bucket === "atoms"
-                        ? allInsertPts.map(
-                            ({ treeIdx, parentId, index }) =>
-                              removeStageHoles({
-                                ...stateWithout,
-                                trees: insertInTrees(
-                                  stateWithout.trees,
-                                  treeIdx,
-                                  parentId,
-                                  index,
-                                  node
-                                ),
-                              })
-                          )
-                        : [];
-
-                    // Stage insertion targets (add as new tree)
-                    const stageTargets = stageInsertionTargets(
-                      stateWithout,
-                      node
-                    ).map(removeStageHoles);
-
-                    return floating(
-                      [
-                        ...holeTargets,
-                        ...insertTargets,
-                        ...stageTargets,
-                      ],
-                      { backdrop: stateWithout }
-                    );
-                  }),
+                  rootOnDrag: makeBrushDrag(
+                    state,
+                    drag,
+                    block,
+                    brushIdx,
+                    layout.holes,
+                    layout.insertPts
+                  ),
                 }).element
               }
             </g>
@@ -1095,100 +1091,35 @@ export namespace NoolStageBuilder {
 
         {/* Palette items (only when expanded) */}
         {state.paletteExpanded &&
-          paletteItems.map(({ block }, idx) =>
+          layout.palette.items.map(({ block }, idx) =>
             renderTree(block, {
               rootTransform: translate(
-                paletteX + LANE_PADDING,
-                palettePositions[idx]
+                layout.x.palette + LANE_PADDING,
+                layout.palette.positions[idx]
               ),
               pointerEventsNone: true,
               flatZIndex: true,
-              rootOnDrag: drag(({ altKey }) => {
-                if (altKey) {
-                  const stateWithClone = produce(state, (draft) => {
-                    draft.palette[idx] = cloneTreeWithFreshIds(block);
-                  });
-                  const holes = findAllHolesInTrees(stateWithClone.trees);
-                  const placeTargets = holes.map(
-                    ({ treeIdx: ti, holeId }) =>
-                      removeStageHoles({
-                        ...stateWithClone,
-                        trees: replaceInTrees(
-                          stateWithClone.trees,
-                          ti,
-                          holeId,
-                          block
-                        ),
-                      })
-                  );
-                  const palTargets = paletteInsertionTargets(
-                    stateWithClone,
-                    block
-                  );
-                  return floating(
-                    [...placeTargets, ...palTargets, state],
-                    { backdrop: stateWithClone }
-                  );
-                }
-
-                const stateWithout = produce(state, (draft) => {
-                  draft.palette.splice(idx, 1);
-                });
-                const holes = findAllHolesInTrees(stateWithout.trees);
-                const placeTargets = holes.map(
-                  ({ treeIdx: ti, holeId }) =>
-                    removeStageHoles({
-                      ...stateWithout,
-                      trees: replaceInTrees(
-                        stateWithout.trees,
-                        ti,
-                        holeId,
-                        block
-                      ),
-                    })
-                );
-                const reorderTargets = paletteInsertionTargets(
-                  stateWithout,
-                  block
-                );
-                const eraseState: State = { ...stateWithout, voided: block };
-                const cleanState: State = {
-                  ...stateWithout,
-                  voided: undefined,
-                };
-                return floating(
-                  [
-                    ...placeTargets,
-                    ...reorderTargets,
-                    andThen(
-                      removeStageHoles(eraseState),
-                      removeStageHoles(cleanState)
-                    ),
-                  ],
-                  { backdrop: stateWithout }
-                );
-              }),
+              rootOnDrag: makePaletteDrag(state, drag, block, idx),
             }).element
           )}
 
         {/* Stage trees — using rootTransform so root elements are hoisted directly */}
-        {stageRendered.map((_, idx) =>
+        {layout.stage.rendered.map((_, idx) =>
           renderTree(state.trees[idx], {
             pickUp: {
               drag,
               fullState: state,
               treeIdx: idx,
-              variadicEnabled,
             },
             rootTransform: translate(
-              stageX + LANE_PADDING,
-              stagePositions[idx]
+              layout.x.stage + LANE_PADDING,
+              layout.stage.positions[idx]
             ),
           }).element
         )}
 
         {/* Void */}
-        <g transform={translate(voidX, 0)}>
+        <g transform={translate(layout.x.void, 0)}>
           <text
             x={VOID_SIZE / 2}
             y={VOID_SIZE / 2}

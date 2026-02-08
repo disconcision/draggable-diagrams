@@ -9,13 +9,29 @@ import {
   Pattern,
   Rewrite,
   Tree,
-} from "../asts";
-import { ConfigCheckbox, ConfigPanelProps } from "../configurable";
-import { configurableManipulable } from "../demos";
-import { DragSpec, floating, span, straightTo } from "../DragSpec";
-import { Drag } from "../manipulable";
-import { Svgx } from "../svgx";
-import { translate } from "../svgx/helpers";
+} from "../../asts";
+import { ConfigCheckbox, ConfigPanelProps } from "../../configurable";
+import { configurableManipulable } from "../../demos";
+import { DragSpec, floating, span, straightTo } from "../../DragSpec";
+import { Drag } from "../../manipulable";
+import { Svgx } from "../../svgx";
+import { translate } from "../../svgx/helpers";
+import {
+  isOp,
+  arityOk,
+  findParentAndIndex,
+  swapChildrenAtParent,
+  insertChild,
+  removeNode,
+  allInsertionPoints,
+  treeSize,
+  T_GAP,
+  T_PADDING,
+  T_LABEL_WIDTH,
+  T_LABEL_MIN_HEIGHT,
+  T_EMPTY_CHILD_W,
+  T_EMPTY_CHILD_H,
+} from "./nool-tree";
 
 export namespace NoolTreeMacro {
   // # State
@@ -68,102 +84,9 @@ export namespace NoolTreeMacro {
 
   // # Tree helpers
 
-  function isOp(label: string): boolean {
-    return label === "+" || label === "×" || label === "-";
-  }
-
-  function expectedArity(label: string): number {
-    if (label === "+" || label === "×") return 2;
-    if (label === "-") return 1;
-    return 0;
-  }
-
-  function arityOk(tree: Tree): boolean {
-    const expected = expectedArity(tree.label);
-    if (expected === 0) return tree.children.length === 0;
-    return tree.children.length === expected;
-  }
-
   function treeIsWellFormed(tree: Tree): boolean {
     if (!arityOk(tree)) return false;
     return tree.children.every(treeIsWellFormed);
-  }
-
-  function removeNode(tree: Tree, nodeId: string): Tree {
-    const newChildren = tree.children
-      .filter((c) => c.id !== nodeId)
-      .map((c) => removeNode(c, nodeId));
-    if (
-      newChildren.length === tree.children.length &&
-      newChildren.every((c, i) => c === tree.children[i])
-    )
-      return tree;
-    return { ...tree, children: newChildren };
-  }
-
-  function insertChild(
-    tree: Tree,
-    parentId: string,
-    index: number,
-    child: Tree
-  ): Tree {
-    if (tree.id === parentId) {
-      const newChildren = [...tree.children];
-      newChildren.splice(index, 0, child);
-      return { ...tree, children: newChildren };
-    }
-    const newChildren = tree.children.map((c) =>
-      insertChild(c, parentId, index, child)
-    );
-    if (newChildren.every((c, i) => c === tree.children[i])) return tree;
-    return { ...tree, children: newChildren };
-  }
-
-  function findParentAndIndex(
-    tree: Tree,
-    nodeId: string
-  ): { parent: Tree; index: number } | null {
-    for (let i = 0; i < tree.children.length; i++) {
-      if (tree.children[i].id === nodeId) {
-        return { parent: tree, index: i };
-      }
-      const result = findParentAndIndex(tree.children[i], nodeId);
-      if (result) return result;
-    }
-    return null;
-  }
-
-  function swapChildrenAtParent(
-    tree: Tree,
-    parentId: string,
-    i: number,
-    j: number
-  ): Tree {
-    if (tree.id === parentId) {
-      const newChildren = [...tree.children];
-      [newChildren[i], newChildren[j]] = [newChildren[j], newChildren[i]];
-      return { ...tree, children: newChildren };
-    }
-    const newChildren = tree.children.map((c) =>
-      swapChildrenAtParent(c, parentId, i, j)
-    );
-    if (newChildren.every((c, idx) => c === tree.children[idx])) return tree;
-    return { ...tree, children: newChildren };
-  }
-
-  function allInsertionPoints(
-    tree: Tree
-  ): { parentId: string; index: number }[] {
-    const points: { parentId: string; index: number }[] = [];
-    if (isOp(tree.label)) {
-      for (let i = 0; i <= tree.children.length; i++) {
-        points.push({ parentId: tree.id, index: i });
-      }
-    }
-    for (const child of tree.children) {
-      points.push(...allInsertionPoints(child));
-    }
-    return points;
   }
 
   function gutterInsertionTargets(baseState: State, subtree: Tree): State[] {
@@ -227,7 +150,13 @@ export namespace NoolTreeMacro {
 
     // Build pattern from tree, converting stable subtrees to wildcards
     // Mark ALL nodes in the LHS as triggers so dragging any node
-    // in the matching subtree activates the rule
+    // in the matching subtree activates the rule.
+    // Op nodes use tree.id (not tree.label) to avoid collisions when
+    // multiple ops share the same label (e.g. two "+" nodes in an
+    // associativity rule). Tree IDs are unique and naturally establish
+    // LHS↔RHS correspondence: applyRewrite looks up the pattern op ID
+    // in its ops map, finds the matched tree node, and reuses its ID,
+    // so the dragged element's ID persists through the rewrite.
     function buildLhsPattern(tree: Tree): Pattern {
       if (stableIds.has(tree.id)) {
         return {
@@ -239,7 +168,7 @@ export namespace NoolTreeMacro {
       return {
         type: "op",
         label: tree.label,
-        id: tree.label,
+        id: tree.id,
         children: tree.children.map(buildLhsPattern),
         isTrigger: true,
       };
@@ -256,7 +185,7 @@ export namespace NoolTreeMacro {
       return {
         type: "op",
         label: tree.label,
-        id: tree.label,
+        id: tree.id,
         children: tree.children.map(buildRhsPattern),
         isTrigger: false,
       };
@@ -275,12 +204,6 @@ export namespace NoolTreeMacro {
 
   // # Layout constants
 
-  const T_GAP = 10;
-  const T_PADDING = 5;
-  const T_LABEL_WIDTH = 20;
-  const T_LABEL_MIN_HEIGHT = 20;
-  const T_EMPTY_CHILD_W = 12;
-  const T_EMPTY_CHILD_H = 12;
   const BLOCK_GAP = 8;
   const TOOLKIT_PADDING = 8;
   const ZONE_GAP = 15;
@@ -288,29 +211,6 @@ export namespace NoolTreeMacro {
   const TRASH_SIZE = 30;
 
   let nextPlaceholderId = 0;
-
-  function treeSize(tree: Tree): { w: number; h: number } {
-    const childSizes = tree.children.map(treeSize);
-    const isOpNode = isOp(tree.label);
-    const hasChildArea = childSizes.length > 0 || isOpNode;
-    const childAreaW =
-      childSizes.length > 0
-        ? _.max(childSizes.map((c) => c.w))!
-        : isOpNode
-        ? T_EMPTY_CHILD_W
-        : 0;
-    const childAreaH =
-      childSizes.length > 0
-        ? _.sumBy(childSizes, (c) => c.h) + T_GAP * (childSizes.length - 1)
-        : isOpNode
-        ? T_EMPTY_CHILD_H
-        : T_LABEL_MIN_HEIGHT;
-    const innerW = T_LABEL_WIDTH + (hasChildArea ? T_GAP + childAreaW : 0);
-    const innerH = hasChildArea
-      ? Math.max(childAreaH, T_LABEL_MIN_HEIGHT)
-      : T_LABEL_MIN_HEIGHT;
-    return { w: innerW + T_PADDING * 2, h: innerH + T_PADDING * 2 };
-  }
 
   // # Config
 
@@ -508,7 +408,7 @@ export namespace NoolTreeMacro {
         const phId = `placeholder-${nextPlaceholderId++}`;
         const stateWithout: State = {
           ...fullState,
-          tree: { id: phId, label: "□", children: [] },
+          tree: { id: phId, label: "◯", children: [] },
         };
         const gutterTargets = gutterInsertionTargets(stateWithout, tree);
         return floating([...gutterTargets, fullState], {
@@ -522,8 +422,11 @@ export namespace NoolTreeMacro {
         tree: removeNode(fullState.tree, nodeId),
       };
 
-      // All possible insertion points
-      const insertionPoints = allInsertionPoints(stateWithout.tree);
+      // All possible insertion points (tree-macro uses isOp predicate)
+      const insertionPoints = allInsertionPoints(
+        stateWithout.tree,
+        (t) => isOp(t.label)
+      );
       const insertTargets = insertionPoints.map(({ parentId, index }) => ({
         ...stateWithout,
         tree: insertChild(stateWithout.tree, parentId, index, tree),
@@ -636,7 +539,10 @@ export namespace NoolTreeMacro {
     });
     const toolkitHeight = toolkitY + TOOLKIT_PADDING - BLOCK_GAP;
 
-    const insertionPoints = allInsertionPoints(state.tree);
+    const insertionPoints = allInsertionPoints(
+      state.tree,
+      (t) => isOp(t.label)
+    );
 
     // Gutter
     const gutterItemData = state.gutter.map((block) => ({
@@ -721,7 +627,10 @@ export namespace NoolTreeMacro {
                           label: block.label,
                           children: [],
                         };
-                        const points = allInsertionPoints(stateWithout.tree);
+                        const points = allInsertionPoints(
+                          stateWithout.tree,
+                          (t) => isOp(t.label)
+                        );
                         const targetStates: State[] = points.map(
                           ({ parentId, index }) => ({
                             ...stateWithout,
@@ -776,7 +685,10 @@ export namespace NoolTreeMacro {
                 draft.gutter.splice(idx, 1);
               });
               const placeTargets: State[] = [];
-              const points = allInsertionPoints(stateWithout.tree);
+              const points = allInsertionPoints(
+                stateWithout.tree,
+                (t) => isOp(t.label)
+              );
               for (const { parentId, index } of points) {
                 placeTargets.push({
                   ...stateWithout,
@@ -856,14 +768,18 @@ export namespace NoolTreeMacro {
               const now = _currentTree;
               if (!now || !config.beforeTree) return;
               if (!treeIsWellFormed(now)) return;
-              const rule = deriveRule(config.beforeTree, now);
+              // Derive both forward and reverse rules so the user can
+              // immediately use the recorded transformation in both directions
+              const forward = deriveRule(config.beforeTree, now);
+              const reverse = deriveRule(now, config.beforeTree);
+              const newRules = [...config.userRules];
+              if (forward) newRules.push(forward);
+              if (reverse) newRules.push(reverse);
               setConfig({
                 ...config,
                 macroMode: false,
                 beforeTree: null,
-                userRules: rule
-                  ? [...config.userRules, rule]
-                  : config.userRules,
+                userRules: newRules,
               });
             }}
           >

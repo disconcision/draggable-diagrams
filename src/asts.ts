@@ -6,6 +6,8 @@ export type Tree = {
   id: string;
   label: string;
   children: Tree[];
+  /** Variadic nodes accept any number of children; fixed-arity nodes have sockets */
+  variadic?: boolean;
   /** For new nodes created by expanding rewrites, the ID of the element they emerge from */
   emergeFrom?: string;
   /** Controls emerge animation style: "clone" for split/merge, undefined for default fade */

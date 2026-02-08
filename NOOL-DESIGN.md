@@ -443,7 +443,7 @@ Lanes (left to right):
 1. **Menu** — mode toggles and actions (small rounded-corner squares with abstract symbols)
 2. **Brushes** (was "toolkit") — available blocks/operations. Drag from here creates a clone (productive). Relatively fixed/stable content.
 3. **Palette** (was "gutter") — parking/inventory for composite structures. Short-to-mid-term storage. Move semantics (not clone).
-4. **Stage** (was "tree") — now a **list of trees**, not a single tree. Persistent things you're actively modifying. Each tree independently supports rewrite-rule drags. Cross-tree dragging is allowed.
+4. **Stage** (was "tree") — single expression being built/manipulated. `trees: Tree[]` with at most one entry. Briefly multi-tree, reverted (see "Single-Item Stage").
 5. **Void** — accepts drops for deletion.
 
 ### Visual treatment
@@ -532,7 +532,7 @@ Consolidated terminology for the Nool system.
 - **Menu** — the leftmost column with toggle/reorder icons (`◯→`, `◎→`, `⊙→`). Placeholder name, looking for better. Contains folder toggles and action buttons.
 - **Brushes** — the source items column. Drag from here creates a clone (productive).
 - **Palette** — the holding area between brushes and stage. Collapsible (see "Collapsible Palette" section). Move semantics, not clone.
-- **Stage** — where expressions are built and manipulated. Contains a list of trees (`trees: Tree[]`).
+- **Stage** — where the expression is built and manipulated. Single tree (`trees: Tree[]` with at most one entry). Was briefly a multi-tree list; reverted to single-item to eliminate drag-target oscillation (see "Single-Item Stage" section).
 - **Void** — discard zone. Currently a bare floating icon.
 - **Nolkit** — collective term for all non-stage stuff (menu + brushes + palette). Everything that could optionally be hidden to give a "clean stage" view. One word, like "toolkit" — N-O-L-K-I-T.
 - **Buckets** — the categories of brush items: holes ops, variadic ops, atoms. Each bucket is a collapsible folder in the brushes column.
@@ -584,26 +584,38 @@ This is straightforward wiring — no new framework features needed. The questio
 
 ---
 
-## Stage List Extensibility & Drop-Anywhere Interaction
+## Single-Item Stage
 
-### The problem
+### The problem with multi-tree stage
 
-Stage is now a list of trees (`trees: Tree[]`), but there's no way to add new trees. Need to be able to drag from brushes or palette and drop into the stage to create a new tree entry.
+When the stage was a list (`trees: Tree[]` with N+1 insertion targets), dragging a brush item toward a `+` node's hole competed with "insert as sibling in the stage list." The manifold oscillated between the two spatially-close targets, causing the expression to jump up/down as the nearest target flickered.
 
-### Desired interaction
+### Solution: single-item stage with `emptyStageTarget`
 
-- Drag item anywhere in the stage column — it springs to position just below the last entry
-- Can drop between existing entries (insert at any index)
-- When approaching a droppable region, show the `◯→` prefix as a hint
-- The stage behaves like an "infinite sea of holes" — there's always room for more
+Replaced `stageInsertionTargets` (N+1 list positions) with `emptyStageTarget` — generates ONE target state only when the stage is empty (`trees.length === 0`). This eliminates the oscillation entirely.
 
-### Implementation
+```typescript
+function emptyStageTarget(baseState: State, tree: Tree): State[] {
+  if (baseState.trees.length > 0) return [];
+  return [{ ...baseState, trees: [tree] }];
+}
+```
 
-Brush and palette drag handlers need additional targets: for each possible insertion index in `state.trees`, generate a state where a new tree is inserted. Currently drag targets only fill holes within existing trees.
+### Drag path summary (current)
 
-### Spring-to-position
+| From → To | Targets |
+|-----------|---------|
+| Brushes → Stage | holes + variadic insertion + empty-stage only |
+| Brushes → Palette | palette insertion (when expanded) |
+| Palette → Stage | holes + variadic insertion + empty-stage |
+| Stage pickup → Stage | holes + variadic + swap + empty-stage only |
+| Stage alt-drag → Stage | holes + variadic + empty-stage only |
+| Any → Void | void target (always) |
+| Any → Palette | palette insertion (when expanded) |
 
-Need to check existing demos for a "drop anywhere in a region, snap to specific position" interaction. The `floating` pattern with insertion targets may already handle this if the visual positions of insertion targets are stacked vertically. The element snaps to whichever target is closest during drag.
+### Future: multi-tree stage revisited
+
+If multi-tree is desired later, spatial gating (lane-aware proximity) or a modifier key for "add new tree" would avoid the oscillation problem. The current architecture supports it — just change `emptyStageTarget` back to generating insertion targets.
 
 ---
 
@@ -712,25 +724,38 @@ Changed internal hole representation from `□` (U+25A1, White Square) to `◯` 
 
 ## Implementation Status & Next Steps
 
-### Done this session
-- [x] Visual redesign: separator lines instead of boxes (nool-stage-builder.tsx)
+### Done — earlier sessions
+- [x] Visual redesign: separator lines instead of boxes
 - [x] Stage as list (`trees: Tree[]`) with cross-tree dragging
 - [x] Brush rules as `Rewrite[]` data model with `◯→` prefix
 - [x] Hole char `□` → `◯` everywhere
 - [x] Void border removed
 - [x] ◯→ prefix size increased (11px, 22px width)
-- [x] Design notes recorded extensively
 - [x] ID scheme fix for derived rules (`tree.id` instead of `tree.label`)
 - [x] Auto-derive both forward and reverse rules in macro recorder
+- [x] Vocabulary renames (toolkit→brushes, gutter→palette, etc.)
+- [x] Collapsible palette
+- [x] Atom set, two-per-row in brushes
+- [x] Variadic annotation on Tree (`variadic?: boolean`)
+- [x] `dragThreshold` framework change for click+drag coexistence
 
-### Actionable next (parallelizable)
-- [ ] Stage list extensibility: add "create new tree" targets to brush and palette drags
-- [ ] Two-column layout for atoms in brushes
+### Done — reorganization session
+- [x] File reorganization: moved into `src/demo-diagrams/nool/` subfolder
+- [x] Extracted shared tree ops to `nool-tree.ts` (~250 lines)
+- [x] 48 unit tests for tree ops in `nool-tree.test.ts`
+- [x] Extracted drag handler factories in stage-builder: `makePickupDrag`, `makeBrushDrag`, `makePaletteDrag`, `computeLayout`
+- [x] Deduped tree-macro.tsx (~95 lines removed, imports from nool-tree.ts)
+- [x] Deleted dead variant file (~750 lines)
+- [x] Single-item stage: replaced `stageInsertionTargets` with `emptyStageTarget`
+- [x] Cross-lane drag fixes: brushes→palette, palette→stage (holes + variadic + empty)
+
+### Actionable next
+- [ ] Void stack: recoverable discard with click-drag on trash icon (see "Void Stack" section)
 - [ ] Apply separator-line visual redesign to variadic builder and macro recorder
 - [ ] Menu with folder toggles (transform, construct, record)
 - [ ] Malleable toggle for columns (rearrange brushes)
 - [ ] Merge variadic builder into unified system (three folders)
-- [ ] Spring-to-position drop interaction — check existing demos
+- [ ] Lane-aware drop proximity (framework change)
 
 ### Questions for user
 1. Should atoms always be visible (not collapsible), or collapsible like the other folders?
@@ -826,3 +851,58 @@ None of these are obviously right. Parking this as a known limitation.
 ### Everything is ONE manipulable
 
 The entire stage builder (brushes + palette + stage + void) is a single manipulable. The framework doesn't natively support modular composition of independent draggable regions within a single SVG. Cross-region drags (e.g., brushes to stage, stage to void) require all regions to share state and target generation. This means every drag handler must reason about the global state, and target generation scales with the total number of drop positions across all lanes.
+
+---
+
+## File Structure
+
+All Nool files live in `src/demo-diagrams/nool/`:
+
+| File | Lines | Role |
+|------|-------|------|
+| `nool-tree.ts` | ~250 | Shared pure tree ops, layout constants, op definitions. No JSX. |
+| `nool-tree.test.ts` | ~410 | 48 unit tests for tree ops |
+| `stage-builder.tsx` | ~1100 | Holes-based builder with extracted `makePickupDrag`, `computeLayout`, `makeBrushDrag`, `makePaletteDrag` |
+| `tree-editable.tsx` | ~430 | Rewrite-rule tree with split ops panel |
+| `tree-macro.tsx` | ~870 | Macro recorder with derived rules |
+
+Demo registration: `src/nool-demos.tsx` (imports from `./demo-diagrams/nool/`).
+
+The main-page demo (`src/demo-diagrams/nool-tree.tsx`) is separate and unchanged.
+
+---
+
+## Void Stack (Future)
+
+### Concept
+
+Instead of permanently discarding voided items, maintain a stack. The trash icon becomes a portal to the most recently voided item.
+
+### Interaction
+
+- **Void (push)**: Drag to trash icon → item pushed onto void stack. Current `andThen` behavior (briefly show in void zone, then clear) would instead transition to stacked state.
+- **Recover (pop)**: Click-drag on the trash icon → you're now dragging the top item off the stack. Drop targets: stage holes, variadic insertion points, palette, empty stage. Releasing back on the trash icon cancels.
+- **Visual hint**: Trash icon shows a subtle count badge or changes appearance when stack is non-empty.
+- **Stack depth**: Finite (e.g., 5-10 items). Oldest items fall off the bottom.
+
+### State shape change
+
+```typescript
+type State = {
+  // ... existing fields
+  voidStack: Tree[];  // new — most recent at index 0
+};
+```
+
+### Implementation considerations
+
+- **Push (easy)**: In void target generation, instead of `voided: tree` + `andThen` clearing it, push to `voidStack` array.
+- **Pop (moderate)**: Need a new drag origin on the trash icon. When `voidStack.length > 0`, the trash icon gets `data-on-drag` that generates targets from `voidStack[0]` — same target set as palette drag (holes + variadic + empty-stage + palette).
+- **Rendering**: The void icon needs to conditionally show drag affordance. Could show a tiny preview of the top item peeking out from behind the trash icon.
+- **andThen removal**: Currently void uses `andThen` for the two-phase animation (show → clear). With a stack, the item stays in state — no need for `andThen`. Simpler.
+
+### Variations considered
+
+- **Click (not drag) to recover**: Simpler but less consistent with the drag-everything paradigm. Could be a shortcut — click recovers to palette, drag recovers to specific target.
+- **Full undo**: More general but different concept. Void stack is item-level (recover specific items), undo is operation-level (reverse the last action regardless of what it was).
+- **Void as lane**: Instead of a single icon, the void could be a narrow lane showing all stacked items. More visible but takes space. Could be a hover-expand on the trash icon.

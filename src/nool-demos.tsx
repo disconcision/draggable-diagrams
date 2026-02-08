@@ -1,6 +1,6 @@
-import { NoolStageBuilder } from "./demo-diagrams/nool-stage-builder";
-import { NoolTreeEditable } from "./demo-diagrams/nool-tree-editable";
-import { NoolTreeMacro } from "./demo-diagrams/nool-tree-macro";
+import { NoolStageBuilder } from "./demo-diagrams/nool/stage-builder";
+import { NoolTreeEditable } from "./demo-diagrams/nool/tree-editable";
+import { NoolTreeMacro } from "./demo-diagrams/nool/tree-macro";
 import { demoData, SomeDemoData } from "./demos";
 
 // Nool-specific demos registry
@@ -20,7 +20,7 @@ export const noolDemos: SomeDemoData[] = [
     initialStates: [NoolStageBuilder.state1],
     height: 550,
     padding: 20,
-    sourceFile: "nool-stage-builder.tsx",
+    sourceFile: "nool/stage-builder.tsx",
   }),
   demoData({
     id: "nool-tree",
@@ -36,7 +36,7 @@ export const noolDemos: SomeDemoData[] = [
     height: 600,
     padding: 20,
     initialDrawerConfig: { snapRadius: 1, relativePointerMotion: true },
-    sourceFile: "nool-tree-editable.tsx",
+    sourceFile: "nool/tree-editable.tsx",
   }),
   demoData({
     id: "nool-tree-macro",
@@ -53,6 +53,6 @@ export const noolDemos: SomeDemoData[] = [
     height: 600,
     padding: 20,
     initialDrawerConfig: { snapRadius: 1, relativePointerMotion: true },
-    sourceFile: "nool-tree-macro.tsx",
+    sourceFile: "nool/tree-macro.tsx",
   }),
 ];

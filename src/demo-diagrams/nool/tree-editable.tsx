@@ -10,13 +10,13 @@ import {
   rewr,
   Rewrite,
   Tree,
-} from "../asts";
-import { ConfigCheckbox, ConfigPanelProps } from "../configurable";
-import { configurableManipulable } from "../demos";
-import { DragSpec, span, straightTo } from "../DragSpec";
-import { Drag } from "../manipulable";
-import { Svgx } from "../svgx";
-import { translate } from "../svgx/helpers";
+} from "../../asts";
+import { ConfigCheckbox, ConfigPanelProps } from "../../configurable";
+import { configurableManipulable } from "../../demos";
+import { DragSpec, span, straightTo } from "../../DragSpec";
+import { Drag } from "../../manipulable";
+import { Svgx } from "../../svgx";
+import { translate } from "../../svgx/helpers";
 
 export namespace NoolTreeEditable {
   // # state etc
