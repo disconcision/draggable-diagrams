@@ -124,7 +124,7 @@ function SpecNode<T>({
     );
   } else if (spec.type === "with-background") {
     return (
-      <Box label="withBackground">
+      <Box label={`withBackground (r=${spec.radius})`}>
         <div style={{ display: "flex", flexDirection: "row", gap: 4 }}>
           <Slot label="fg">
             <SpecNode

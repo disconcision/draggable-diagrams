@@ -7,17 +7,16 @@ import { Braid } from "./demo-diagrams-2/braid";
 import { CanvasOfLists } from "./demo-diagrams-2/canvas-of-lists";
 import { CanvasOfListsNested } from "./demo-diagrams-2/canvas-of-lists-nested";
 import { Carousel } from "./demo-diagrams-2/carousel";
+import { Clock } from "./demo-diagrams-2/clock";
 import { ConstrainedPoint } from "./demo-diagrams-2/constrained-point";
 import { ConstrainedSlider } from "./demo-diagrams-2/constrained-slider";
-import { Clock } from "./demo-diagrams-2/clock";
 import { Dragon } from "./demo-diagrams-2/dragon";
 import { Fifteen } from "./demo-diagrams-2/fifteen";
 import { Graph } from "./demo-diagrams-2/graph";
 import { GridPoly } from "./demo-diagrams-2/grid-poly";
 import { Hanoi } from "./demo-diagrams-2/hanoi";
-import { Kanban } from "./demo-diagrams-2/kanban";
 import { InsertAndRemove } from "./demo-diagrams-2/insert-and-remove";
-import { Tiles } from "./demo-diagrams-2/tiles";
+import { Kanban } from "./demo-diagrams-2/kanban";
 import { ListOfLists } from "./demo-diagrams-2/list-of-lists";
 import { ListOfListsSizes } from "./demo-diagrams-2/list-of-lists-sizes";
 import { MultiCirclePoints } from "./demo-diagrams-2/multi-circle-points";
@@ -35,10 +34,12 @@ import { Simplest } from "./demo-diagrams-2/simplest";
 import { SimplestClicker } from "./demo-diagrams-2/simplest-clicker";
 import { SimplestJust } from "./demo-diagrams-2/simplest-just";
 import { Spinny } from "./demo-diagrams-2/spinny";
+import { Tiles } from "./demo-diagrams-2/tiles";
 import { Manipulable } from "./manipulable2";
 export function V2DemoPage() {
-  const [showTree, setShowTree] = useState(false);
-  const [showOverlay, setShowOverlay] = useState(false);
+  const [showTreeView, setShowTreeView] = useState(false);
+  const [showDropZones, setShowDropZones] = useState(false);
+  const [showDebugOverlay, setShowDebugOverlay] = useState(false);
 
   function Drawer<T extends object>(props: {
     manipulable: Manipulable<T>;
@@ -49,8 +50,9 @@ export function V2DemoPage() {
     return (
       <DebugManipulableDrawer
         {...props}
-        showTree={showTree}
-        showOverlay={showOverlay}
+        showTreeView={showTreeView}
+        showDropZones={showDropZones}
+        showDebugOverlay={showDebugOverlay}
       />
     );
   }
@@ -63,18 +65,26 @@ export function V2DemoPage() {
         <label className="flex items-center gap-1.5 cursor-pointer">
           <input
             type="checkbox"
-            checked={showTree}
-            onChange={(e) => setShowTree(e.target.checked)}
+            checked={showTreeView}
+            onChange={(e) => setShowTreeView(e.target.checked)}
           />
-          Spec tree
+          Tree view
         </label>
         <label className="flex items-center gap-1.5 cursor-pointer">
           <input
             type="checkbox"
-            checked={showOverlay}
-            onChange={(e) => setShowOverlay(e.target.checked)}
+            checked={showDropZones}
+            onChange={(e) => setShowDropZones(e.target.checked)}
           />
-          Spatial overlay
+          Drop zones
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showDebugOverlay}
+            onChange={(e) => setShowDebugOverlay(e.target.checked)}
+          />
+          Debug overlay
         </label>
       </div>
 
@@ -90,7 +100,7 @@ export function V2DemoPage() {
       <Drawer
         manipulable={SimplestJust.manipulable}
         initialState={SimplestJust.state1}
-        width={250}
+        width={500}
         height={150}
       />
 
@@ -372,7 +382,7 @@ export function V2DemoPage() {
       <Drawer
         manipulable={MultiCirclePoints.manipulable}
         initialState={MultiCirclePoints.state1}
-        width={400}
+        width={600}
         height={350}
       />
 

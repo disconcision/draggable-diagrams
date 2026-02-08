@@ -83,6 +83,7 @@ interface ManipulableDrawerProps<T extends object> {
   width?: number;
   height?: number;
   onDebugDragInfo?: (info: DebugDragInfo<T>) => void;
+  showDebugOverlay?: boolean;
 }
 
 export function ManipulableDrawer<T extends object>({
@@ -91,6 +92,7 @@ export function ManipulableDrawer<T extends object>({
   width,
   height,
   onDebugDragInfo,
+  showDebugOverlay,
 }: ManipulableDrawerProps<T>) {
   const catchToRenderError = useCatchToRenderError();
 
@@ -316,7 +318,7 @@ export function ManipulableDrawer<T extends object>({
       {dragState.type === "idle" ? (
         <DrawIdleMode dragState={dragState} ctx={renderCtx} />
       ) : dragState.type === "dragging" ? (
-        <DrawDraggingMode dragState={dragState} />
+        <DrawDraggingMode dragState={dragState} showDebugOverlay={showDebugOverlay} />
       ) : (
         assertNever(dragState)
       )}
@@ -530,13 +532,24 @@ const DrawIdleMode = memoGeneric(
 const DrawDraggingMode = memoGeneric(
   <T extends object>({
     dragState,
+    showDebugOverlay,
   }: {
     dragState: DragState<T> & { type: "dragging" };
+    showDebugOverlay?: boolean;
   }) => {
     const rendered = runSpring(
       dragState.springingFrom,
       dragState.result.rendered
     );
-    return drawLayered(rendered);
+    const debugOverlay =
+      showDebugOverlay && dragState.result.debugOverlay
+        ? dragState.result.debugOverlay()
+        : null;
+    return (
+      <>
+        {drawLayered(rendered)}
+        {debugOverlay}
+      </>
+    );
   }
 );

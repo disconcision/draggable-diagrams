@@ -13,24 +13,26 @@ export function DebugManipulableDrawer<T extends object>({
   initialState,
   width,
   height,
-  showTree,
-  showOverlay,
+  showTreeView,
+  showDropZones,
+  showDebugOverlay,
 }: {
   manipulable: Manipulable<T>;
   initialState: T;
   width: number;
   height: number;
-  showTree: boolean;
-  showOverlay: boolean;
+  showTreeView: boolean;
+  showDropZones: boolean;
+  showDebugOverlay: boolean;
 }) {
   const [debugInfo, setDebugInfo] = useState<DebugDragInfo<T>>({
     type: "idle",
   });
 
   const { data: overlayData, computing: overlayComputing } = useOverlayData(
-    showOverlay && debugInfo.type === "dragging" ? debugInfo.spec : null,
-    showOverlay && debugInfo.type === "dragging" ? debugInfo.behaviorCtx : null,
-    showOverlay && debugInfo.type === "dragging"
+    showDropZones && debugInfo.type === "dragging" ? debugInfo.spec : null,
+    showDropZones && debugInfo.type === "dragging" ? debugInfo.behaviorCtx : null,
+    showDropZones && debugInfo.type === "dragging"
       ? debugInfo.pointerStart
       : null,
     width,
@@ -49,15 +51,16 @@ export function DebugManipulableDrawer<T extends object>({
             width={width}
             height={height}
             onDebugDragInfo={setDebugInfo}
+            showDebugOverlay={showDebugOverlay}
           />
-          {showOverlay && overlayData && (
+          {showDropZones && overlayData && (
             <SpatialOverlaySvg
               data={overlayData}
               width={width}
               height={height}
             />
           )}
-          {showOverlay && overlayComputing && (
+          {showDropZones && overlayComputing && (
             <svg
               width={20}
               height={20}
@@ -85,7 +88,7 @@ export function DebugManipulableDrawer<T extends object>({
             </svg>
           )}
         </div>
-        {showTree && (
+        {showTreeView && (
           <div className="w-72 shrink-0">
             {dragging ? (
               <div className="flex flex-col gap-2">
@@ -100,13 +103,13 @@ export function DebugManipulableDrawer<T extends object>({
               </div>
             ) : (
               <div className="text-xs text-slate-400 italic">
-                Drag an element to see its spec tree
+                Drag an element to see its tree view
               </div>
             )}
           </div>
         )}
       </div>
-      {showOverlay && !showTree && overlayData && (
+      {showDropZones && !showTreeView && overlayData && (
         <OverlayLegend data={overlayData} />
       )}
     </div>

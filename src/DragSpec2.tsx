@@ -5,7 +5,8 @@ import { Delaunay } from "./math/delaunay";
 import { minimize } from "./math/minimize";
 import { Vec2 } from "./math/vec2";
 import { PathIn, getAtPath, setAtPath } from "./paths";
-import { translate } from "./svgx/helpers";
+import { Svgx } from "./svgx";
+import { path as svgPath, translate } from "./svgx/helpers";
 import {
   LayeredSvgx,
   accumulateTransforms,
@@ -244,6 +245,7 @@ export type DragResult<T> = {
   distance: number;
   activePath: string;
   chainNow?: boolean | string;
+  debugOverlay?: () => Svgx;
 };
 
 export type DragBehavior<T> = (frame: DragFrame) => DragResult<T>;
@@ -285,6 +287,49 @@ function getElementPosition<T extends object>(
   return localToGlobal(transforms, ctx.pointerLocal);
 }
 
+function DistanceLine({
+  from,
+  to,
+  distance,
+}: {
+  from: Vec2;
+  to: Vec2;
+  distance: number;
+}) {
+  const label = distance > 0.5 ? `${Math.round(distance)}px` : "on target";
+  return (
+    <g>
+      <line
+        {...from.xy1()}
+        {...to.xy2()}
+        stroke="white"
+        strokeWidth={5}
+        strokeLinecap="round"
+      />
+      <line
+        {...from.xy1()}
+        {...to.xy2()}
+        stroke="magenta"
+        strokeWidth={1.5}
+        strokeDasharray="4 3"
+      />
+      <text
+        {...from.lerp(to, 0.5).xy()}
+        fill="magenta"
+        stroke="white"
+        strokeWidth={3}
+        paintOrder="stroke"
+        fontSize={11}
+        fontFamily="monospace"
+        textAnchor="middle"
+        dominantBaseline="central"
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
 export function dragSpecToBehavior<T extends object>(
   spec: DragSpec<T>,
   ctx: BehaviorContext<T>
@@ -292,12 +337,32 @@ export function dragSpecToBehavior<T extends object>(
   if (spec.type === "just") {
     const rendered = renderStateReadOnly(ctx, spec.state);
     const elementPos = getElementPosition(ctx, rendered);
-    return (frame) => ({
-      rendered,
-      dropState: spec.state,
-      distance: frame.pointer.dist(elementPos),
-      activePath: "just",
-    });
+    return (frame) => {
+      const distance = frame.pointer.dist(elementPos);
+      return {
+        rendered,
+        dropState: spec.state,
+        distance,
+        activePath: "just",
+        debugOverlay: () => (
+          <g opacity={0.8}>
+            <DistanceLine
+              from={elementPos}
+              to={frame.pointer}
+              distance={distance}
+            />
+            <circle
+              cx={elementPos.x}
+              cy={elementPos.y}
+              r={4}
+              fill="none"
+              stroke="magenta"
+              strokeWidth={1.5}
+            />
+          </g>
+        ),
+      };
+    };
   } else if (spec.type === "floating") {
     const { draggedId, floatLayered } = ctx;
     assert(
@@ -338,11 +403,22 @@ export function dragSpecToBehavior<T extends object>(
           (h) => layeredShiftZIndices(h, 1000000)
         )
       );
+      const distance = frame.pointer.dist(elementPos);
       return {
         rendered,
         dropState: spec.state,
-        distance: frame.pointer.dist(elementPos),
+        distance,
         activePath: "floating",
+        debugOverlay: () => (
+          <g opacity={0.8}>
+            <DistanceLine
+              from={elementPos}
+              to={frame.pointer}
+              distance={distance}
+            />
+            <circle cx={elementPos.x} cy={elementPos.y} r={5} fill="magenta" />
+          </g>
+        ),
       };
     };
   } else if (spec.type === "closest") {
@@ -351,7 +427,23 @@ export function dragSpecToBehavior<T extends object>(
       const subResults = subBehaviors.map((b) => b(frame));
       const best = _.minBy(subResults, (r) => r.distance)!;
       const bestIdx = subResults.indexOf(best);
-      return { ...best, activePath: `closest/${bestIdx}/${best.activePath}` };
+      return {
+        ...best,
+        activePath: `closest/${bestIdx}/${best.activePath}`,
+        debugOverlay: () => (
+          <g>
+            {subResults.map((r, i) => {
+              const sub = r.debugOverlay?.();
+              if (!sub) return null;
+              return (
+                <g key={i} opacity={i === bestIdx ? 1 : 0.2}>
+                  {sub}
+                </g>
+              );
+            })}
+          </g>
+        ),
+      };
     };
   } else if (spec.type === "with-background") {
     const foregroundBehavior = dragSpecToBehavior(spec.foreground, ctx);
@@ -360,7 +452,21 @@ export function dragSpecToBehavior<T extends object>(
       const foregroundResult = foregroundBehavior(frame);
       if (foregroundResult.distance > spec.radius) {
         const bgResult = backdropBehavior(frame);
-        return { ...bgResult, activePath: `bg/${bgResult.activePath}` };
+        const fgDebug = foregroundResult.debugOverlay;
+        const bgDebug = bgResult.debugOverlay;
+        return {
+          ...bgResult,
+          activePath: `bg/${bgResult.activePath}`,
+          debugOverlay:
+            fgDebug || bgDebug
+              ? () => (
+                  <g>
+                    {fgDebug && <g opacity={0.15}>{fgDebug()}</g>}
+                    {bgDebug?.()}
+                  </g>
+                )
+              : undefined,
+        };
       }
       return {
         ...foregroundResult,
@@ -455,11 +561,23 @@ export function dragSpecToBehavior<T extends object>(
       curParams = resultParams;
       const newState = stateFromParams(resultParams);
       const rendered = renderStateReadOnly(ctx, newState);
+      const achievedPos = getElementPosition(ctx, rendered);
+      const distance = Math.sqrt(baseObjectiveFn(resultParams));
       return {
         rendered,
         dropState: newState,
-        distance: Math.sqrt(baseObjectiveFn(resultParams)),
+        distance,
         activePath: "vary",
+        debugOverlay: () => (
+          <g opacity={0.8}>
+            <DistanceLine
+              from={achievedPos}
+              to={frame.pointer}
+              distance={distance}
+            />
+            <circle {...achievedPos.cxy()} r={5} fill="magenta" />
+          </g>
+        ),
       };
     };
   } else if (spec.type === "with-distance") {
@@ -540,6 +658,51 @@ export function dragSpecToBehavior<T extends object>(
         dropState: closest.state,
         distance: projection.dist,
         activePath: "span",
+        debugOverlay: () => (
+          <g>
+            {/* Delaunay triangulation edges */}
+            {delaunay.triangles().map((tri, i) => {
+              const [a, b, c] = tri;
+              return (
+                <path
+                  key={`tri-${i}`}
+                  d={svgPath("M", a.x, a.y, "L", b.x, b.y, "L", c.x, c.y, "Z")}
+                  stroke="magenta"
+                  strokeWidth={1}
+                  fill="magenta"
+                  fillOpacity={0.05}
+                />
+              );
+            })}
+            {/* State positions */}
+            {renderedStates.map((rs, i) => (
+              <circle
+                key={`pt-${i}`}
+                {...rs.position.cxy()}
+                r={6}
+                fill={
+                  i === renderedStates.indexOf(closest) ? "magenta" : "none"
+                }
+                stroke="magenta"
+                strokeWidth={1.5}
+                opacity={i === renderedStates.indexOf(closest) ? 1 : 0.5}
+              />
+            ))}
+            {/* Projected point */}
+            <circle
+              {...projection.projectedPt.cxy()}
+              r={5}
+              stroke="magenta"
+              strokeWidth={2}
+              fill="none"
+            />
+            <DistanceLine
+              from={frame.pointer}
+              to={projection.projectedPt}
+              distance={projection.dist}
+            />
+          </g>
+        ),
       };
     };
   } else if (spec.type === "transition-to-and-then") {
