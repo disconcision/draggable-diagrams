@@ -58,6 +58,7 @@ export namespace NoolStageBuilder {
     palette: Tree[];
     paletteExpanded: boolean;
     voided?: Tree;
+    voidStack: Tree[];
     showAtoms: boolean;
     showHolesOps: boolean;
     showVariadicOps: boolean;
@@ -188,6 +189,7 @@ export namespace NoolStageBuilder {
     brushes: ALL_BRUSHES,
     palette: [],
     paletteExpanded: false,
+    voidStack: [],
     showAtoms: true,
     showHolesOps: true,
     showVariadicOps: false,
@@ -340,8 +342,9 @@ export namespace NoolStageBuilder {
       // Clean up bare pickup hole, offer "put back on stage" only if stage is now empty.
       const cleanedWithout = removeStageHoles(stateWithout);
       const stageTargets = emptyStageTarget(cleanedWithout, tree);
-      const eraseState: State = { ...stateWithout, voided: tree };
-      const cleanState: State = { ...stateWithout, voided: undefined };
+      const newVoidStack = [tree, ...fullState.voidStack].slice(0, 10);
+      const eraseState: State = { ...stateWithout, voided: tree, voidStack: newVoidStack };
+      const cleanState: State = { ...stateWithout, voided: undefined, voidStack: newVoidStack };
 
       return floating(
         [
@@ -353,7 +356,7 @@ export namespace NoolStageBuilder {
           fullState,
           andThen(removeStageHoles(eraseState), removeStageHoles(cleanState)),
         ],
-        { backdrop: cleanedWithout }
+        { backdrop: { ...cleanedWithout, voidStack: newVoidStack } }
       );
     });
   }
@@ -472,8 +475,9 @@ export namespace NoolStageBuilder {
       );
       const stageTargets = emptyStageTarget(stateWithout, block);
       const reorderTargets = paletteInsertionTargets(stateWithout, block);
-      const eraseState: State = { ...stateWithout, voided: block };
-      const cleanState: State = { ...stateWithout, voided: undefined };
+      const newVoidStack = [block, ...state.voidStack].slice(0, 10);
+      const eraseState: State = { ...stateWithout, voided: block, voidStack: newVoidStack };
+      const cleanState: State = { ...stateWithout, voided: undefined, voidStack: newVoidStack };
       return floating(
         [
           ...placeTargets,
@@ -482,7 +486,7 @@ export namespace NoolStageBuilder {
           ...reorderTargets,
           andThen(removeStageHoles(eraseState), removeStageHoles(cleanState)),
         ],
-        { backdrop: stateWithout }
+        { backdrop: { ...stateWithout, voidStack: newVoidStack } }
       );
     });
   }
@@ -1126,10 +1130,31 @@ export namespace NoolStageBuilder {
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize={16}
-            fill="#ccc"
+            fill={state.voidStack.length > 0 ? "#999" : "#ccc"}
             pointerEvents="none"
           >
             🗑
+          </text>
+          <circle
+            cx={VOID_SIZE / 2 + 12}
+            cy={VOID_SIZE / 2 - 8}
+            r={7}
+            fill="#c53030"
+            opacity={state.voidStack.length > 0 ? 1 : 0}
+            pointerEvents="none"
+          />
+          <text
+            x={VOID_SIZE / 2 + 12}
+            y={VOID_SIZE / 2 - 8}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={9}
+            fontWeight="bold"
+            fill="white"
+            pointerEvents="none"
+            opacity={state.voidStack.length > 0 ? 1 : 0}
+          >
+            {state.voidStack.length || ""}
           </text>
           {state.voided &&
             renderTree(state.voided, { pointerEventsNone: true }).element}
