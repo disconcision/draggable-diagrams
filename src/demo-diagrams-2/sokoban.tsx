@@ -85,10 +85,7 @@ function manipulableFactory(config: Config): Manipulable<State> {
     }
 
     function idOfBoxAt(pos: Vec2): string | undefined {
-      return _.findKey(
-        state.objects,
-        (o) => o.type === "box" && pos.eq(o.pos)
-      );
+      return _.findKey(state.objects, (o) => o.type === "box" && pos.eq(o.pos));
     }
 
     return (

@@ -61,10 +61,10 @@ const manipulable: Manipulable<State> = ({ state, drag, draggedId }) =>
             Ref({ select: labelName }),
             Ref({ select: boxName }),
           ]),
-          Align(
-            { alignment: draggedId === p ? "topCenter" : "bottomCenter" },
-            [Ref({ select: labelName }), Ref({ select: backgroundName })]
-          ),
+          Align({ alignment: draggedId === p ? "topCenter" : "bottomCenter" }, [
+            Ref({ select: labelName }),
+            Ref({ select: backgroundName }),
+          ]),
         ]);
       }),
     ])
