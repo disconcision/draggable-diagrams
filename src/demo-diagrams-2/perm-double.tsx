@@ -1,7 +1,7 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { span, withSnapRadius } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -17,11 +17,7 @@ const initialState: State = {
   ],
 };
 
-const manipulable: Manipulable<State> = ({
-  state,
-  drag,
-  draggedId,
-}) => {
+const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
   const TILE_SIZE = 50;
   const ROW_PADDING = 5;
 
@@ -43,10 +39,7 @@ const manipulable: Manipulable<State> = ({
                   ? 1
                   : 0
               }
-              transform={translate(
-                idx * TILE_SIZE + ROW_PADDING,
-                ROW_PADDING
-              )}
+              transform={translate(idx * TILE_SIZE + ROW_PADDING, ROW_PADDING)}
               data-on-drag={drag(() => {
                 const draggedRowIdx = state.rows.findIndex((r) =>
                   r.includes(p)
@@ -98,5 +91,11 @@ const manipulable: Manipulable<State> = ({
   );
 };
 
-export const PermDouble = () =>
-  <DemoDrawer manipulable={manipulable} initialState={initialState} width={250} height={200} />;
+export const PermDouble = () => (
+  <DemoDrawer
+    manipulable={manipulable}
+    initialState={initialState}
+    width={250}
+    height={200}
+  />
+);

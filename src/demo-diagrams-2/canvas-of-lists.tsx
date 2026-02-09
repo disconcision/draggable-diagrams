@@ -1,8 +1,8 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { amb, produceAmb } from "../amb";
-import { closest, floating, vary, withBackground } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { closest, floating, vary, withBackground } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -66,11 +66,7 @@ const initialState: State = {
   },
 };
 
-const manipulable: Manipulable<State> = ({
-  state,
-  drag,
-  draggedId,
-}) => {
+const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
   const TILE_SIZE = 50;
   const TILE_GAP = 8;
   const ROW_PADDING = 8;
@@ -142,8 +138,7 @@ const manipulable: Manipulable<State> = ({
                   });
                   const [newRowId, newRowColor] = _.range(100)
                     .map(
-                      (i) =>
-                        [`row${i + 1}`, colors[i % colors.length]] as const
+                      (i) => [`row${i + 1}`, colors[i % colors.length]] as const
                     )
                     .find(([id]) => !(id in stateWithout.rows))!;
                   const stateWithNewRow = produce(stateWithout, (draft) => {
@@ -194,5 +189,11 @@ const manipulable: Manipulable<State> = ({
   );
 };
 
-export const CanvasOfLists = () =>
-  <DemoDrawer manipulable={manipulable} initialState={initialState} width={600} height={400} />;
+export const CanvasOfLists = () => (
+  <DemoDrawer
+    manipulable={manipulable}
+    initialState={initialState}
+    width={400}
+    height={400}
+  />
+);

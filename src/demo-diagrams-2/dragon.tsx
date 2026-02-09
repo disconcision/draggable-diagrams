@@ -14,7 +14,7 @@ type State = {
 
 const initialState: State = {
   from: { x: 300, y: 150 },
-  to: { x: 0, y: 39 },
+  to: { x: 40, y: 60 },
   squareness: 0.4,
   tilt: 0,
 };
@@ -72,6 +72,6 @@ export const Dragon = () => (
     manipulable={manipulable}
     initialState={initialState}
     width={400}
-    height={250}
+    height={280}
   />
 );

@@ -2,9 +2,9 @@ import _ from "lodash";
 import { ConfigCheckbox } from "../configurable";
 import { configurableManipulable } from "../demos";
 import { straightTo } from "../DragSpec";
-import { translate } from "../svgx/helpers";
 import { Vec2 } from "../math/vec2";
 import { inXYWH } from "../math/xywh";
+import { translate } from "../svgx/helpers";
 import { defined } from "../utils";
 
 type GameObject = {

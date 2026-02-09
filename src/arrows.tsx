@@ -1,6 +1,6 @@
 import { SVGProps } from "react";
-import { path, rotateRad, translate } from "./svgx/helpers";
 import { Vec2, Vec2able } from "./math/vec2";
+import { path, rotateRad, translate } from "./svgx/helpers";
 
 /**
  * Creates a triangular arrowhead polygon.

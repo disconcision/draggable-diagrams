@@ -43,7 +43,7 @@ export const LinearTrack = () => (
   <DemoDrawer
     manipulable={manipulable}
     initialState={initialState}
-    width={250}
-    height={150}
+    width={150}
+    height={80}
   />
 );

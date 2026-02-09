@@ -190,7 +190,7 @@ export const Todo = () => {
           manipulable={manipulable}
           initialState={initialState}
           width={400}
-          height={350}
+          height={450}
         />
       </div>
       <div className="bg-gray-50 rounded p-3 shrink-0 sticky top-4">

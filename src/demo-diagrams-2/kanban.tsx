@@ -1,8 +1,8 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { amb, produceAmb, require } from "../amb";
-import { closest, floatings, span, withSnapRadius } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { closest, floatings, span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -51,11 +51,7 @@ const CARD_GAP = 5;
 const HEADER_HEIGHT = 25;
 const COLUMN_PADDING = 5;
 
-const manipulable: Manipulable<State> = ({
-  state,
-  drag,
-  draggedId,
-}) => {
+const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
   return (
     <g>
       {state.columns.map((column, colIdx) => {
@@ -129,11 +125,7 @@ const manipulable: Manipulable<State> = ({
                   id={`card-${card.id}`}
                   transform={translate(COLUMN_PADDING, cardY)}
                   data-z-index={
-                    isDragged
-                      ? 10
-                      : draggedId === `column-${column.id}`
-                      ? 6
-                      : 1
+                    isDragged ? 10 : draggedId === `column-${column.id}` ? 6 : 1
                   }
                   data-on-drag={drag(() =>
                     closest(
@@ -177,6 +169,6 @@ export const Kanban = () => (
     manipulable={manipulable}
     initialState={initialState}
     width={400}
-    height={300}
+    height={200}
   />
 );

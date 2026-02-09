@@ -3,11 +3,10 @@ import { useMemo, useState } from "react";
 import { amb, produceAmb } from "../amb";
 import { ConfigCheckbox } from "../configurable";
 import { DemoDrawer } from "../DemoDrawer";
-import { closest, floating, just, span, withBackground } from "../DragSpec2";
+import { closest, floating, span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { Vec2 } from "../math/vec2";
 import { path, rotateDeg, translate } from "../svgx/helpers";
-import { pipe } from "../utils";
 
 type State = {
   missingSquare: Vec2;
@@ -53,25 +52,30 @@ function manipulableFactory(config: Config): Manipulable<State> {
         width={CELL_SIZE - 2 * TROMINO_PADDING}
         height={CELL_SIZE - 2 * TROMINO_PADDING}
         fill="black"
-        data-on-drag={drag(() =>
-          config.mazeMode
-            ? pipe(singleRotationStates(state), (states) =>
-                config.snappyMode
-                  ? withBackground(
-                      closest(states.map((s) => floating(s))),
-                      just(state)
+        data-on-drag={drag(() => {
+          if (config.mazeMode) {
+            const singleRotations = singleRotationStates(state);
+            return withSnapRadius(
+              config.snappyMode
+                ? closest(
+                    [...singleRotations, state].map((s) =>
+                      floating(s, { ghost: { opacity: 0.2 } })
                     )
-                  : closest(states.map((s) => span([state, s])))
-              )
-            : pipe(allStates(state), (states) =>
-                config.snappyMode
-                  ? withBackground(
-                      closest(states.map((s) => floating(s))),
-                      just(state)
-                    )
-                  : span(states)
-              )
-        )}
+                  )
+                : closest(singleRotations.map((s) => span([state, s]))),
+              1,
+              { chain: true }
+            );
+          } else {
+            return config.snappyMode
+              ? closest(
+                  allStates(state).map((s) =>
+                    floating(s, { ghost: { opacity: 0.2 } })
+                  )
+                )
+              : span(allStates(state));
+          }
+        })}
       />
     </g>
   );
@@ -202,6 +206,9 @@ export const Tromino = () => {
   return (
     <div className="flex gap-4 items-start">
       <div>
+        <div className="mt-2 mb-4 text-sm text-gray-600">
+          snappy+maze mode still isn't working?
+        </div>
         <DemoDrawer
           manipulable={manipulable}
           initialState={initialState}

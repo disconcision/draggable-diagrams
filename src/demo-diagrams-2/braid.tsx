@@ -1,7 +1,7 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { closest, span, withSnapRadius } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { closest, span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -38,10 +38,7 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
         perm = perm.slice();
         [perm[i], perm[j]] = [perm[j], perm[i]];
         return (
-          <g
-            id={`swap-${idx}`}
-            transform={translate(0, (idx + 1) * TILE_SIZE)}
-          >
+          <g id={`swap-${idx}`} transform={translate(0, (idx + 1) * TILE_SIZE)}>
             {/* swap lines */}
             <line
               id={`line-${perm[i]}-${idx}`}

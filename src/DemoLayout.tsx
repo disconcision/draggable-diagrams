@@ -1,9 +1,9 @@
+import { PrettyPrint } from "@joshuahhh/pretty-print";
 import { useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Demo } from "./Demo";
 import { demos } from "./demos";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { PrettyPrint } from "@joshuahhh/pretty-print";
 
 export function DemoListPage() {
   const [debugMode, setDebugMode] = useState(false);

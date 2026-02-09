@@ -1,6 +1,6 @@
 import { produce } from "immer";
-import { closest, span, withSnapRadius } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { closest, span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { rotateDeg, translate } from "../svgx/helpers";
 
@@ -16,7 +16,7 @@ const TILE_SIZE = 50;
 const RADIUS = 100;
 
 const manipulable: Manipulable<State> = ({ state, drag }) => (
-  <g transform={translate(120, 120)}>
+  <g transform={translate(130, 130)}>
     {/* background circle */}
     <circle
       cx={0}
@@ -86,7 +86,7 @@ export const Spinny = () => (
   <DemoDrawer
     manipulable={manipulable}
     initialState={initialState}
-    width={250}
-    height={250}
+    width={260}
+    height={260}
   />
 );

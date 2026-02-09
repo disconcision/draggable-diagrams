@@ -1,8 +1,8 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { amb, produceAmb } from "../amb";
-import { closest, floating, just, withBackground } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { closest, floating, just, withBackground } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -65,5 +65,11 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
   );
 };
 
-export const PermFloating = () =>
-  <DemoDrawer manipulable={manipulable} initialState={initialState} width={350} height={100} />;
+export const PermFloating = () => (
+  <DemoDrawer
+    manipulable={manipulable}
+    initialState={initialState}
+    width={350}
+    height={100}
+  />
+);

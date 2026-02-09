@@ -9,11 +9,11 @@ import {
   Tree,
 } from "../asts";
 import { ConfigCheckbox } from "../configurable";
+import { DemoDrawer } from "../DemoDrawer";
 import { closest, span } from "../DragSpec2";
 import { Drag, Manipulable } from "../manipulable2";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
-import { DemoDrawer } from "../DemoDrawer";
 
 type State = Tree;
 
@@ -98,10 +98,7 @@ type RewriteSet = {
 const rewriteSets: RewriteSet[] = [
   {
     title: <>Commutativity</>,
-    rewrites: [
-      rewr("(+ #A #B)", "(+ B A)"),
-      rewr("(× #A #B)", "(× B A)"),
-    ],
+    rewrites: [rewr("(+ #A #B)", "(+ B A)"), rewr("(× #A #B)", "(× B A)")],
     defaultEnabled: true,
   },
   {
@@ -234,9 +231,7 @@ function renderTree(
         textAnchor="middle"
         fontSize={20}
         fill="black"
-        data-on-drag={drag(() =>
-          dragTargets(state, tree.id, activeRewrites)
-        )}
+        data-on-drag={drag(() => dragTargets(state, tree.id, activeRewrites))}
       >
         {tree.label}
       </text>
@@ -355,7 +350,8 @@ function ConfigPanel({
             </>
           )}
           <br />
-          {rewriteSet.rewrites.length > 0 && drawRewrite(rewriteSet.rewrites[0])}
+          {rewriteSet.rewrites.length > 0 &&
+            drawRewrite(rewriteSet.rewrites[0])}
         </ConfigCheckbox>
       ))}
     </div>
@@ -389,15 +385,15 @@ export const NoolTree = () => {
         <DemoDrawer
           manipulable={manipulable}
           initialState={initialState1}
-          width={600}
+          width={300}
           height={350}
         />
         <h3 className="text-md font-medium italic mt-6 mb-1">state 2</h3>
         <DemoDrawer
           manipulable={manipulable}
           initialState={initialState2}
-          width={600}
-          height={350}
+          width={300}
+          height={300}
         />
       </div>
       <div className="bg-gray-50 rounded p-3 shrink-0 sticky top-4">

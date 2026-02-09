@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { amb, produceAmb, require } from "../amb";
-import { span } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { span } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
@@ -23,7 +23,7 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
   const TILE_SIZE = 50;
 
   return (
-    <g>
+    <g transform={translate(20, 20)}>
       {/* Grid points */}
       {_.range(state.w).map((x) =>
         _.range(state.h).map((y) => (

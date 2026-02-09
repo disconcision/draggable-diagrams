@@ -1,7 +1,7 @@
+import { DemoDrawer } from "../DemoDrawer";
 import { closest, vary } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
-import { DemoDrawer } from "../DemoDrawer";
 
 // New v2-only demo: a planet that can orbit around different stars.
 // Demonstrates closest(stars.map(() => vary(...))).

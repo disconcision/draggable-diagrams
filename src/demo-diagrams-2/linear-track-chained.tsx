@@ -47,7 +47,7 @@ export const LinearTrackChained = () => (
   <DemoDrawer
     manipulable={manipulable}
     initialState={initialState}
-    width={450}
-    height={200}
+    width={400}
+    height={100}
   />
 );

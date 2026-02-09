@@ -1,7 +1,7 @@
+import { DemoDrawer } from "../DemoDrawer";
 import { closest, floating, just } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
-import { DemoDrawer } from "../DemoDrawer";
 
 type State = {
   value: number;

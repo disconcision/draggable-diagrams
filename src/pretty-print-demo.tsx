@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { prettyLog, PrettyPrint, testData } from "@joshuahhh/pretty-print";
+import { useEffect } from "react";
 
 export function PrettyPrintDemo() {
   useEffect(() => {

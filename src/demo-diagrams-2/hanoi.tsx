@@ -1,7 +1,7 @@
 import { produce } from "immer";
 import { amb, produceAmb, require } from "../amb";
-import { closest, floating } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { closest, floating } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -138,7 +138,7 @@ export const Hanoi = () => (
   <DemoDrawer
     manipulable={manipulable}
     initialState={state3}
-    width={600}
+    width={500}
     height={200}
   />
 );

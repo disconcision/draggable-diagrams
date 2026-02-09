@@ -46,54 +46,6 @@ const state2: State = {
   ],
 };
 
-const state3: State = {
-  id: "root",
-  label: "+",
-  children: [
-    {
-      id: "root-1",
-      label: "+",
-      children: [
-        {
-          id: "root-1-1",
-          label: "+",
-          children: [
-            { id: "root-1-1-1", label: "⛅", children: [] },
-            {
-              id: "root-1-1-2",
-              label: "-",
-              children: [{ id: "root-1-1-2-1", label: "🍄", children: [] }],
-            },
-          ],
-        },
-        { id: "root-1-2", label: "🍄", children: [] },
-      ],
-    },
-    {
-      id: "root-2",
-      label: "+",
-      children: [
-        {
-          id: "root-2-1",
-          label: "×",
-          children: [
-            { id: "root-2-1-1", label: "🎲", children: [] },
-            { id: "root-2-1-2", label: "🦠", children: [] },
-          ],
-        },
-        {
-          id: "root-2-2",
-          label: "×",
-          children: [
-            { id: "root-2-2-1", label: "🎲", children: [] },
-            { id: "root-2-2-2", label: "🐝", children: [] },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
 const stateTreeOfLife: State = {
   id: "animalia",
   label: "Animalia",
@@ -383,13 +335,6 @@ export const Outline = () => {
           initialState={state2}
           width={250}
           height={200}
-        />
-        <h3 className="text-md font-medium italic mt-6 mb-1">complex</h3>
-        <DemoDrawer
-          manipulable={manipulable}
-          initialState={state3}
-          width={350}
-          height={350}
         />
         <h3 className="text-md font-medium italic mt-6 mb-1">tree of life</h3>
         <DemoDrawer

@@ -1,5 +1,5 @@
-import { vary } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { vary } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -36,11 +36,7 @@ function bezierPath(state: State): string {
   return `M ${p0.x} ${p0.y} C ${p1.x} ${p1.y}, ${p2.x} ${p2.y}, ${p3.x} ${p3.y}`;
 }
 
-const manipulable: Manipulable<State> = ({
-  state,
-  drag,
-  draggedId,
-}) => {
+const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
   const { p0, p1, p2, p3 } = state;
   const ENDPOINT_R = 12;
   const CONTROL_R = 8;

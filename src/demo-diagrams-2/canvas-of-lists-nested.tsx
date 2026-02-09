@@ -2,8 +2,8 @@ import { produce } from "immer";
 import _ from "lodash";
 import { SVGProps } from "react";
 import { amb, produceAmb } from "../amb";
-import { closest, floating, vary, withBackground } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { closest, floating, vary, withBackground } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { getAtPath, PathIn } from "../paths";
 import { translate } from "../svgx/helpers";
@@ -75,11 +75,7 @@ const initialState: State = {
   ],
 };
 
-const manipulable: Manipulable<State> = ({
-  state,
-  drag,
-  draggedId,
-}) => {
+const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
   const TILE_SIZE = 50;
   const TILE_GAP = 8;
   const ROW_PADDING = 8;
@@ -143,8 +139,7 @@ const manipulable: Manipulable<State> = ({
       const stateWithTopRow = produce(stateWithout, (draft) => {
         if (item.type === "tile") {
           const newRowId = "row-" + Math.random().toString(36).slice(2);
-          const newRowColor =
-            colors[stateWithout.rows.length % colors.length];
+          const newRowColor = colors[stateWithout.rows.length % colors.length];
           draft.rows.push({
             type: "row",
             id: newRowId,
@@ -258,5 +253,11 @@ const manipulable: Manipulable<State> = ({
   );
 };
 
-export const CanvasOfListsNested = () =>
-  <DemoDrawer manipulable={manipulable} initialState={initialState} width={600} height={400} />;
+export const CanvasOfListsNested = () => (
+  <DemoDrawer
+    manipulable={manipulable}
+    initialState={initialState}
+    width={400}
+    height={400}
+  />
+);

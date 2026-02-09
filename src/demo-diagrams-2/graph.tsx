@@ -1,8 +1,8 @@
 import _ from "lodash";
 import { amb, produceAmb, require } from "../amb";
 import { arrowhead } from "../arrows";
-import { span, vary } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { span, vary } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";

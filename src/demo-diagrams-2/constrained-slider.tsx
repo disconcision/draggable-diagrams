@@ -1,8 +1,8 @@
+import { DemoDrawer } from "../DemoDrawer";
 import { lessThan, vary } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
-import { DemoDrawer } from "../DemoDrawer";
 
 type State = {
   value: number;

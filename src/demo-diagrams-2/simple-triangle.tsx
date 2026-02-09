@@ -81,21 +81,21 @@ export const SimpleTriangle = () => (
     <DemoDrawer
       manipulable={spanManipulable}
       initialState={initialState}
-      width={250}
+      width={200}
       height={150}
     />
     <h3 className="text-md font-medium italic mt-6 mb-1">floating</h3>
     <DemoDrawer
       manipulable={floatingManipulable}
       initialState={initialState}
-      width={250}
+      width={200}
       height={150}
     />
     <h3 className="text-md font-medium italic mt-6 mb-1">just</h3>
     <DemoDrawer
       manipulable={justManipulable}
       initialState={initialState}
-      width={250}
+      width={200}
       height={150}
     />
   </div>
