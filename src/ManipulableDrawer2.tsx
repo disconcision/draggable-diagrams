@@ -373,7 +373,7 @@ export function ManipulableDrawer<T extends object>({
       width={width}
       height={height}
       xmlns="http://www.w3.org/2000/svg"
-      className="overflow-visible select-none touch-none border"
+      className="overflow-visible select-none touch-none"
     >
       {dragState.type === "idle" ? (
         <DrawIdleMode dragState={dragState} ctx={renderCtx} />
