@@ -11,6 +11,7 @@ import { IndexPage } from "./IndexPage";
 import { InspectPage } from "./InspectPage";
 import { PrettyPrintDemo } from "./pretty-print-demo";
 import { V2DemoPage } from "./V2DemoPage";
+import { V2SingleDemoPage } from "./V2SingleDemoPage";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -25,6 +26,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         {autoRoute("/pretty-print", PrettyPrintDemo)}
         {autoRoute("/bluefish", BluefishDemo)}
         {autoRoute("/v2", V2DemoPage)}
+        {autoRoute("/v2/:id", V2SingleDemoPage)}
       </Routes>
     </HashRouter>
   </React.StrictMode>

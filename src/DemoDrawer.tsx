@@ -1,50 +1,41 @@
 import { PrettyPrint } from "@joshuahhh/pretty-print";
 import { useState } from "react";
-import { ErrorBoundary } from "./ErrorBoundary";
+import { useDemoSettings } from "./DemoContext";
 import {
   OverlayLegend,
   SpatialOverlaySvg,
   useOverlayData,
 } from "./DragSpecSpatialOverlay";
 import { DragSpecTreeView } from "./DragSpecTreeView";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { DebugDragInfo, ManipulableDrawer } from "./ManipulableDrawer2";
 import { Manipulable } from "./manipulable2";
 
-export function DebugManipulableDrawer<T extends object>({
+export function DemoDrawer<T extends object>({
   manipulable,
   initialState,
   width,
   height,
-  showTreeView,
-  showDropZones,
-  showDebugOverlay,
-  showStateViewer,
 }: {
   manipulable: Manipulable<T>;
   initialState: T;
   width: number;
   height: number;
-  showTreeView: boolean;
-  showDropZones: boolean;
-  showDebugOverlay: boolean;
-  showStateViewer: boolean;
 }) {
+  const { showTreeView, showDropZones, showDebugOverlay, showStateViewer } =
+    useDemoSettings();
   const [debugInfo, setDebugInfo] = useState<DebugDragInfo<T>>({
     type: "idle",
     state: initialState,
   });
 
+  const draggingDebugInfo = debugInfo.type === "dragging" ? debugInfo : null;
+
   const { data: overlayData, computing: overlayComputing } = useOverlayData(
-    showDropZones && debugInfo.type === "dragging" ? debugInfo.spec : null,
-    showDropZones && debugInfo.type === "dragging" ? debugInfo.behaviorCtx : null,
-    showDropZones && debugInfo.type === "dragging"
-      ? debugInfo.pointerStart
-      : null,
+    showDropZones ? draggingDebugInfo : null,
     width,
     height
   );
-
-  const dragging = debugInfo.type === "dragging" ? debugInfo : null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -97,14 +88,14 @@ export function DebugManipulableDrawer<T extends object>({
           <div className="w-72 shrink-0 flex flex-col gap-2">
             {showTreeView && (
               <>
-                {dragging ? (
+                {draggingDebugInfo ? (
                   <div className="flex flex-col gap-2">
                     <div className="text-xs text-slate-500 font-mono">
-                      activePath: {dragging.activePath}
+                      activePath: {draggingDebugInfo.activePath}
                     </div>
                     <DragSpecTreeView
-                      spec={dragging.spec}
-                      activePath={dragging.activePath}
+                      spec={draggingDebugInfo.spec}
+                      activePath={draggingDebugInfo.activePath}
                       colorMap={overlayData?.colorMap}
                     />
                   </div>
@@ -118,7 +109,11 @@ export function DebugManipulableDrawer<T extends object>({
             {showStateViewer && (
               <ErrorBoundary>
                 <PrettyPrint
-                  value={debugInfo.type === "dragging" ? debugInfo.dropState : debugInfo.state}
+                  value={
+                    debugInfo.type === "dragging"
+                      ? debugInfo.dropState
+                      : debugInfo.state
+                  }
                   style={{ fontSize: "11px" }}
                 />
               </ErrorBoundary>

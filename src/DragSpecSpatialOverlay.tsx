@@ -434,12 +434,18 @@ function* computeOverlay(
 // # Hook: drives the generator cooperatively
 
 export function useOverlayData<T extends object>(
-  spec: DragSpec<T> | null,
-  behaviorCtx: BehaviorContext<T> | null,
-  pointerStart: Vec2 | null,
+  dragging: {
+    spec: DragSpec<T>;
+    behaviorCtx: BehaviorContext<T>;
+    pointerStart: Vec2;
+  } | null,
   width: number,
   height: number
 ): { data: OverlayData | null; computing: boolean } {
+  const spec = dragging?.spec ?? null;
+  const behaviorCtx = dragging?.behaviorCtx ?? null;
+  const pointerStart = dragging?.pointerStart ?? null;
+
   const [data, setData] = useState<OverlayData | null>(null);
   const [computing, setComputing] = useState(false);
   const specRef = useRef(spec);
