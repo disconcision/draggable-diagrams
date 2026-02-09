@@ -1,4 +1,5 @@
 import { produce } from "immer";
+import { DemoDrawer } from "../DemoDrawer";
 import {
   andThen,
   closest,
@@ -9,7 +10,6 @@ import {
 } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
-import { DemoDrawer } from "../DemoDrawer";
 
 const NODE_W = 90;
 const NODE_HEADER = 20;
@@ -105,11 +105,7 @@ const initialState: State = {
   },
 };
 
-const manipulable: Manipulable<State> = ({
-  state,
-  drag,
-  draggedId,
-}) => {
+const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
   function endDragSpec(wireId: string, endKey: "from" | "to") {
     // ways to snap it
     const side = endKey === "to" ? "in" : "out";
@@ -159,9 +155,7 @@ const manipulable: Manipulable<State> = ({
           <g id={`wire-${wid}`}>
             <path
               id={`wire-path-${wid}`}
-              d={`M${fx},${fy} C${fx + dx},${fy} ${
-                tx - dx
-              },${ty} ${tx},${ty}`}
+              d={`M${fx},${fy} C${fx + dx},${fy} ${tx - dx},${ty} ${tx},${ty}`}
               fill="none"
               stroke="#aaa"
               strokeWidth={2}
@@ -235,9 +229,7 @@ const manipulable: Manipulable<State> = ({
               const ports = side === "in" ? def.inputs : def.outputs;
               const cx = side === "in" ? 0 : NODE_W;
               const colors =
-                side === "in"
-                  ? ["#4a9eff", "#c0d8f0"]
-                  : ["#ff6b4a", "#f0c8c0"];
+                side === "in" ? ["#4a9eff", "#c0d8f0"] : ["#ff6b4a", "#f0c8c0"];
               const wireEnd = side === "in" ? "to" : "from";
               return ports.map((port, i) => {
                 const py = portY(ports.length, i, h);

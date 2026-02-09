@@ -20,9 +20,7 @@ describe("parseTransform", () => {
 
   it("parses rotate", () => {
     const result = parseTransform("rotate(45)");
-    expect(result).toEqual([
-      { type: "rotate", degrees: 45, cx: 0, cy: 0 },
-    ]);
+    expect(result).toEqual([{ type: "rotate", degrees: 45, cx: 0, cy: 0 }]);
   });
 
   it("parses rotate with center", () => {
@@ -62,7 +60,9 @@ describe("serializeTransform", () => {
   });
 
   it("serializes rotate", () => {
-    const result = serializeTransform([{ type: "rotate", degrees: 45, cx: 0, cy: 0 }]);
+    const result = serializeTransform([
+      { type: "rotate", degrees: 45, cx: 0, cy: 0 },
+    ]);
     expect(result).toBe("rotate(45, 0, 0)");
   });
 

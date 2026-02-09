@@ -1,6 +1,6 @@
 import { produce } from "immer";
-import { closest, span, withSnapRadius } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { closest, span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { rotateDeg, translate } from "../svgx/helpers";
 

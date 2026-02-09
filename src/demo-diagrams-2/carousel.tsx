@@ -1,5 +1,5 @@
-import { closest, span } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { closest, span } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 
@@ -21,11 +21,7 @@ const HEIGHT = 250;
 const DOT_RADIUS = 6;
 const DOT_SPACING = 20;
 
-const manipulable: Manipulable<State> = ({
-  state,
-  drag,
-  setState,
-}) => (
+const manipulable: Manipulable<State> = ({ state, drag, setState }) => (
   <g>
     {/* Main carousel container */}
     <rect

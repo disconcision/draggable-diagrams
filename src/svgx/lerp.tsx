@@ -1,10 +1,10 @@
+import { prettyLog, PrettyPrint } from "@joshuahhh/pretty-print";
 import { rgb } from "d3-color";
 import { interpolateHcl } from "d3-interpolate";
 import { interpolatePath } from "d3-interpolate-path";
 import React, { cloneElement } from "react";
 import { shouldRecurseIntoChildren, Svgx } from ".";
 import { ErrorWithJSX } from "../ErrorBoundary";
-import { prettyLog, PrettyPrint } from "@joshuahhh/pretty-print";
 import { emptyToUndefined } from "../utils";
 import { LayeredSvgx } from "./layers";
 import { lerpTransformString } from "./transform";

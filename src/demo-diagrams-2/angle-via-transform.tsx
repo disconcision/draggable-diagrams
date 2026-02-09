@@ -1,5 +1,5 @@
-import { vary } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { vary } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { rotateDeg, translate } from "../svgx/helpers";
 
@@ -17,14 +17,7 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
   return (
     <g transform={translate(100, 100)}>
       <g transform={rotateDeg(state.angle)}>
-        <line
-          x1={0}
-          y1={0}
-          x2={radius}
-          y2={0}
-          stroke="black"
-          strokeWidth={4}
-        />
+        <line x1={0} y1={0} x2={radius} y2={0} stroke="black" strokeWidth={4} />
         <circle
           transform={translate(radius, 0)}
           cx={0}

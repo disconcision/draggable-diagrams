@@ -1,3 +1,4 @@
+import { PrettyPrint } from "@joshuahhh/pretty-print";
 import { Fragment, useEffect, useState } from "react";
 import { demos } from "./demos";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -9,7 +10,6 @@ import {
   RenderedExitWithDragged,
 } from "./ManipulableDrawer";
 import { Vec2 } from "./math/vec2";
-import { PrettyPrint } from "@joshuahhh/pretty-print";
 import { drawLayered } from "./svgx/layers";
 
 export function InspectPage({

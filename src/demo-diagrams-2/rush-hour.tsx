@@ -1,6 +1,6 @@
 import _ from "lodash";
-import { span, withSnapRadius } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
 

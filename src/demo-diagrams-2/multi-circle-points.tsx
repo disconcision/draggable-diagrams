@@ -1,9 +1,9 @@
 import { produce } from "immer";
+import { DemoDrawer } from "../DemoDrawer";
 import { closest, lessThan, vary } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
-import { DemoDrawer } from "../DemoDrawer";
 
 type Circle = {
   id: string;
@@ -51,11 +51,7 @@ const getPointAbsolutePos = (state: State, point: Point): Vec2 => {
   return Vec2(circle.x + point.dx, circle.y + point.dy);
 };
 
-const manipulable: Manipulable<State> = ({
-  state,
-  drag,
-  draggedId,
-}) => {
+const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
   return (
     <g>
       {/* Render circles */}

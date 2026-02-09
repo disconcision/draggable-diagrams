@@ -6,10 +6,10 @@ import { configurableManipulable } from "../demos";
 import { span } from "../DragSpec";
 import { overlapIntervals } from "../layout";
 import { Drag } from "../manipulable";
-import { path, translate } from "../svgx/helpers";
 import { Vec2 } from "../math/vec2";
 import { Svgx } from "../svgx";
 import { Finalizers, pointRef, PointRef } from "../svgx/finalizers";
+import { path, translate } from "../svgx/helpers";
 import {
   getAllMorphs,
   getNodeById,

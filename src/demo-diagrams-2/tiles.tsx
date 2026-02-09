@@ -1,6 +1,6 @@
 import _ from "lodash";
-import { closest, span, withSnapRadius } from "../DragSpec2";
 import { DemoDrawer } from "../DemoDrawer";
+import { closest, span, withSnapRadius } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { Vec2 } from "../math/vec2";
 import { inXYWH } from "../math/xywh";
@@ -19,7 +19,6 @@ const stateLonely: State = {
     A: { x: 2, y: 2 },
   },
 };
-
 
 const manipulable: Manipulable<State> = ({ state, drag }) => {
   const TILE_SIZE = 50;
@@ -55,8 +54,7 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
                   ] as const
                 ).map((d) => {
                   const adjLoc = Vec2(tile).add(d);
-                  if (!inXYWH(adjLoc, [0, 0, state.w - 1, state.h - 1]))
-                    return;
+                  if (!inXYWH(adjLoc, [0, 0, state.w - 1, state.h - 1])) return;
                   if (Object.values(state.tiles).some((t) => adjLoc.eq(t)))
                     return;
                   const newState = structuredClone(state);

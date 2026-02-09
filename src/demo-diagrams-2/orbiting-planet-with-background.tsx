@@ -1,7 +1,7 @@
+import { DemoDrawer } from "../DemoDrawer";
 import { closest, vary, withBackground } from "../DragSpec2";
 import { Manipulable } from "../manipulable2";
 import { translate } from "../svgx/helpers";
-import { DemoDrawer } from "../DemoDrawer";
 
 // Variant of orbiting-planet where the planet can also float freely.
 // Uses withBackground(closest(vary per star), vary(free x,y)).
