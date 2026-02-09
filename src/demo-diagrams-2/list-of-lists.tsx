@@ -171,7 +171,7 @@ export const ListOfLists = () => (
   <DemoDrawer
     manipulable={manipulable}
     initialState={initialState}
-    width={400}
+    width={600}
     height={300}
   />
 );

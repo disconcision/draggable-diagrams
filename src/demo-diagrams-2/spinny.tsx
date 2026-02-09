@@ -37,26 +37,20 @@ const manipulable: Manipulable<State> = ({ state, drag }) => (
             rotateDeg(angle) + translate(RADIUS, 0) + rotateDeg(-angle)
           }
           data-z-index={1}
-          data-on-drag={drag(
-            withSnapRadius(
-              closest([
-                span([
-                  state,
-                  produce(state, (s) => {
-                    s.perm.push(s.perm.shift()!);
-                  }),
-                ]),
-                span([
-                  state,
-                  produce(state, (s) => {
-                    s.perm.unshift(s.perm.pop()!);
-                  }),
-                ]),
-              ]),
+          data-on-drag={drag(() => {
+            const newState1 = produce(state, (s) => {
+              s.perm.push(s.perm.shift()!);
+            });
+            const newState2 = produce(state, (s) => {
+              s.perm.unshift(s.perm.pop()!);
+            });
+
+            return withSnapRadius(
+              closest([span([state, newState1]), span([state, newState2])]),
               10,
               { chain: true }
-            )
-          )}
+            );
+          })}
         >
           <circle
             cx={0}
