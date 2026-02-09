@@ -181,7 +181,9 @@ function SpecNode<T>({
       spec.transition && "transition",
       spec.chain && "chain",
     ].filter(Boolean);
-    let label = `withSnapRadius (${spec.radius}${options.length ? `, ${options.join(", ")}` : ""})`;
+    let label = `withSnapRadius (${spec.radius}${
+      options.length ? `, ${options.join(", ")}` : ""
+    })`;
     if (spec.transition) {
       label += snapped ? " [snapped]" : " [not snapped]";
     }
@@ -204,6 +206,25 @@ function SpecNode<T>({
         active={active}
         color={colorMap?.get(fullPath)}
       />
+    );
+  } else if (spec.type === "with-drop-transition") {
+    let childActivePath = activePath;
+    if (activePath?.startsWith("with-drop-transition/")) {
+      childActivePath = activePath.slice("with-drop-transition/".length);
+    }
+    const t = spec.transition;
+    const transitionDesc = t
+      ? `${typeof t.easing === "function" ? "fn" : t.easing} ${t.duration}ms`
+      : "none";
+    return (
+      <Box label={`withDropTransition (${transitionDesc})`}>
+        <SpecNode
+          spec={spec.spec}
+          activePath={childActivePath}
+          path={path}
+          colorMap={colorMap}
+        />
+      </Box>
     );
   } else if (spec.type === "transition-to-and-then") {
     const fullPath = path + "transition-to-and-then";

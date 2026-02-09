@@ -1,5 +1,5 @@
 import { curveCardinal, line } from "d3-shape";
-import _, { identity } from "lodash";
+import _ from "lodash";
 import { span, withSnapRadius } from "../DragSpec2";
 import { overlapIntervals } from "../layout";
 import { Drag, Manipulable } from "../manipulable2";
@@ -52,10 +52,10 @@ export namespace OrderPreserving {
   export const manipulableFactory = (
     domainTree: TreeNode,
     codomainTree: TreeNode
-  ) => {
+  ): Manipulable<State> => {
     const allMorphs = getAllMorphs(domainTree, codomainTree);
 
-    return identity<Manipulable<State>>(({ state, drag }) => {
+    return ({ state, drag }) => {
       const finalizers = new Finalizers();
       const ctx: Ctx = {
         finalizers,
@@ -69,7 +69,7 @@ export namespace OrderPreserving {
 
       const mainTree = <g>{r.element}</g>;
       return <g>{[mainTree, ...finalizers.run(mainTree)]}</g>;
-    });
+    };
   };
 
   type Ctx = {

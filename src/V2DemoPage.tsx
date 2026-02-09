@@ -17,6 +17,8 @@ import { GridPoly } from "./demo-diagrams-2/grid-poly";
 import { Hanoi } from "./demo-diagrams-2/hanoi";
 import { InsertAndRemove } from "./demo-diagrams-2/insert-and-remove";
 import { Kanban } from "./demo-diagrams-2/kanban";
+import { LinearTrack } from "./demo-diagrams-2/linear-track";
+import { LinearTrackChained } from "./demo-diagrams-2/linear-track-chained";
 import { ListOfLists } from "./demo-diagrams-2/list-of-lists";
 import { ListOfListsSizes } from "./demo-diagrams-2/list-of-lists-sizes";
 import { MultiCirclePoints } from "./demo-diagrams-2/multi-circle-points";
@@ -29,8 +31,7 @@ import { Perm } from "./demo-diagrams-2/perm";
 import { PermDouble } from "./demo-diagrams-2/perm-double";
 import { PermFloating } from "./demo-diagrams-2/perm-floating";
 import { RushHour } from "./demo-diagrams-2/rush-hour";
-import { SecondSimplest } from "./demo-diagrams-2/second-simplest";
-import { Simplest } from "./demo-diagrams-2/simplest";
+import { SimpleTriangle } from "./demo-diagrams-2/simple-triangle";
 import { SimplestClicker } from "./demo-diagrams-2/simplest-clicker";
 import { SimplestJust } from "./demo-diagrams-2/simplest-just";
 import { Spinny } from "./demo-diagrams-2/spinny";
@@ -99,28 +100,43 @@ export function V2DemoPage() {
         </label>
       </div>
 
-      <h2 className="text-xl font-semibold mb-2">simplest</h2>
+      <h2 className="text-xl font-semibold mb-2">linear-track</h2>
       <Drawer
-        manipulable={Simplest.manipulable}
-        initialState={Simplest.state1}
+        manipulable={LinearTrack.manipulable}
+        initialState={LinearTrack.state1}
         width={250}
         height={150}
       />
 
-      <h2 className="text-xl font-semibold mt-8 mb-2">simplest-just</h2>
+      <h2 className="text-xl font-semibold mt-8 mb-2">linear-track-chained</h2>
       <Drawer
-        manipulable={SimplestJust.manipulable}
-        initialState={SimplestJust.state1}
-        width={500}
-        height={150}
-      />
-
-      <h2 className="text-xl font-semibold mt-8 mb-2">second-simplest</h2>
-      <Drawer
-        manipulable={SecondSimplest.manipulable}
-        initialState={SecondSimplest.state1}
+        manipulable={LinearTrackChained.manipulable}
+        initialState={LinearTrackChained.state1}
         width={450}
         height={200}
+      />
+
+      <h2 className="text-xl font-semibold mt-8 mb-2">simple-triangle</h2>
+      <h3 className="text-md font-medium italic mt-6 mb-1">span</h3>
+      <Drawer
+        manipulable={SimpleTriangle.manipulableFactory("span")}
+        initialState={SimpleTriangle.state1}
+        width={250}
+        height={150}
+      />
+      <h3 className="text-md font-medium italic mb-1">floating</h3>
+      <Drawer
+        manipulable={SimpleTriangle.manipulableFactory("floating")}
+        initialState={SimpleTriangle.state1}
+        width={250}
+        height={150}
+      />
+      <h3 className="text-md font-medium italic mt-6 mb-1">just</h3>
+      <Drawer
+        manipulable={SimpleTriangle.manipulableFactory("just")}
+        initialState={SimpleTriangle.state1}
+        width={250}
+        height={150}
       />
 
       <h2 className="text-xl font-semibold mt-8 mb-2">simplest-clicker</h2>
@@ -403,6 +419,14 @@ export function V2DemoPage() {
         initialState={NodeWires.state1}
         width={500}
         height={200}
+      />
+
+      <h2 className="text-xl font-semibold mt-8 mb-2">simplest-just</h2>
+      <Drawer
+        manipulable={SimplestJust.manipulable}
+        initialState={SimplestJust.state1}
+        width={500}
+        height={150}
       />
     </div>
   );

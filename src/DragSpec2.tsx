@@ -1,6 +1,11 @@
 import _ from "lodash";
 import { SVGProps, cloneElement } from "react";
 import { Manipulable, unsafeDrag } from "./manipulable2";
+import {
+  Transition,
+  TransitionLike,
+  resolveTransitionLike,
+} from "./ManipulableDrawer2";
 import { Delaunay } from "./math/delaunay";
 import { minimize } from "./math/minimize";
 import { Vec2 } from "./math/vec2";
@@ -49,6 +54,7 @@ export type DragSpec<T> =
   | DragSpecVary<T>
   | DragSpecWithDistance<T>
   | DragSpecWithSnapRadius<T>
+  | DragSpecWithDropTransition<T>
   | DragSpecSpan<T>
   | DragSpecTransitionToAndThen<T>;
 
@@ -81,6 +87,12 @@ export type DragSpecWithSnapRadius<T> = {
   radius: number;
   transition: boolean;
   chain: boolean;
+};
+
+export type DragSpecWithDropTransition<T> = {
+  type: "with-drop-transition";
+  spec: DragSpec<T>;
+  transition: Transition | undefined;
 };
 
 export type DragSpecAndThen<T> = {
@@ -215,6 +227,17 @@ export function withSnapRadius<T>(
   };
 }
 
+export function withDropTransition<T>(
+  spec: DragSpec<T>,
+  transition: TransitionLike = true
+): DragSpec<T> {
+  return {
+    type: "with-drop-transition",
+    spec,
+    transition: resolveTransitionLike(transition),
+  };
+}
+
 export function span<T>(states: T[]): DragSpec<T> {
   assert(states.length > 0, "span requires at least one state");
   return { type: "span", states };
@@ -242,6 +265,7 @@ export type DragFrame = {
 export type DragResult<T> = {
   rendered: LayeredSvgx;
   dropState: T;
+  dropTransition?: Transition;
   distance: number;
   activePath: string;
   chainNow?: boolean | string;
@@ -618,6 +642,16 @@ export function dragSpecToBehavior<T extends object>(
         rendered,
         activePath,
         chainNow: spec.chain && snapped,
+      };
+    };
+  } else if (spec.type === "with-drop-transition") {
+    const subBehavior = dragSpecToBehavior(spec.spec, ctx);
+    return (frame) => {
+      const result = subBehavior(frame);
+      return {
+        ...result,
+        dropTransition: spec.transition,
+        activePath: `with-drop-transition/${result.activePath}`,
       };
     };
   } else if (spec.type === "span") {

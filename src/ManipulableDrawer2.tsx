@@ -41,11 +41,53 @@ import { assertNever, memoGeneric, pipe, throwError } from "./utils";
 
 // # Engine state machine
 
-const SPRING_DURATION = 200; // ms
+export type Transition = {
+  easing: "cubic-out" | "elastic-out" | ((t: number) => number);
+  duration: number;
+};
+
+function applyEasing({ easing, duration }: Transition, t: number): number {
+  const easingFunction =
+    typeof easing === "function"
+      ? easing
+      : easing === "cubic-out"
+      ? d3Ease.easeCubicOut
+      : easing === "elastic-out"
+      ? d3Ease.easeElasticOut
+      : assertNever(easing);
+  return easingFunction(t / duration);
+}
+
+export type TransitionLike =
+  | Transition
+  | Transition["easing"]
+  | Transition["duration"]
+  | boolean
+  | undefined;
+
+export function resolveTransitionLike(
+  t: TransitionLike
+): Transition | undefined {
+  if (!t) return undefined;
+  if (typeof t === "object") {
+    return t;
+  }
+  let transition: Transition = {
+    easing: "cubic-out",
+    duration: 200,
+  };
+  if (typeof t === "string" || typeof t === "function") {
+    transition.easing = t;
+  } else if (typeof t === "number") {
+    transition.duration = t;
+  }
+  return transition;
+}
 
 type SpringingFrom = {
   layered: LayeredSvgx;
   time: number;
+  transition: Transition;
 };
 
 type DragState<T extends object> = { springingFrom: SpringingFrom | null } & (
@@ -164,7 +206,11 @@ export function ManipulableDrawer<T extends object>({
 
               // Start spring from current display
               const layered = runSpring(springingFrom, result.rendered);
-              const newSpringingFrom = { layered, time: performance.now() };
+              const newSpringingFrom: SpringingFrom = {
+                layered,
+                time: performance.now(),
+                transition: resolveTransitionLike(true)!,
+              };
 
               const newDraggedPath = getPath(element);
               assert(!!newDraggedPath, "Chained element must have a path");
@@ -203,13 +249,18 @@ export function ManipulableDrawer<T extends object>({
         // Detect activePath change → start new spring from current display
         if (result.activePath !== ds.result.activePath) {
           const layered = runSpring(springingFrom, ds.result.rendered);
-          springingFrom = { layered, time: performance.now() };
+          springingFrom = {
+            layered,
+            time: performance.now(),
+            transition: resolveTransitionLike(true)!,
+          };
         }
 
         // Clear expired spring
         if (
           springingFrom &&
-          performance.now() - springingFrom.time >= SPRING_DURATION
+          performance.now() - springingFrom.time >=
+            springingFrom.transition?.duration!
         ) {
           springingFrom = null;
         }
@@ -231,7 +282,10 @@ export function ManipulableDrawer<T extends object>({
           dropState: result.dropState,
         });
       } else if (ds.type === "idle" && ds.springingFrom) {
-        if (performance.now() - ds.springingFrom.time >= SPRING_DURATION) {
+        if (
+          performance.now() - ds.springingFrom.time >=
+          ds.springingFrom.transition.duration
+        ) {
           const newState: DragState<T> = { ...ds, springingFrom: null };
           dragStateRef.current = newState;
           setDragState(newState);
@@ -274,7 +328,11 @@ export function ManipulableDrawer<T extends object>({
       const newState: DragState<T> = {
         type: "idle",
         state: dropState,
-        springingFrom: { layered: startLayered, time: performance.now() },
+        springingFrom: {
+          layered: startLayered,
+          time: performance.now(),
+          transition: result.dropTransition ?? resolveTransitionLike(true)!,
+        },
       };
       dragStateRef.current = newState;
       setDragState(newState);
@@ -346,7 +404,7 @@ function runSpring(
 ): LayeredSvgx {
   if (!springingFrom) return target;
   const elapsed = performance.now() - springingFrom.time;
-  const t = d3Ease.easeCubicOut(Math.min(elapsed / SPRING_DURATION, 1));
+  const t = applyEasing(springingFrom.transition, elapsed);
   const lerped = lerpLayered(target, springingFrom.layered, 1 - t);
   // Replace non-transitioning layers with the target's version so they
   // track the cursor without spring lag.
@@ -503,29 +561,31 @@ const DrawIdleMode = memoGeneric(
       draggedId: null,
       ghostId: null,
       setState: ctx.catchToRenderError(
-        (newState: SetStateAction<T>, { immediate = false } = {}) => {
+        (
+          newState: SetStateAction<T>,
+          { transition }: { transition?: TransitionLike } = {}
+        ) => {
           const resolved =
             typeof newState === "function"
               ? (newState as (prev: T) => T)(dragState.state)
               : newState;
-          if (immediate) {
-            ctx.setDragState({
-              type: "idle",
-              state: resolved,
-              springingFrom: null,
-            });
-          } else {
-            const snapshot = renderReadOnly(ctx.manipulable, {
-              state: dragState.state,
-              draggedId: null,
-              ghostId: null,
-            });
-            ctx.setDragState({
-              type: "idle",
-              state: resolved,
-              springingFrom: { layered: snapshot, time: performance.now() },
-            });
-          }
+          const snapshot = renderReadOnly(ctx.manipulable, {
+            state: dragState.state,
+            draggedId: null,
+            ghostId: null,
+          });
+          ctx.setDragState({
+            type: "idle",
+            state: resolved,
+            springingFrom: {
+              layered: snapshot,
+              time: performance.now(),
+              transition: resolveTransitionLike(transition) || {
+                easing: "cubic-out",
+                duration: 200,
+              },
+            },
+          });
         }
       ),
     });

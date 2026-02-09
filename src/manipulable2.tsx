@@ -1,7 +1,8 @@
+import { PrettyPrint } from "@joshuahhh/pretty-print";
 import { ReactElement, SetStateAction } from "react";
 import { DragSpec } from "./DragSpec2";
 import { ErrorWithJSX } from "./ErrorBoundary";
-import { PrettyPrint } from "@joshuahhh/pretty-print";
+import { TransitionLike } from "./ManipulableDrawer2";
 import { Svgx } from "./svgx";
 import { isObject } from "./utils";
 
@@ -14,7 +15,7 @@ export type Manipulable<T extends object> = (
 
 export type ManipulableProps<T extends object> = {
   state: T;
-  drag: typeof unsafeDrag<T>;
+  drag: Drag<T>;
   draggedId: string | null;
   ghostId: string | null;
   setState: SetState<T>;
@@ -25,9 +26,7 @@ export type ManipulableProps<T extends object> = {
 export type SetState<T> = (
   newState: SetStateAction<T>,
   props?: {
-    easing?: (t: number) => number;
-    seconds?: number;
-    immediate?: boolean;
+    transition?: TransitionLike;
   }
 ) => void;
 
