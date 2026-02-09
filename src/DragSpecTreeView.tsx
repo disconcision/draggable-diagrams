@@ -1,4 +1,4 @@
-import { DragSpec } from "./DragSpec2";
+import { DragSpec } from "./DragSpec";
 import { assertNever } from "./utils";
 
 export function DragSpecTreeView<T>({

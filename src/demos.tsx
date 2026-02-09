@@ -1,5 +1,4 @@
-import { ReactElement } from "react";
-import { configurable, Configurable, ConfigurableProps } from "./configurable";
+import { ComponentType } from "react";
 import { Angle } from "./demo-diagrams/angle";
 import { AngleViaTransform } from "./demo-diagrams/angle-via-transform";
 import { Bezier } from "./demo-diagrams/bezier";
@@ -10,525 +9,92 @@ import { CanvasOfLists } from "./demo-diagrams/canvas-of-lists";
 import { CanvasOfListsNested } from "./demo-diagrams/canvas-of-lists-nested";
 import { Carousel } from "./demo-diagrams/carousel";
 import { Clock } from "./demo-diagrams/clock";
+import { ConstrainedPoint } from "./demo-diagrams/constrained-point";
+import { ConstrainedSlider } from "./demo-diagrams/constrained-slider";
 import { Dragon } from "./demo-diagrams/dragon";
 import { Fifteen } from "./demo-diagrams/fifteen";
 import { Graph } from "./demo-diagrams/graph";
 import { GridPoly } from "./demo-diagrams/grid-poly";
 import { Hanoi } from "./demo-diagrams/hanoi";
 import { InsertAndRemove } from "./demo-diagrams/insert-and-remove";
+import { Kanban } from "./demo-diagrams/kanban";
+import { LinearTrack } from "./demo-diagrams/linear-track";
+import { LinearTrackChained } from "./demo-diagrams/linear-track-chained";
 import { ListOfLists } from "./demo-diagrams/list-of-lists";
 import { ListOfListsSizes } from "./demo-diagrams/list-of-lists-sizes";
+import { MultiCirclePoints } from "./demo-diagrams/multi-circle-points";
+import { NodeWires } from "./demo-diagrams/node-wires";
 import { NoolTree } from "./demo-diagrams/nool-tree";
+import { OrbitingPlanet } from "./demo-diagrams/orbiting-planet";
+import { OrbitingPlanetWithBackground } from "./demo-diagrams/orbiting-planet-with-background";
 import { OrderPreserving } from "./demo-diagrams/order-preserving";
 import { Outline } from "./demo-diagrams/outline";
 import { Perm } from "./demo-diagrams/perm";
 import { PermDouble } from "./demo-diagrams/perm-double";
 import { PermFloating } from "./demo-diagrams/perm-floating";
 import { RushHour } from "./demo-diagrams/rush-hour";
-import { SecondSimplest } from "./demo-diagrams/second-simplest";
-import { Simplest } from "./demo-diagrams/simplest";
+import { SimpleTriangle } from "./demo-diagrams/simple-triangle";
 import { SimplestClicker } from "./demo-diagrams/simplest-clicker";
+import { SimplestJust } from "./demo-diagrams/simplest-just";
 import { Sokoban } from "./demo-diagrams/sokoban";
 import { Spinny } from "./demo-diagrams/spinny";
+import { StretchyRot } from "./demo-diagrams/stretchy-rot";
+import { StretchyXY } from "./demo-diagrams/stretchy-xy";
 import { Tiles } from "./demo-diagrams/tiles";
 import { Todo } from "./demo-diagrams/todo";
 import { Tromino } from "./demo-diagrams/tromino";
-import { vary } from "./DragSpec";
-import { Manipulable } from "./manipulable";
-import { DrawerConfig } from "./ManipulableDrawer";
-import { rotateDeg, scale, translate } from "./svgx/helpers";
-import { hasKey } from "./utils";
 
-export type DemoData<T extends object> = {
+export type Demo = {
   id: string;
-  title: string;
-  notes?: ReactElement; // not ReactNode, for better wrapping with Prettier
-  manipulable:
-    | {
-        type: "constant";
-        withConfig: () => Manipulable<T>;
-      }
-    | Configurable<Manipulable<T>, any>;
-  initialStates: T[];
-  height: number;
-  padding?: number;
-  initialDrawerConfig?: Partial<DrawerConfig>;
-  sourceFile?: string;
+  Component: ComponentType;
 };
 
-export function demoData<T extends object>(
-  data: Omit<DemoData<T>, "manipulable"> & {
-    manipulable: Manipulable<T> | Configurable<Manipulable<T>, any>;
-  }
-): SomeDemoData {
-  const manipulable =
-    hasKey(data.manipulable, "type") && data.manipulable.type === "configurable"
-      ? data.manipulable
-      : {
-          type: "constant" as const,
-          withConfig: () => data.manipulable as Manipulable<T>,
-        };
-  return someDemoData({ ...data, manipulable });
-}
-export type SomeDemoData = {
-  run: <R>(doIt: <T extends object>(demoData: DemoData<T>) => R) => R;
-};
-export function someDemoData<T extends object>(
-  demoData: DemoData<T>
-): SomeDemoData {
-  return { run: (doIt) => doIt(demoData) };
-}
-
-export function configurableManipulable<T extends object, Config>(
-  props: ConfigurableProps<Config>,
-  f: (
-    config: Config,
-    ...args: Parameters<Manipulable<T>>
-  ) => ReturnType<Manipulable<T>>
-): Configurable<Manipulable<T>, Config> {
-  return configurable(
-    props,
-    (config) =>
-      (...args) =>
-        f(config, ...args)
-  );
-}
-
-export const demos: SomeDemoData[] = [
-  demoData({
-    id: "simplest",
-    title: "Simplest",
-    manipulable: Simplest.manipulable,
-    initialStates: [Simplest.state1],
-    height: 100,
-    padding: 20,
-    sourceFile: "simplest.tsx",
-  }),
-  demoData({
-    id: "second-simplest",
-    title: "Second simplest",
-    manipulable: SecondSimplest.manipulable,
-    initialStates: [SecondSimplest.state1],
-    height: 200,
-    padding: 20,
-    sourceFile: "second-simplest.tsx",
-  }),
-  demoData({
-    id: "simplest-clicker",
-    title: "Simplest clicker",
-    manipulable: SimplestClicker.manipulable,
-    initialStates: [SimplestClicker.state1],
-    height: 200,
-    padding: 20,
-    sourceFile: "simplest-clicker.tsx",
-  }),
-  demoData({
-    id: "order-preserving",
-    title: "Order-preserving maps (tree3 → tree3)",
-    notes: (
-      <>
-        Featuring multi-drag from{" "}
-        <a
-          href="https://elliot.website/"
-          className="hover:text-gray-700 hover:underline"
-        >
-          Elliot Evans
-        </a>
-        .
-      </>
-    ),
-    manipulable: OrderPreserving.manipulable,
-    initialStates: [OrderPreserving.state3To3, OrderPreserving.state7To7],
-    height: 650,
-    padding: 20,
-    sourceFile: "order-preserving.tsx",
-  }),
-  demoData({
-    id: "perm",
-    title: "Permutation",
-    manipulable: Perm.manipulable,
-    initialStates: [Perm.state1],
-    height: 100,
-    padding: 15,
-    sourceFile: "perm.tsx",
-  }),
-  demoData({
-    id: "perm-floating",
-    title: "Permutation (floating)",
-    manipulable: PermFloating.manipulable,
-    initialStates: [PermFloating.state1],
-    height: 100,
-    padding: 15,
-    sourceFile: "perm-floating.tsx",
-  }),
-  demoData({
-    id: "perm-double",
-    title: "Permutation of permutations",
-    manipulable: PermDouble.manipulable,
-    initialStates: [PermDouble.state1],
-    height: 200,
-    sourceFile: "perm-double.tsx",
-  }),
-  demoData({
-    id: "list-of-lists",
-    title: "List of lists",
-    notes: (
-      <>
-        Uses <span className="font-mono">floating</span>.
-      </>
-    ),
-    manipulable: ListOfLists.manipulable,
-    initialStates: [ListOfLists.state1],
-    height: 220,
-    sourceFile: "list-of-lists.tsx",
-  }),
-  demoData({
-    id: "list-of-lists-sizes",
-    title: "List of lists (different sizes)",
-    notes: (
-      <>
-        Uses <span className="font-mono">floating</span>.
-      </>
-    ),
-    manipulable: ListOfListsSizes.manipulable,
-    initialStates: [ListOfListsSizes.state1],
-    height: 360,
-    sourceFile: "list-of-lists.tsx",
-  }),
-  demoData({
-    id: "canvas-of-lists",
-    title: "Canvas of lists",
-    notes: (
-      <>
-        Uses <span className="font-mono">floating</span>, with a{" "}
-        <span className="font-mono">vary</span> backdrop.
-      </>
-    ),
-    manipulable: CanvasOfLists.manipulable,
-    initialStates: [CanvasOfLists.state1],
-    height: 360,
-    sourceFile: "canvas-of-lists.tsx",
-  }),
-  demoData({
-    id: "canvas-of-lists-nested",
-    title: "Canvas of lists (nested)",
-    notes: (
-      <>
-        Like canvas of lists, but with recursively nested rows. Tiles and rows
-        can be dragged between any level.
-      </>
-    ),
-    manipulable: CanvasOfListsNested.manipulable,
-    initialStates: [CanvasOfListsNested.state1],
-    height: 360,
-    sourceFile: "canvas-of-lists-nested.tsx",
-  }),
-  demoData({
-    id: "inserting-removing-items",
-    title: "Inserting & removing items",
-    notes: (
-      <>
-        This shows kinda-hacky ways to insert and remove items from a draggable
-        diagram. Much to consider.
-      </>
-    ),
-    manipulable: InsertAndRemove.manipulable,
-    initialStates: [InsertAndRemove.state1],
-    height: 150,
-    padding: 10,
-    sourceFile: "insert-and-remove.tsx",
-  }),
-  demoData({
-    id: "tiles",
-    title: "Tiles on a grid",
-    notes: (
-      <>
-        I'm trying to make dragging feel right here. Goal is for the tile to
-        only drag orthogonally, AND to not jump discontinuously. This seems to
-        require 'Relative Pointer Motion' mode (or divergent approaches).
-      </>
-    ),
-    manipulable: Tiles.manipulable,
-    initialStates: [Tiles.stateLonely, Tiles.stateFriendly],
-    height: 300,
-    padding: 20,
-    initialDrawerConfig: { relativePointerMotion: true },
-    sourceFile: "tiles.tsx",
-  }),
-  demoData({
-    id: "grid-polygon",
-    title: "Grid polygon",
-    manipulable: GridPoly.manipulable,
-    initialStates: [GridPoly.state1],
-    height: 300,
-    padding: 20,
-    sourceFile: "grid-poly.tsx",
-  }),
-  demoData({
-    id: "nool-tree",
-    title: "Nool tree",
-    manipulable: NoolTree.manipulable,
-    initialStates: [NoolTree.state1, NoolTree.state2],
-    height: 350,
-    padding: 20,
-    initialDrawerConfig: { snapRadius: 1, relativePointerMotion: true },
-    sourceFile: "nool-tree.tsx",
-  }),
-  demoData({
-    id: "tree-of-life",
-    title: "Outline: Tree of Life",
-    manipulable: Outline.manipulable,
-    initialStates: [Outline.stateTreeOfLife],
-    height: 1100,
-    padding: 20,
-    initialDrawerConfig: { snapRadius: 5 },
-    sourceFile: "outline.tsx",
-  }),
-  demoData({
-    id: "braids",
-    title: "Braids",
-    manipulable: Braid.manipulable,
-    initialStates: [Braid.state1],
-    height: 400,
-    padding: 20,
-    sourceFile: "braid.tsx",
-  }),
-  demoData({
-    id: "todo",
-    title: "Todo",
-    manipulable: Todo.manipulable,
-    initialStates: [Todo.state1],
-    height: 400,
-    padding: 20,
-    sourceFile: "todo.tsx",
-  }),
-  demoData({
-    id: "carousel",
-    title: "Carousel",
-    notes: (
-      <>
-        Partially-AI-generated carousel with swipe navigation, interactive dots,
-        and arrow buttons. Ought to use clipPaths but those don't work yet. Fun
-        bug: try clicking next/prev buttons rapidly.
-      </>
-    ),
-    manipulable: Carousel.manipulable,
-    initialStates: [Carousel.state1],
-    height: 300,
-    padding: 20,
-    sourceFile: "carousel.tsx",
-    initialDrawerConfig: { snapRadius: 1 },
-  }),
-  demoData({
-    id: "rush-hour",
-    title: "Rush Hour",
-    manipulable: RushHour.manipulable,
-    initialStates: [RushHour.state1],
-    height: 320,
-    padding: 20,
-    sourceFile: "rush-hour.tsx",
-  }),
-  demoData({
-    id: "15-puzzle",
-    title: "15 puzzle",
-    notes: <>Weird experiment: I made the blank draggable</>,
-    manipulable: Fifteen.manipulable,
-    initialStates: [Fifteen.state1],
-    height: 200,
-    padding: 20,
-    sourceFile: "fifteen.tsx",
-  }),
-  Hanoi.demo,
-  demoData({
-    id: "sokoban",
-    title: "Sokoban",
-    manipulable: Sokoban.manipulable,
-    initialStates: [Sokoban.state1],
-    height: 500,
-    padding: 20,
-    initialDrawerConfig: { relativePointerMotion: true },
-    sourceFile: "sokoban.tsx",
-  }),
-  demoData({
-    id: "spinny",
-    title: "Spinny",
-    notes: <>Tests interpolation of rotations.</>,
-    manipulable: Spinny.manipulable,
-    initialStates: [Spinny.state1],
-    height: 200,
-    padding: 30,
-    initialDrawerConfig: { relativePointerMotion: false },
-    sourceFile: "spinny.tsx",
-  }),
-  demoData({
-    id: "graph",
-    title: "Graph",
-    manipulable: Graph.manipulable,
-    initialStates: [Graph.state1],
-    height: 160,
-    padding: 20,
-    sourceFile: "graph.tsx",
-  }),
-  demoData({
-    id: "tromino",
-    title: "Tromino tiling",
-    notes: (
-      <>
-        Inspired by a{" "}
-        <a
-          href="https://www.reddit.com/r/math/comments/gpxwl4/animated_golombs_ltromino_tiling/"
-          className="hover:text-gray-700 hover:underline"
-        >
-          neat Reddit post
-        </a>
-        .
-      </>
-    ),
-    manipulable: Tromino.manipulable,
-    initialStates: [Tromino.state1],
-    height: 320,
-    padding: 0,
-    sourceFile: "tromino.tsx",
-    initialDrawerConfig: { snapRadius: 2 },
-  }),
-  demoData({
-    id: "angle",
-    title: "Angle",
-    manipulable: Angle.manipulable,
-    initialStates: [Angle.state1],
-    height: 200,
-    padding: 20,
-    sourceFile: "angle.tsx",
-  }),
-  demoData({
-    id: "angle-via-transform",
-    title: "Angle (via transform)",
-    manipulable: AngleViaTransform.manipulable,
-    initialStates: [AngleViaTransform.state1],
-    height: 200,
-    padding: 20,
-    sourceFile: "angle-via-transform.tsx",
-  }),
-  demoData({
-    id: "bezier",
-    title: "Bezier curve editor",
-    notes: (
-      <>
-        Drag the endpoints (red) or control points (yellow) orrrrr the curve
-        (??). –{" "}
-        <a
-          href="https://www.orionreed.com/"
-          className="hover:text-gray-700 hover:underline"
-        >
-          Orion Reed
-        </a>
-      </>
-    ),
-    manipulable: Bezier.manipulable,
-    initialStates: [Bezier.state2],
-    height: 200,
-    padding: 20,
-    sourceFile: "bezier.tsx",
-  }),
-  demoData({
-    id: "stretchy-xy",
-    title: "Stretchy (xy)",
-    initialStates: [{ scaleX: 1, scaleY: 1 }],
-    manipulable: ({ state: { scaleX, scaleY }, drag }) => (
-      <g>
-        {
-          <circle
-            transform={translate(100, 100) + scale(scaleX, scaleY)}
-            cx={0}
-            cy={0}
-            r={50}
-            fill="lightblue"
-            data-on-drag={drag(vary(["scaleX"], ["scaleY"]))}
-          />
-        }
-        <ellipse
-          cx={100}
-          cy={100}
-          rx={50 * Math.abs(scaleX)}
-          ry={50 * Math.abs(scaleY)}
-          fill="none"
-          stroke="black"
-          strokeWidth={4}
-        />
-      </g>
-    ),
-    height: 200,
-    padding: 20,
-    sourceFile: "demos.tsx",
-  }),
-  demoData({
-    id: "stretchy-rot",
-    title: "Stretchy (rot)",
-    initialStates: [{ angle: 0, scaleX: 1 }],
-    manipulable: ({ state: { angle, scaleX }, drag }) => (
-      <circle
-        transform={
-          translate(100, 100) + rotateDeg(angle) + scale(scaleX, 1 / scaleX)
-        }
-        cx={0}
-        cy={0}
-        r={50}
-        fill="lightblue"
-        data-on-drag={drag(vary(["angle"], ["scaleX"]))}
-      />
-    ),
-    height: 200,
-    padding: 20,
-    sourceFile: "demos.tsx",
-  }),
-  demoData({
-    id: "clock",
-    title: "Clock",
-    manipulable: Clock.manipulable,
-    initialStates: [Clock.state1],
-    height: 200,
-    padding: 20,
-    sourceFile: "clock.tsx",
-  }),
-  demoData({
-    id: "dragon",
-    title: "Dragon curve",
-    notes: (
-      <>
-        Adapted from{" "}
-        <a
-          href="https://omrelli.ug/g9/"
-          className="hover:text-gray-700 hover:underline"
-        >
-          g9's famous example
-        </a>
-        . Nice performance stress test (which we are failing; try larger
-        "Levels").
-      </>
-    ),
-    manipulable: Dragon.manipulable,
-    initialStates: [Dragon.state1],
-    height: 300,
-    padding: 20,
-    initialDrawerConfig: { relativePointerMotion: true },
-    sourceFile: "dragon.tsx",
-  }),
-  demoData({
-    id: "bluefish-static",
-    title: "Bluefish test (non-interactive)",
-    manipulable: BluefishStatic.manipulable,
-    initialStates: [BluefishStatic.state1],
-    height: 200,
-    padding: 20,
-    sourceFile: "bluefish-static.tsx",
-  }),
-  demoData({
-    id: "bluefish-perm",
-    title: "Permutation (Bluefish)",
-    manipulable: BluefishPerm.manipulable,
-    initialStates: [BluefishPerm.state1],
-    height: 100,
-    padding: 15,
-    sourceFile: "bluefish-perm.tsx",
-  }),
+export const demos: Demo[] = [
+  { id: "linear-track", Component: LinearTrack },
+  { id: "linear-track-chained", Component: LinearTrackChained },
+  { id: "simple-triangle", Component: SimpleTriangle },
+  { id: "simplest-clicker", Component: SimplestClicker },
+  { id: "order-preserving", Component: OrderPreserving },
+  { id: "perm", Component: Perm },
+  { id: "perm-floating", Component: PermFloating },
+  { id: "perm-double", Component: PermDouble },
+  { id: "list-of-lists", Component: ListOfLists },
+  { id: "list-of-lists-sizes", Component: ListOfListsSizes },
+  { id: "canvas-of-lists", Component: CanvasOfLists },
+  { id: "canvas-of-lists-nested", Component: CanvasOfListsNested },
+  { id: "kanban", Component: Kanban },
+  { id: "insert-and-remove", Component: InsertAndRemove },
+  { id: "tiles", Component: Tiles },
+  { id: "grid-poly", Component: GridPoly },
+  { id: "nool-tree", Component: NoolTree },
+  { id: "outline", Component: Outline },
+  { id: "braid", Component: Braid },
+  { id: "todo", Component: Todo },
+  { id: "carousel", Component: Carousel },
+  { id: "rush-hour", Component: RushHour },
+  { id: "fifteen", Component: Fifteen },
+  { id: "hanoi", Component: Hanoi },
+  { id: "sokoban", Component: Sokoban },
+  { id: "spinny", Component: Spinny },
+  { id: "graph", Component: Graph },
+  { id: "tromino", Component: Tromino },
+  { id: "angle", Component: Angle },
+  { id: "angle-via-transform", Component: AngleViaTransform },
+  { id: "bezier", Component: Bezier },
+  { id: "stretchy-xy", Component: StretchyXY },
+  { id: "stretchy-rot", Component: StretchyRot },
+  { id: "clock", Component: Clock },
+  { id: "dragon", Component: Dragon },
+  { id: "orbiting-planet", Component: OrbitingPlanet },
+  {
+    id: "orbiting-planet-with-background",
+    Component: OrbitingPlanetWithBackground,
+  },
+  { id: "constrained-slider", Component: ConstrainedSlider },
+  { id: "constrained-point", Component: ConstrainedPoint },
+  { id: "multi-circle-points", Component: MultiCirclePoints },
+  { id: "node-wires", Component: NodeWires },
+  { id: "simplest-just", Component: SimplestJust },
+  { id: "bluefish-static", Component: BluefishStatic },
+  { id: "bluefish-perm", Component: BluefishPerm },
 ];

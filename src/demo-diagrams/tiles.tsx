@@ -1,95 +1,126 @@
 import _ from "lodash";
-import { straightTo } from "../DragSpec";
+import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { closest, span, withSnapRadius } from "../DragSpec";
 import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { inXYWH } from "../math/xywh";
 import { translate } from "../svgx/helpers";
 
-export namespace Tiles {
-  export type State = {
-    w: number;
-    h: number;
-    tiles: { [key: string]: { x: number; y: number } };
-  };
+type State = {
+  w: number;
+  h: number;
+  tiles: { [key: string]: { x: number; y: number } };
+};
 
-  export const stateLonely: State = {
-    w: 5,
-    h: 5,
-    tiles: {
-      A: { x: 2, y: 2 },
-    },
-  };
+const stateLonely: State = {
+  w: 5,
+  h: 5,
+  tiles: {
+    A: { x: 2, y: 2 },
+  },
+};
 
-  export const stateFriendly: State = {
-    w: 5,
-    h: 5,
-    tiles: {
-      A: { x: 2, y: 2 },
-      B: { x: 4, y: 4 },
-    },
-  };
+const stateFriendly: State = {
+  w: 5,
+  h: 5,
+  tiles: {
+    A: { x: 2, y: 2 },
+    B: { x: 4, y: 4 },
+  },
+};
 
-  export const manipulable: Manipulable<State> = ({ state, drag }) => {
-    const TILE_SIZE = 50;
-    return (
-      <g>
-        {_.range(state.w).map((x) =>
-          _.range(state.h).map((y) => (
-            <rect
-              x={x * TILE_SIZE}
-              y={y * TILE_SIZE}
-              width={TILE_SIZE}
-              height={TILE_SIZE}
-              stroke="gray"
-              strokeWidth={1}
-              fill="none"
-            />
-          ))
-        )}
-        {Object.entries(state.tiles).map(([key, tile]) => (
-          <g
-            transform={translate(tile.x * TILE_SIZE, tile.y * TILE_SIZE)}
-            data-on-drag={drag(() =>
-              (
-                [
-                  [-1, 0],
-                  [1, 0],
-                  [0, -1],
-                  [0, 1],
-                ] as const
-              ).map((d) => {
-                const adjLoc = Vec2(tile).add(d);
-                if (!inXYWH(adjLoc, [0, 0, state.w - 1, state.h - 1])) return;
-                if (Object.values(state.tiles).some((t) => adjLoc.eq(t)))
-                  return;
-                const newState = structuredClone(state);
-                newState.tiles[key] = { x: adjLoc.x, y: adjLoc.y };
-                return straightTo(newState);
-              })
-            )}
+const manipulable: Manipulable<State> = ({ state, drag }) => {
+  const TILE_SIZE = 50;
+  return (
+    <g>
+      {_.range(state.w).map((x) =>
+        _.range(state.h).map((y) => (
+          <rect
+            id={`cell-${x}-${y}`}
+            x={x * TILE_SIZE}
+            y={y * TILE_SIZE}
+            width={TILE_SIZE}
+            height={TILE_SIZE}
+            stroke="gray"
+            strokeWidth={1}
+            fill="none"
+          />
+        ))
+      )}
+      {Object.entries(state.tiles).map(([key, tile]) => (
+        <g
+          id={`tile-${key}`}
+          transform={translate(tile.x * TILE_SIZE, tile.y * TILE_SIZE)}
+          data-on-drag={drag(() =>
+            withSnapRadius(
+              closest(
+                (
+                  [
+                    [-1, 0],
+                    [1, 0],
+                    [0, -1],
+                    [0, 1],
+                  ] as const
+                ).map((d) => {
+                  const adjLoc = Vec2(tile).add(d);
+                  if (!inXYWH(adjLoc, [0, 0, state.w - 1, state.h - 1])) return;
+                  if (Object.values(state.tiles).some((t) => adjLoc.eq(t)))
+                    return;
+                  const newState = structuredClone(state);
+                  newState.tiles[key] = { x: adjLoc.x, y: adjLoc.y };
+                  return span([state, newState]);
+                })
+              ),
+              3,
+              { transition: true, chain: true }
+            )
+          )}
+        >
+          <rect
+            x={0}
+            y={0}
+            width={TILE_SIZE}
+            height={TILE_SIZE}
+            fill="#eee"
+            stroke="black"
+            strokeWidth={2}
+          />
+          <text
+            x={TILE_SIZE / 2}
+            y={TILE_SIZE / 2}
+            dominantBaseline="middle"
+            textAnchor="middle"
+            fontSize={20}
+            fill="black"
           >
-            <rect
-              x={0}
-              y={0}
-              width={TILE_SIZE}
-              height={TILE_SIZE}
-              fill="#eee"
-              stroke="black"
-              strokeWidth={2}
-            />
-            <text
-              x={TILE_SIZE / 2}
-              y={TILE_SIZE / 2}
-              dominantBaseline="middle"
-              textAnchor="middle"
-              fontSize={20}
-              fill="black"
-            >
-              {key}
-            </text>
-          </g>
-        ))}
-      </g>
-    );
-  };
-}
+            {key}
+          </text>
+        </g>
+      ))}
+    </g>
+  );
+};
+
+export const Tiles = () => (
+  <div>
+    <DemoNotes>
+      I'm trying to make dragging feel right here. Goal is for the tile to only
+      drag orthogonally, AND to not jump discontinuously. This seems to require
+      'Relative Pointer Motion' mode (or divergent approaches).
+    </DemoNotes>
+    <h3 className="text-md font-medium italic mt-6 mb-1">lonely</h3>
+    <DemoDrawer
+      manipulable={manipulable}
+      initialState={stateLonely}
+      width={300}
+      height={300}
+    />
+    <h3 className="text-md font-medium italic mt-6 mb-1">friendly</h3>
+    <DemoDrawer
+      manipulable={manipulable}
+      initialState={stateFriendly}
+      width={300}
+      height={300}
+    />
+  </div>
+);

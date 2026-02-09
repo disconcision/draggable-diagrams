@@ -6,7 +6,15 @@ import _ from "lodash";
 import parserBabel from "prettier/parser-babel";
 import prettier from "prettier/standalone";
 import { createElement, useMemo, useState } from "react";
-import { andThen, floating, params, span, straightTo, vary } from "../DragSpec";
+import {
+  andThen,
+  closest,
+  floating,
+  just,
+  span,
+  vary,
+  withSnapRadius,
+} from "../DragSpec";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { Manipulable } from "../manipulable";
 import { ManipulableDrawer } from "../ManipulableDrawer";
@@ -15,6 +23,7 @@ import { path, rotateDeg, rotateRad, scale, translate } from "../svgx/helpers";
 import { numberScrubber } from "./numberScrubber";
 
 // Globals available in LiveEditor code
+// Note: `straightTo` and `params` are v1 aliases kept for docs compatibility
 const GLOBALS = {
   _,
   produce,
@@ -24,11 +33,14 @@ const GLOBALS = {
   scale,
   path,
   vary,
-  straightTo,
+  just,
+  straightTo: just,
   span,
+  params: span,
+  closest,
   andThen,
-  params,
   floating,
+  withSnapRadius,
 } as const;
 
 interface LiveEditorProps {
@@ -150,14 +162,8 @@ export function LiveEditor({
                   <ManipulableDrawer
                     manipulable={result.manipulable as Manipulable<any>}
                     initialState={result.initialState}
-                    drawerConfig={{
-                      snapRadius: 10,
-                      chainDrags: true,
-                      relativePointerMotion: false,
-                      animationDuration: 300,
-                    }}
                     height={height ?? minHeight}
-                    debugMode={debugMode}
+                    showDebugOverlay={debugMode}
                   />
                 </ErrorBoundary>
               ) : null}

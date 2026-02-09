@@ -4,7 +4,7 @@ import {
   DragFrame,
   DragSpec,
   dragSpecToBehavior,
-} from "./DragSpec2";
+} from "./DragSpec";
 import { Vec2 } from "./math/vec2";
 
 // # Types

@@ -77,7 +77,7 @@ Pieces of this puzzle:
 
 - Every use of `data-on-drag` should look like `data-on-drag={drag(...)}`, using the `drag` function provided as an argument to the manipulable. The `drag` function provides type assistance, and DD will throw an error if you don't use it.
 
-- The argument to `drag` can be a lot of different things. For one, it can be a callback that generates a drag spec lazily. That might be smart for performance, but we don't do that here – we just provide a pre-computed `span` object. That means "I want to be able to drag back and forth between all the states in this list". The main alternative to `span` is `straightTo`. That means "I want to drag straight from my starting state to this other state" – you can return an array of `straightTo`s to tell DD you want a couple disjoint tracks from the starting state to the targets.
+- The argument to `drag` can be a lot of different things. For one, it can be a callback that generates a drag spec lazily. That might be smart for performance, but we don't do that here – we just provide a pre-computed `span` object. That means "I want to be able to drag back and forth between all the states in this list". [TODO: revise this.] The main alternative to `span` is `straightTo`. That means "I want to drag straight from my starting state to this other state" – you can return an array of `straightTo`s to tell DD you want a couple disjoint tracks from the starting state to the targets.
 
 With this knowledge we can take on a more involved example: reordering objects.
 
@@ -187,7 +187,7 @@ The most novel part of Draggable Diagrams is the "drag between discrete states" 
             transform={translate(100, 0)}
             r={20}
             fill="black"
-            data-on-drag={drag(vary(["angle"]))}
+            data-on-drag={drag(vary(state, ["angle"]))}
           />
         </g>
       </g>
