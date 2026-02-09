@@ -37,6 +37,7 @@ import { SimplestJust } from "./demo-diagrams-2/simplest-just";
 import { Spinny } from "./demo-diagrams-2/spinny";
 import { Tiles } from "./demo-diagrams-2/tiles";
 import { Todo } from "./demo-diagrams-2/todo";
+import { Tromino } from "./demo-diagrams-2/tromino";
 
 export type V2Demo = {
   id: string;
@@ -58,6 +59,7 @@ export const v2Demos: V2Demo[] = [
   { id: "canvas-of-lists-nested", Component: CanvasOfListsNested },
   { id: "insert-and-remove", Component: InsertAndRemove },
   { id: "tiles", Component: Tiles },
+  { id: "tromino", Component: Tromino },
   { id: "grid-poly", Component: GridPoly },
   { id: "nool-tree", Component: NoolTree },
   { id: "braid", Component: Braid },
