@@ -320,7 +320,10 @@ export function ManipulableDrawer<T extends object>({
       {dragState.type === "idle" ? (
         <DrawIdleMode dragState={dragState} ctx={renderCtx} />
       ) : dragState.type === "dragging" ? (
-        <DrawDraggingMode dragState={dragState} showDebugOverlay={showDebugOverlay} />
+        <DrawDraggingMode
+          dragState={dragState}
+          showDebugOverlay={showDebugOverlay}
+        />
       ) : (
         assertNever(dragState)
       )}
