@@ -1,9 +1,9 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { amb, produceAmb } from "../amb";
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { andThen, closest, floating, withBackground } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 // v2 port of demo-diagrams/list-of-lists.tsx
@@ -51,7 +51,7 @@ const initialState: State = {
   ],
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const TILE_SIZE = 50;
   const TILE_GAP = 8;
   const ROW_PADDING = 8;
@@ -172,8 +172,8 @@ export const ListOfLists = () => (
     <DemoNotes>
       Uses <span className="font-mono">floating</span>.
     </DemoNotes>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={initialState}
       width={600}
       height={300}

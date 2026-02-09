@@ -1,8 +1,8 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { span, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -17,7 +17,7 @@ const initialState: State = {
   ],
 };
 
-const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
   const TILE_SIZE = 50;
   const ROW_PADDING = 5;
 
@@ -92,8 +92,8 @@ const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
 };
 
 export const PermDouble = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={250}
     height={200}

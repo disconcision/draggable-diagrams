@@ -1,9 +1,9 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { amb, produceAmb, require } from "../amb";
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, floatings, span, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type Card = {
@@ -51,7 +51,7 @@ const CARD_GAP = 5;
 const HEADER_HEIGHT = 25;
 const COLUMN_PADDING = 5;
 
-const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
   return (
     <g>
       {state.columns.map((column, colIdx) => {
@@ -165,8 +165,8 @@ const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
 };
 
 export const Kanban = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={400}
     height={200}

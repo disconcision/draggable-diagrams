@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { rotateDeg, translate } from "../svgx/helpers";
 
 type State = {
@@ -11,7 +11,7 @@ const initialState: State = {
   angle: 0,
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const radius = 100;
 
   return (
@@ -32,8 +32,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const AngleViaTransform = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={250}
     height={250}

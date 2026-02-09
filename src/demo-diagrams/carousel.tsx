@@ -1,6 +1,6 @@
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, span } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -21,7 +21,7 @@ const HEIGHT = 250;
 const DOT_RADIUS = 6;
 const DOT_SPACING = 20;
 
-const manipulable: Manipulable<State> = ({ state, drag, setState }) => (
+const draggable: Draggable<State> = ({ state, drag, setState }) => (
   <g>
     {/* Main carousel container */}
     <rect
@@ -150,8 +150,8 @@ export const Carousel = () => (
       Partially-AI-generated carousel with swipe navigation, interactive dots,
       and arrow buttons. Ought to use clipPaths but those don't work yet.
     </DemoNotes>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={initialState}
       width={450}
       height={300}

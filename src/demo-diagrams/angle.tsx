@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 
@@ -12,7 +12,7 @@ const initialState: State = {
   angle: 0,
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const center = Vec2(100, 100);
   const radius = 100;
   const knobPos = Vec2(radius, 0).rotateDeg(state.angle).add(center);
@@ -36,8 +36,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const Angle = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={250}
     height={250}

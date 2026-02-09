@@ -1,8 +1,8 @@
 import _ from "lodash";
 import { amb, produceAmb, require } from "../amb";
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { span } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 import { uPairs } from "../utils";
@@ -19,7 +19,7 @@ const initialState: State = {
   points: [Vec2(1, 1), Vec2(4, 2), Vec2(3, 5), Vec2(1, 4)],
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const TILE_SIZE = 50;
 
   return (
@@ -69,8 +69,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const GridPoly = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={350}
     height={350}

@@ -1,8 +1,8 @@
 import { produce } from "immer";
 import _ from "lodash";
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, span, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -15,7 +15,7 @@ const initialState: State = {
   seq: [],
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const TILE_SIZE = 50;
 
   let perm = _.range(state.n);
@@ -145,8 +145,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const Braid = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={250}
     height={400}

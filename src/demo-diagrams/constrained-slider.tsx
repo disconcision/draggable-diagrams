@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { lessThan, vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 
@@ -16,7 +16,7 @@ const trackLeft = 20;
 const trackRight = 280;
 const trackY = 50;
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const knobX = trackLeft + (state.value / 100) * (trackRight - trackLeft);
 
   return (
@@ -105,8 +105,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const ConstrainedSlider = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={300}
     height={100}

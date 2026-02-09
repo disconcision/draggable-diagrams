@@ -2,9 +2,9 @@ import { produce } from "immer";
 import _ from "lodash";
 import { SVGProps } from "react";
 import { amb, produceAmb } from "../amb";
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, floating, vary, withBackground } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { getAtPath, PathIn } from "../paths";
 import { translate } from "../svgx/helpers";
 
@@ -75,7 +75,7 @@ const initialState: State = {
   ],
 };
 
-const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
   const TILE_SIZE = 50;
   const TILE_GAP = 8;
   const ROW_PADDING = 8;
@@ -259,8 +259,8 @@ export const CanvasOfListsNested = () => (
       Like canvas of lists, but with recursively nested rows. Tiles and rows can
       be dragged between any level.
     </DemoNotes>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={initialState}
       width={600}
       height={400}

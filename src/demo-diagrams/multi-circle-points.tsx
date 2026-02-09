@@ -1,7 +1,7 @@
 import { produce } from "immer";
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, lessThan, vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 
@@ -51,7 +51,7 @@ const getPointAbsolutePos = (state: State, point: Point): Vec2 => {
   return Vec2(circle.x + point.dx, circle.y + point.dy);
 };
 
-const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
   return (
     <g>
       {/* Render circles */}
@@ -135,8 +135,8 @@ const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
 };
 
 export const MultiCirclePoints = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={600}
     height={350}

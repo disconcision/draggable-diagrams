@@ -1,7 +1,7 @@
 import { produce } from "immer";
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, span, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { rotateDeg, translate } from "../svgx/helpers";
 
 type State = {
@@ -15,7 +15,7 @@ const initialState: State = {
 const TILE_SIZE = 50;
 const RADIUS = 100;
 
-const manipulable: Manipulable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, drag }) => (
   <g transform={translate(130, 130)}>
     {/* background circle */}
     <circle
@@ -79,8 +79,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => (
 export const Spinny = () => (
   <div>
     <DemoNotes>Tests interpolation of rotations.</DemoNotes>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={initialState}
       width={260}
       height={260}

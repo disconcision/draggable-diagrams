@@ -1,6 +1,6 @@
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -36,7 +36,7 @@ function bezierPath(state: State): string {
   return `M ${p0.x} ${p0.y} C ${p1.x} ${p1.y}, ${p2.x} ${p2.y}, ${p3.x} ${p3.y}`;
 }
 
-const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
   const { p0, p1, p2, p3 } = state;
   const ENDPOINT_R = 12;
   const CONTROL_R = 8;
@@ -197,8 +197,8 @@ export const Bezier = () => (
         Orion Reed
       </a>
     </DemoNotes>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={state2}
       width={400}
       height={250}

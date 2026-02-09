@@ -6,6 +6,8 @@ import _ from "lodash";
 import parserBabel from "prettier/parser-babel";
 import prettier from "prettier/standalone";
 import { createElement, useMemo, useState } from "react";
+import { Draggable } from "../draggable";
+import { DraggableRenderer } from "../DraggableRenderer";
 import {
   andThen,
   closest,
@@ -16,8 +18,6 @@ import {
   withSnapRadius,
 } from "../DragSpec";
 import { ErrorBoundary } from "../ErrorBoundary";
-import { Manipulable } from "../manipulable";
-import { ManipulableDrawer } from "../ManipulableDrawer";
 import { normalizeIndent } from "../normalizeIndent";
 import { path, rotateDeg, rotateRad, scale, translate } from "../svgx/helpers";
 import { numberScrubber } from "./numberScrubber";
@@ -87,24 +87,24 @@ export function LiveEditor({
         filename: "editor.tsx",
       }).code;
 
-      // Create a function that returns { manipulable, initialState }
+      // Create a function that returns { draggable, initialState }
       const fn = new Function(
         "createElement", // needed for JSX
         ...Object.keys(GLOBALS),
         `
         ${transformed}
-        return { manipulable, initialState };
+        return { draggable, initialState };
         `
       );
 
       // Execute with dependencies
-      const { manipulable, initialState } = fn(
+      const { draggable, initialState } = fn(
         createElement,
         ...Object.values(GLOBALS)
       );
 
       setError(null);
-      return { manipulable, initialState };
+      return { draggable, initialState };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       setError(errorMsg);
@@ -159,8 +159,8 @@ export function LiveEditor({
                 </div>
               ) : result ? (
                 <ErrorBoundary resetOnChange={code}>
-                  <ManipulableDrawer
-                    manipulable={result.manipulable as Manipulable<any>}
+                  <DraggableRenderer
+                    draggable={result.draggable as Draggable<any>}
                     initialState={result.initialState}
                     height={height ?? minHeight}
                     showDebugOverlay={debugMode}

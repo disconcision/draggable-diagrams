@@ -1,7 +1,7 @@
 import _ from "lodash";
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, floating, just, span } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 import { assertNever } from "../utils";
 
@@ -18,8 +18,8 @@ const SQUARE_SIZE = 40;
 
 const initialState: State = { posIndex: 0 };
 
-const manipulableFactory =
-  (mode: "span" | "floating" | "just"): Manipulable<State> =>
+const draggableFactory =
+  (mode: "span" | "floating" | "just"): Draggable<State> =>
   ({ state, drag }) =>
     (
       <g>
@@ -71,29 +71,29 @@ const manipulableFactory =
       </g>
     );
 
-const spanManipulable = manipulableFactory("span");
-const floatingManipulable = manipulableFactory("floating");
-const justManipulable = manipulableFactory("just");
+const spanDraggable = draggableFactory("span");
+const floatingDraggable = draggableFactory("floating");
+const justDraggable = draggableFactory("just");
 
 export const SimpleTriangle = () => (
   <div>
     <h3 className="text-md font-medium italic mt-6 mb-1">span</h3>
-    <DemoDrawer
-      manipulable={spanManipulable}
+    <DemoDraggable
+      draggable={spanDraggable}
       initialState={initialState}
       width={200}
       height={150}
     />
     <h3 className="text-md font-medium italic mt-6 mb-1">floating</h3>
-    <DemoDrawer
-      manipulable={floatingManipulable}
+    <DemoDraggable
+      draggable={floatingDraggable}
       initialState={initialState}
       width={200}
       height={150}
     />
     <h3 className="text-md font-medium italic mt-6 mb-1">just</h3>
-    <DemoDrawer
-      manipulable={justManipulable}
+    <DemoDraggable
+      draggable={justDraggable}
       initialState={initialState}
       width={200}
       height={150}

@@ -22,7 +22,7 @@ Let's build up some examples. First, a diagram that doesn't do anything.
     const initialState = {};
   `}
   code={`
-    const manipulable = () => (
+    const draggable = () => (
       <circle
         cx={100}
         cy={100}
@@ -33,9 +33,9 @@ Let's build up some examples. First, a diagram that doesn't do anything.
   `}
 />
 
-This defines a "manipulable" – a particular kind of function that returns React SVG elements using JSX. It looks an awful lot like a React component function, but it isn't one; sorry; no using hooks or anything like that.
+This defines a "draggable" – a particular kind of function that returns React SVG elements using JSX. It looks an awful lot like a React component function, but it isn't one; sorry; no using hooks or anything like that.
 
-But this manipulable doesn't actually do anything. Let's fix that. For a diagram to be interactive, it must have multiple states it can be in. So we will define a state type and an initial state to start at.
+But this draggable doesn't actually do anything. Let's fix that. For a diagram to be interactive, it must have multiple states it can be in. So we will define a state type and an initial state to start at.
 
 (Note: This text-editor gadget doesn't have real TypeScript support so we will only provide types when we feel like it. You'll want to use TypeScript while editing! Copy an existing project from the repo for that.)
 
@@ -47,7 +47,7 @@ But this manipulable doesn't actually do anything. Let's fix that. For a diagram
 
     const initialState = { status: "off" };
 
-    const manipulable = ({ state, drag }) => (
+    const draggable = ({ state, drag }) => (
       <circle
         transform={translate(state.status === "off" ? [100, 100] : [200, 100])}
         r={50}
@@ -69,13 +69,13 @@ There are a lot of new bits here. First a speed-run through some smaller bits:
 
   In short: anywhere you might ordinarily position a shape with an x & y, you should use `transform={translate(...)}`.
 
-- Here, we use a `transform` that depends on state – `"off"` will be to the left and `"on"` will be to the right. State is provided as an argument to the manipulable.
+- Here, we use a `transform` that depends on state – `"off"` will be to the left and `"on"` will be to the right. State is provided as an argument to the draggable.
 
 Now we're ready for the biggest bit: dragging! Dragging is what lets us move into these exciting new states we have. When you attach `data-on-drag` to an SVG element, you are telling DD you want to be able to move between states by dragging the element. You provide a "drag spec" which lists various states that should be accessible by dragging. When you start dragging the element, DD will invisibly render the diagrams of those accessible states, and see where the dragged element ends up. It will use that to synthesize a drag interaction, interpolating between accessible states as you go.
 
 Pieces of this puzzle:
 
-- Every use of `data-on-drag` should look like `data-on-drag={drag(...)}`, using the `drag` function provided as an argument to the manipulable. The `drag` function provides type assistance, and DD will throw an error if you don't use it.
+- Every use of `data-on-drag` should look like `data-on-drag={drag(...)}`, using the `drag` function provided as an argument to the draggable. The `drag` function provides type assistance, and DD will throw an error if you don't use it.
 
 - The argument to `drag` can be a lot of different things. For one, it can be a callback that generates a drag spec lazily. That might be smart for performance, but we don't do that here – we just provide a pre-computed `span` object. That means "I want to be able to drag back and forth between all the states in this list". [TODO: revise this.] The main alternative to `span` is `straightTo`. That means "I want to drag straight from my starting state to this other state" – you can return an array of `straightTo`s to tell DD you want a couple disjoint tracks from the starting state to the targets.
 
@@ -93,7 +93,7 @@ With this knowledge we can take on a more involved example: reordering objects.
 
     const TILE_SIZE = 50;
 
-    const manipulable: Manipulable<State> = ({
+    const draggable: Draggable<State> = ({
       state,
       drag,
       draggedId,
@@ -175,7 +175,7 @@ The most novel part of Draggable Diagrams is the "drag between discrete states" 
 
     const initialState = { angle: 0 };
 
-    const manipulable = ({ state, drag }) => (
+    const draggable = ({ state, drag }) => (
       <g transform={translate(150, 150)}>
         <g transform={rotateDeg(state.angle)}>
           <line
@@ -210,7 +210,7 @@ And just for fun here's a continuous drag controlling scale & rotation transform
 
 ### setState
 
-If you'd like to more directly move between states, say, in response to a click, you can use `setState`, which is provided as an argument to the manipulable. It's more boring than dragging, but it does still have some tricks up its sleeve...
+If you'd like to more directly move between states, say, in response to a click, you can use `setState`, which is provided as an argument to the draggable. It's more boring than dragging, but it does still have some tricks up its sleeve...
 
 In this example, we loop through a set of colors (& positions) by clicking:
 
@@ -222,7 +222,7 @@ In this example, we loop through a set of colors (& positions) by clicking:
 
     const initialState: State = { colorIdx: 0 };
 
-    const manipulable: Manipulable<State> = ({ state, setState }) => {
+    const draggable: Draggable<State> = ({ state, setState }) => {
       const colors = ["red", "green", "blue", "yellow"];
 
       return (

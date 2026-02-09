@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { rotateDeg, translate } from "../svgx/helpers";
 
 type State = {
@@ -11,7 +11,7 @@ const initialState: State = {
   hours: 4.333333,
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   function hand(
     name: string,
     degrees: number,
@@ -50,8 +50,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const Clock = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={250}
     height={250}

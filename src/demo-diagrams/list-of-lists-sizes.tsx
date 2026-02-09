@@ -1,9 +1,9 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { amb, produceAmb } from "../amb";
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { andThen, closest, floating, withBackground } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 import { assertDefined } from "../utils";
 
@@ -47,7 +47,7 @@ const initialState: State = {
   ],
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const TILE_GAP = 8;
   const ROW_PADDING = 8;
   const ROW_GAP = 10;
@@ -173,8 +173,8 @@ export const ListOfListsSizes = () => (
     <DemoNotes>
       Uses <span className="font-mono">floating</span>.
     </DemoNotes>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={initialState}
       width={600}
       height={450}

@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { lessThan, vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 
@@ -17,7 +17,7 @@ const initialState: State = {
 const center = Vec2(150, 150);
 const radius = 100;
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   return (
     <g>
       {/* boundary circle */}
@@ -46,8 +46,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const ConstrainedPoint = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={300}
     height={300}

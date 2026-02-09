@@ -1,9 +1,9 @@
 import _ from "lodash";
 import { useMemo, useState } from "react";
 import { amb, produceAmb } from "../amb";
-import { ConfigCheckbox, ConfigPanel, DemoDrawer } from "../demo-ui";
+import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, floating, span, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { path, rotateDeg, translate } from "../svgx/helpers";
 
@@ -38,7 +38,7 @@ const COLORS = [
   "lightgray",
 ];
 
-function manipulableFactory(config: Config): Manipulable<State> {
+function draggableFactory(config: Config): Draggable<State> {
   return ({ state, drag }) => (
     <g>
       {drawState(state)}
@@ -200,7 +200,7 @@ function drawState(state: State) {
 export const Tromino = () => {
   const [config, setConfig] = useState(defaultConfig);
 
-  const manipulable = useMemo(() => manipulableFactory(config), [config]);
+  const draggable = useMemo(() => draggableFactory(config), [config]);
 
   return (
     <div className="flex flex-col md:flex-row gap-4 items-start">
@@ -208,8 +208,8 @@ export const Tromino = () => {
         <div className="mt-2 mb-4 text-sm text-gray-600">
           snappy+maze mode still isn't working?
         </div>
-        <DemoDrawer
-          manipulable={manipulable}
+        <DemoDraggable
+          draggable={draggable}
           initialState={initialState}
           width={370}
           height={370}

@@ -6,7 +6,7 @@ This document provides guidance for working on the draggable-diagrams codebase.
 
 - NEVER say "Perfect!" or similar overly enthusiastic confirmations – your work is rarely perfect. Just explain what was done.
 - NEVER use `any` as a lazy workaround for type errors. Only use `any` when it is truly called for (e.g., interfacing with untyped external code, or when the type system genuinely cannot express the constraint). Ask first.
-- NEVER use React keys in "Manipulable" definitions. They don't use them.
+- NEVER use React keys in "Draggable" definitions. They don't use them.
 - NEVER run `npm run dev`. The user will start the dev server when needed.
 
 ## Project Overview
@@ -97,9 +97,9 @@ The Edit and Write tools require reading the file first. Always use Read tool be
    };
    ```
 
-3. **Write the manipulable** - A function that renders SVG based on state:
+3. **Write the draggable** - A function that renders SVG based on state:
    ```typescript
-   export const manipulable: Manipulable<State> = ({
+   export const draggable: Draggable<State> = ({
      state,
      drag,
      draggedId,
@@ -156,14 +156,5 @@ Add your diagram to `src/demos.tsx`:
 ```typescript
 import { YourDiagram } from "./demo-diagrams/your-diagram";
 
-demoData({
-  id: "your-diagram",
-  title: "Your Diagram Title",
-  notes: <>Optional description</>,
-  manipulable: YourDiagram.manipulable,
-  initialStates: [YourDiagram.state1],
-  height: 200,
-  padding: 20,
-  sourceFile: "your-diagram.tsx",
-});
+{ id: "your-diagram", Component: YourDiagram },
 ```

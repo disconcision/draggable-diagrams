@@ -1,11 +1,11 @@
 import _ from "lodash";
 import { SVGProps, cloneElement } from "react";
-import { Manipulable, unsafeDrag } from "./manipulable";
+import { Draggable, unsafeDrag } from "./draggable";
 import {
   Transition,
   TransitionLike,
   resolveTransitionLike,
-} from "./ManipulableDrawer";
+} from "./DraggableRenderer";
 import { Delaunay } from "./math/delaunay";
 import { minimize } from "./math/minimize";
 import { Vec2 } from "./math/vec2";
@@ -275,7 +275,7 @@ export type DragResult<T> = {
 export type DragBehavior<T> = (frame: DragFrame) => DragResult<T>;
 
 export type BehaviorContext<T extends object> = {
-  manipulable: Manipulable<T>;
+  draggable: Draggable<T>;
   draggedPath: string;
   draggedId: string | null;
   pointerLocal: Vec2;
@@ -287,7 +287,7 @@ function renderStateReadOnly<T extends object>(
   state: T
 ): LayeredSvgx {
   return pipe(
-    ctx.manipulable({
+    ctx.draggable({
       state,
       drag: unsafeDrag,
       draggedId: ctx.draggedId,
@@ -519,7 +519,7 @@ export function dragSpecToBehavior<T extends object>(
     const getElementPos = (params: number[]): Vec2 => {
       const candidateState = stateFromParams(params);
       const content = pipe(
-        ctx.manipulable({
+        ctx.draggable({
           state: candidateState,
           drag: unsafeDrag,
           draggedId: ctx.draggedId,

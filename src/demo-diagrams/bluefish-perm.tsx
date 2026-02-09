@@ -1,9 +1,9 @@
 import { Align, createName, Group, Rect, Ref, StackH, Text } from "bluefish-js";
 import { produce } from "immer";
 import { bluefishWithAttach } from "../bluefish";
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { span } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 
 type State = {
   perm: string[];
@@ -15,7 +15,7 @@ const initialState: State = {
 
 const TILE_SIZE = 50;
 
-const manipulable: Manipulable<State> = ({ state, drag, draggedId }) =>
+const draggable: Draggable<State> = ({ state, drag, draggedId }) =>
   bluefishWithAttach((attach) =>
     StackH({ spacing: 0 }, [
       ...state.perm.map((p) => {
@@ -71,8 +71,8 @@ const manipulable: Manipulable<State> = ({ state, drag, draggedId }) =>
   );
 
 export const BluefishPerm = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={300}
     height={120}

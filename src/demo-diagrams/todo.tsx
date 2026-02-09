@@ -1,9 +1,9 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { useMemo, useState } from "react";
-import { ConfigCheckbox, ConfigPanel, DemoDrawer } from "../demo-ui";
+import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
+import { Draggable, SetState } from "../draggable";
 import { closest, floating, span, withBackground } from "../DragSpec";
-import { Manipulable, SetState } from "../manipulable";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
@@ -37,7 +37,7 @@ const defaultConfig: Config = {
   useFloating: false,
 };
 
-function manipulableFactory(config: Config): Manipulable<State> {
+function draggableFactory(config: Config): Draggable<State> {
   return ({ state, drag, draggedId, setState }) => (
     <g>
       <foreignObject
@@ -180,13 +180,13 @@ function drawTodoItem({
 export const Todo = () => {
   const [config, setConfig] = useState(defaultConfig);
 
-  const manipulable = useMemo(() => manipulableFactory(config), [config]);
+  const draggable = useMemo(() => draggableFactory(config), [config]);
 
   return (
     <div className="flex flex-col md:flex-row gap-4 items-start">
       <div>
-        <DemoDrawer
-          manipulable={manipulable}
+        <DemoDraggable
+          draggable={draggable}
           initialState={initialState}
           width={400}
           height={450}

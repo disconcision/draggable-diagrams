@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { scale, translate } from "../svgx/helpers";
 
 type State = {
@@ -10,7 +10,7 @@ type State = {
 
 const initialState: State = { scaleX: 1, scaleY: 1 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, drag }) => (
   <g>
     <circle
       transform={translate(100, 100) + scale(state.scaleX, state.scaleY)}
@@ -33,8 +33,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => (
 );
 
 export const StretchyXY = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={250}
     height={250}

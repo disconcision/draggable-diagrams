@@ -1,13 +1,13 @@
 import { Background, Circle, Ref, StackH, StackV, Text } from "bluefish-js";
 import { bluefish } from "../bluefish";
-import { DemoDrawer } from "../demo-ui";
-import { Manipulable } from "../manipulable";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 
 type State = Record<string, never>;
 
 const initialState: State = {};
 
-const manipulable: Manipulable<State> = () =>
+const draggable: Draggable<State> = () =>
   bluefish(
     [
       Background(
@@ -49,8 +49,8 @@ const manipulable: Manipulable<State> = () =>
   );
 
 export const BluefishStatic = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={500}
     height={250}

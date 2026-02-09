@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { rotateDeg, scale, translate } from "../svgx/helpers";
 
 type State = {
@@ -10,7 +10,7 @@ type State = {
 
 const initialState: State = { angle: 0, scaleX: 1 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, drag }) => (
   <circle
     transform={
       translate(100, 100) +
@@ -26,8 +26,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => (
 );
 
 export const StretchyRot = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={250}
     height={250}

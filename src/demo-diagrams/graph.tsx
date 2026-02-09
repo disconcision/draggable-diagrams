@@ -1,9 +1,9 @@
 import _ from "lodash";
 import { amb, produceAmb, require } from "../amb";
 import { arrowhead } from "../arrows";
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { span, vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 import { uPairs } from "../utils";
@@ -44,7 +44,7 @@ function stateIsValid(state: State) {
   );
 }
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const NODE_R = 20;
 
   return (
@@ -138,8 +138,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const Graph = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={200}
     height={200}

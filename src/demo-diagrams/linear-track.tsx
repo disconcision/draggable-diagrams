@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { span, withDropTransition, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -12,7 +12,7 @@ const TRACK_LENGTH = 60;
 
 const initialState: State = { value: false };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, drag }) => (
   <g>
     <line
       x1={SQUARE_SIZE / 2}
@@ -40,8 +40,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => (
 );
 
 export const LinearTrack = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={150}
     height={80}

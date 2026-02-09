@@ -17,11 +17,11 @@ import {
   dragSpecToBehavior,
 } from "./DragSpec";
 import {
-  Manipulable,
-  ManipulableProps,
+  Draggable,
+  DraggableProps,
   getDragSpecCallbackOnElement,
   unsafeDrag,
-} from "./manipulable";
+} from "./draggable";
 import { Vec2 } from "./math/vec2";
 import { Svgx, findElement, updatePropsDownTree } from "./svgx";
 import {
@@ -120,8 +120,8 @@ export type DebugDragInfo<T extends object> =
 
 // # Component
 
-interface ManipulableDrawerProps<T extends object> {
-  manipulable: Manipulable<T>;
+interface DraggableRendererProps<T extends object> {
+  draggable: Draggable<T>;
   initialState: T;
   width?: number;
   height?: number;
@@ -129,14 +129,14 @@ interface ManipulableDrawerProps<T extends object> {
   showDebugOverlay?: boolean;
 }
 
-export function ManipulableDrawer<T extends object>({
-  manipulable,
+export function DraggableRenderer<T extends object>({
+  draggable,
   initialState,
   width,
   height,
   onDebugDragInfo,
   showDebugOverlay,
-}: ManipulableDrawerProps<T>) {
+}: DraggableRendererProps<T>) {
   const catchToRenderError = useCatchToRenderError();
 
   const [dragState, setDragState] = useState<DragState<T>>({
@@ -185,7 +185,7 @@ export function ManipulableDrawer<T extends object>({
               : ds.draggedId;
           // Render the new state and find the dragged element
           const content = pipe(
-            manipulable({
+            draggable({
               state: newState,
               drag: unsafeDrag,
               draggedId: newDraggedId,
@@ -296,7 +296,7 @@ export function ManipulableDrawer<T extends object>({
           setDragState(newState);
         }
       }
-    }, [manipulable, setDragState])
+    }, [draggable, setDragState])
   );
 
   // Cursor style
@@ -348,14 +348,14 @@ export function ManipulableDrawer<T extends object>({
   }, [
     catchToRenderError,
     dragState.type,
-    manipulable,
+    draggable,
     setDragState,
     setPointerFromEvent,
   ]);
 
   const renderCtx: RenderContext<T> = useMemo(
     () => ({
-      manipulable,
+      draggable,
       catchToRenderError,
       setPointerFromEvent,
       setDragState: (ds: DragState<T>) => {
@@ -364,7 +364,7 @@ export function ManipulableDrawer<T extends object>({
       },
       onDebugDragInfoRef,
     }),
-    [catchToRenderError, manipulable, setDragState, setPointerFromEvent]
+    [catchToRenderError, draggable, setDragState, setPointerFromEvent]
   );
 
   return (
@@ -420,11 +420,11 @@ function runSpring(
 }
 
 function renderReadOnly<T extends object>(
-  manipulable: Manipulable<T>,
-  props: Omit<ManipulableProps<T>, "drag" | "setState">
+  draggable: Draggable<T>,
+  props: Omit<DraggableProps<T>, "drag" | "setState">
 ): LayeredSvgx {
   return pipe(
-    manipulable({ ...props, drag: unsafeDrag, setState: throwError }),
+    draggable({ ...props, drag: unsafeDrag, setState: throwError }),
     assignPaths,
     accumulateTransforms,
     layerSvg
@@ -442,10 +442,10 @@ function initDrag<T extends object>(
   dragState: DragState<T> & { type: "dragging" };
   debugInfo: DebugDragInfo<T>;
 } {
-  const { manipulable, draggedId } = behaviorCtxWithoutFloat;
+  const { draggable, draggedId } = behaviorCtxWithoutFloat;
   let floatLayered: LayeredSvgx | null = null;
   if (draggedId) {
-    const startLayered = renderReadOnly(manipulable, {
+    const startLayered = renderReadOnly(draggable, {
       state,
       draggedId,
       ghostId: null,
@@ -485,7 +485,7 @@ function initDrag<T extends object>(
 // # Render context
 
 type RenderContext<T extends object> = {
-  manipulable: Manipulable<T>;
+  draggable: Draggable<T>;
   catchToRenderError: CatchToRenderError;
   setPointerFromEvent: (e: globalThis.PointerEvent) => Vec2;
   setDragState: (ds: DragState<T>) => void;
@@ -526,7 +526,7 @@ function postProcessForInteraction<T extends object>(
             const { dragState, debugInfo } = initDrag(
               dragSpec,
               {
-                manipulable: ctx.manipulable,
+                draggable: ctx.draggable,
                 draggedPath,
                 draggedId,
                 pointerLocal,
@@ -555,7 +555,7 @@ const DrawIdleMode = memoGeneric(
     dragState: DragState<T> & { type: "idle" };
     ctx: RenderContext<T>;
   }) => {
-    const content = ctx.manipulable({
+    const content = ctx.draggable({
       state: dragState.state,
       drag: unsafeDrag,
       draggedId: null,
@@ -569,7 +569,7 @@ const DrawIdleMode = memoGeneric(
             typeof newState === "function"
               ? (newState as (prev: T) => T)(dragState.state)
               : newState;
-          const snapshot = renderReadOnly(ctx.manipulable, {
+          const snapshot = renderReadOnly(ctx.draggable, {
             state: dragState.state,
             draggedId: null,
             ghostId: null,

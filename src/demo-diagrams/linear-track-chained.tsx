@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, span, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -11,7 +11,7 @@ const SIZE = 40;
 
 const initialState: State = { value: 0 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, drag }) => (
   <g>
     <polyline
       points={[0, 1, 2, 3]
@@ -44,8 +44,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => (
 );
 
 export const LinearTrackChained = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={400}
     height={100}

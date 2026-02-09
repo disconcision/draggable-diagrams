@@ -2,10 +2,15 @@ import { curveCardinal, line } from "d3-shape";
 import _ from "lodash";
 import { useMemo, useState } from "react";
 import { arrowhead } from "../arrows";
-import { ConfigCheckbox, ConfigPanel, DemoDrawer, DemoNotes } from "../demo-ui";
+import {
+  ConfigCheckbox,
+  ConfigPanel,
+  DemoDraggable,
+  DemoNotes,
+} from "../demo-ui";
+import { Drag, Draggable } from "../draggable";
 import { span, withSnapRadius } from "../DragSpec";
 import { overlapIntervals } from "../layout";
-import { Drag, Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { Svgx } from "../svgx";
 import { Finalizers, pointRef, PointRef } from "../svgx/finalizers";
@@ -68,13 +73,13 @@ const allMorphs7 = getAllMorphs(tree7, tree7);
 const initialState3: State = { morph: allMorphs3[0] };
 const initialState7: State = { morph: allMorphs7[0] };
 
-const manipulableFactory = (
+const draggableFactory = (
   domainTree: TreeNode,
   codomainTree: TreeNode,
   allMorphs: TreeMorph[],
   config: Config,
   yForTradRep: number
-): Manipulable<State> => {
+): Draggable<State> => {
   return ({ state, drag }) => {
     const finalizers = new Finalizers();
     const ctx: Ctx = {
@@ -620,12 +625,12 @@ function drawSubtree(
 export const OrderPreserving = () => {
   const [config, setConfig] = useState(defaultConfig);
 
-  const manipulable3 = useMemo(
-    () => manipulableFactory(tree3, tree3, allMorphs3, config, 300),
+  const draggable3 = useMemo(
+    () => draggableFactory(tree3, tree3, allMorphs3, config, 300),
     [config]
   );
-  const manipulable7 = useMemo(
-    () => manipulableFactory(tree7, tree7, allMorphs7, config, 500),
+  const draggable7 = useMemo(
+    () => draggableFactory(tree7, tree7, allMorphs7, config, 500),
     [config]
   );
 
@@ -644,15 +649,15 @@ export const OrderPreserving = () => {
       <div className="flex flex-col md:flex-row gap-4 items-start">
         <div>
           <h3 className="text-md font-medium italic mt-6 mb-1">3→3</h3>
-          <DemoDrawer
-            manipulable={manipulable3}
+          <DemoDraggable
+            draggable={draggable3}
             initialState={initialState3}
             width={300}
             height={config.showTradRep ? 700 : 400}
           />
           <h3 className="text-md font-medium italic mt-6 mb-1">7→7</h3>
-          <DemoDrawer
-            manipulable={manipulable7}
+          <DemoDraggable
+            draggable={draggable7}
             initialState={initialState7}
             width={config.showTradRep ? 600 : 400}
             height={config.showTradRep ? 1100 : 600}

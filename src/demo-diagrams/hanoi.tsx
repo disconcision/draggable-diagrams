@@ -1,8 +1,8 @@
 import { produce } from "immer";
 import { amb, produceAmb, require } from "../amb";
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, floating } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -31,7 +31,7 @@ function diskWidth(diskId: number): number {
   return MIN_DISK_WIDTH + (diskId - 1) * DISK_WIDTH_INCREMENT;
 }
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const PEG_HEIGHT = (state.numDisks + 1) * DISK_HEIGHT;
   const BASE_WIDTH = diskWidth(state.numDisks + 1);
   const PEG_SPACING = BASE_WIDTH + 40;
@@ -146,15 +146,15 @@ export const Hanoi = () => (
       dragged.
     </DemoNotes>
     <h3 className="text-md font-medium italic mt-6 mb-1">3 disks</h3>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={state3}
       width={500}
       height={200}
     />
     <h3 className="text-md font-medium italic mt-6 mb-1">4 disks</h3>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={state4}
       width={600}
       height={200}

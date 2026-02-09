@@ -1,7 +1,7 @@
 import _ from "lodash";
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { span, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type Car = {
@@ -34,7 +34,7 @@ const initialState: State = {
   },
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const TILE_SIZE = 50;
   const BORDER_WIDTH = 10;
   const redCarY = Object.values(state.cars).find((t) => t.color === "red")?.y;
@@ -155,8 +155,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const RushHour = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={350}
     height={350}

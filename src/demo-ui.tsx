@@ -6,9 +6,9 @@ import {
   useOverlayData,
 } from "./DragSpecSpatialOverlay";
 import { DragSpecTreeView } from "./DragSpecTreeView";
+import { DebugDragInfo, DraggableRenderer } from "./DraggableRenderer";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { DebugDragInfo, ManipulableDrawer } from "./ManipulableDrawer";
-import { Manipulable } from "./manipulable";
+import { Draggable } from "./draggable";
 import { assert } from "./utils";
 
 export type DemoSettings = {
@@ -76,13 +76,13 @@ export function DemoSettingsBar() {
   );
 }
 
-export function DemoDrawer<T extends object>({
-  manipulable,
+export function DemoDraggable<T extends object>({
+  draggable,
   initialState,
   width,
   height,
 }: {
-  manipulable: Manipulable<T>;
+  draggable: Draggable<T>;
   initialState: T;
   width: number;
   height: number;
@@ -106,8 +106,8 @@ export function DemoDrawer<T extends object>({
     <div className="flex flex-col gap-2">
       <div className="flex gap-4 items-start">
         <div className="relative">
-          <ManipulableDrawer
-            manipulable={manipulable}
+          <DraggableRenderer
+            draggable={draggable}
             initialState={initialState}
             width={width}
             height={height}

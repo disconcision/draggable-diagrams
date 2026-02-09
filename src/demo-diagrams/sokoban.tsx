@@ -1,8 +1,8 @@
 import _ from "lodash";
 import { useMemo, useState } from "react";
-import { ConfigCheckbox, ConfigPanel, DemoDrawer } from "../demo-ui";
+import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, span, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { inXYWH } from "../math/xywh";
 import { translate } from "../svgx/helpers";
@@ -66,7 +66,7 @@ const defaultConfig: Config = {
   levelEditable: false,
 };
 
-function manipulableFactory(config: Config): Manipulable<State> {
+function draggableFactory(config: Config): Draggable<State> {
   return ({ state, drag }) => {
     const TILE_SIZE = 50;
 
@@ -263,12 +263,12 @@ function manipulableFactory(config: Config): Manipulable<State> {
 export const Sokoban = () => {
   const [config, setConfig] = useState(defaultConfig);
 
-  const manipulable = useMemo(() => manipulableFactory(config), [config]);
+  const draggable = useMemo(() => draggableFactory(config), [config]);
 
   return (
     <div className="flex flex-col md:flex-row gap-4 items-start">
-      <DemoDrawer
-        manipulable={manipulable}
+      <DemoDraggable
+        draggable={draggable}
         initialState={initialState}
         width={500}
         height={500}

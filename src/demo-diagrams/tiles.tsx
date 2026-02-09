@@ -1,7 +1,7 @@
 import _ from "lodash";
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, span, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { inXYWH } from "../math/xywh";
 import { translate } from "../svgx/helpers";
@@ -29,7 +29,7 @@ const stateFriendly: State = {
   },
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const TILE_SIZE = 50;
   return (
     <g>
@@ -109,15 +109,15 @@ export const Tiles = () => (
       'Relative Pointer Motion' mode (or divergent approaches).
     </DemoNotes>
     <h3 className="text-md font-medium italic mt-6 mb-1">lonely</h3>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={stateLonely}
       width={300}
       height={300}
     />
     <h3 className="text-md font-medium italic mt-6 mb-1">friendly</h3>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={stateFriendly}
       width={300}
       height={300}

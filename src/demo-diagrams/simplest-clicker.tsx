@@ -1,5 +1,5 @@
-import { DemoDrawer } from "../demo-ui";
-import { Manipulable } from "../manipulable";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 
 type State = {
   colorIdx: number;
@@ -7,7 +7,7 @@ type State = {
 
 const initialState: State = { colorIdx: 0 };
 
-const manipulable: Manipulable<State> = ({ state, setState }) => {
+const draggable: Draggable<State> = ({ state, setState }) => {
   const colors = ["red", "green", "blue", "yellow"];
 
   return (
@@ -27,8 +27,8 @@ const manipulable: Manipulable<State> = ({ state, setState }) => {
 };
 
 export const SimplestClicker = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={300}
     height={150}

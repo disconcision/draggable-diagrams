@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { ConfigCheckbox, ConfigPanel, DemoDrawer } from "../demo-ui";
+import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
+import { Drag, Draggable } from "../draggable";
 import { closest, floating, just, span, withBackground } from "../DragSpec";
-import { Drag, Manipulable } from "../manipulable";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
@@ -303,7 +303,7 @@ function insertAtAllPositions(tree: Tree, child: Tree): Tree[] {
   return helper(tree);
 }
 
-function manipulableFactory(config: Config): Manipulable<State> {
+function draggableFactory(config: Config): Draggable<State> {
   return ({ state, drag, draggedId }) => (
     <g transform={translate(10, 10)}>
       {renderTree(state, state, draggedId, drag, config).elem}
@@ -316,28 +316,28 @@ function manipulableFactory(config: Config): Manipulable<State> {
 export const Outline = () => {
   const [config, setConfig] = useState(defaultConfig);
 
-  const manipulable = useMemo(() => manipulableFactory(config), [config]);
+  const draggable = useMemo(() => draggableFactory(config), [config]);
 
   return (
     <div className="flex flex-col md:flex-row gap-4 items-start">
       <div>
         <h3 className="text-md font-medium italic mt-6 mb-1">simple</h3>
-        <DemoDrawer
-          manipulable={manipulable}
+        <DemoDraggable
+          draggable={draggable}
           initialState={state1}
           width={200}
           height={100}
         />
         <h3 className="text-md font-medium italic mt-6 mb-1">nested</h3>
-        <DemoDrawer
-          manipulable={manipulable}
+        <DemoDraggable
+          draggable={draggable}
           initialState={state2}
           width={250}
           height={200}
         />
         <h3 className="text-md font-medium italic mt-6 mb-1">tree of life</h3>
-        <DemoDrawer
-          manipulable={manipulable}
+        <DemoDraggable
+          draggable={draggable}
           initialState={stateTreeOfLife}
           width={350}
           height={1100}

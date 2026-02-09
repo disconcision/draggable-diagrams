@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, vary, withBackground } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 // Variant of orbiting-planet where the planet can also float freely.
@@ -26,7 +26,7 @@ const initialState: State = {
   angle: 0,
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const planetX =
     state.mode === "orbiting"
       ? STARS[state.currentStar].x + ORBIT_RADIUS * Math.cos(state.angle)
@@ -114,8 +114,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const OrbitingPlanetWithBackground = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={450}
     height={400}

@@ -1,5 +1,6 @@
 import { produce } from "immer";
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import {
   andThen,
   closest,
@@ -8,7 +9,6 @@ import {
   vary,
   withBackground,
 } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 const NODE_W = 90;
@@ -105,7 +105,7 @@ const initialState: State = {
   },
 };
 
-const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
   function endDragSpec(wireId: string, endKey: "from" | "to") {
     // ways to snap it
     const side = endKey === "to" ? "in" : "out";
@@ -307,8 +307,8 @@ const manipulable: Manipulable<State> = ({ state, drag, draggedId }) => {
 };
 
 export const NodeWires = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={500}
     height={200}

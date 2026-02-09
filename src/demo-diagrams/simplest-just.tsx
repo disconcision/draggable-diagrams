@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, floating, just } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -9,7 +9,7 @@ type State = {
 
 const initialState: State = { value: 0 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, drag }) => (
   <rect
     id="switch"
     transform={translate(state.value * 100, 0)}
@@ -29,8 +29,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => (
 );
 
 export const SimplestJust = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={500}
     height={150}

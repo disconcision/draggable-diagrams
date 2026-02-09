@@ -1,6 +1,6 @@
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { Vec2 } from "../math/vec2";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
@@ -21,7 +21,7 @@ const initialState: State = {
 
 const LEVELS = 7;
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   function dragon(p1: Vec2, p2: Vec2, dir: number, level: number): Svgx[] {
     if (level == 0) {
       return [
@@ -80,8 +80,8 @@ export const Dragon = () => (
       . Nice performance stress test (which we are failing; try larger
       "Levels").
     </DemoNotes>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={initialState}
       width={400}
       height={280}

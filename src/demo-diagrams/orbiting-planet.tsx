@@ -1,6 +1,6 @@
-import { DemoDrawer } from "../demo-ui";
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, vary } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 // New v2-only demo: a planet that can orbit around different stars.
@@ -26,7 +26,7 @@ const initialState: State = {
   angle: 0,
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const star = STARS[state.currentStar];
   const planetX = star.x + ORBIT_RADIUS * Math.cos(state.angle);
   const planetY = star.y + ORBIT_RADIUS * Math.sin(state.angle);
@@ -82,8 +82,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const OrbitingPlanet = () => (
-  <DemoDrawer
-    manipulable={manipulable}
+  <DemoDraggable
+    draggable={draggable}
     initialState={initialState}
     width={450}
     height={400}

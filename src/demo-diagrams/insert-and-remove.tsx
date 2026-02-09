@@ -1,9 +1,9 @@
 import { produce } from "immer";
 import _ from "lodash";
 import { amb, produceAmb } from "../amb";
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { andThen, closest, floating, withBackground } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type Tile = { key: string; label: string };
@@ -27,7 +27,7 @@ const initialState: State = {
   ],
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const TILE_SIZE = 50;
 
   const drawTile = ({
@@ -187,8 +187,8 @@ export const InsertAndRemove = () => (
       This shows kinda-hacky ways to insert and remove items from a draggable
       diagram. Much to consider.
     </DemoNotes>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={initialState}
       width={400}
       height={200}

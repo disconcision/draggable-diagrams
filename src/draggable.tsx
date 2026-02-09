@@ -1,19 +1,17 @@
 import { PrettyPrint } from "@joshuahhh/pretty-print";
 import { ReactElement, SetStateAction } from "react";
+import { TransitionLike } from "./DraggableRenderer";
 import { DragSpec } from "./DragSpec";
 import { ErrorWithJSX } from "./ErrorBoundary";
-import { TransitionLike } from "./ManipulableDrawer";
 import { Svgx } from "./svgx";
 import { isObject } from "./utils";
 
 /**
- * A Manipulable is a function that takes state and draggable helper, returns SVG JSX.
+ * A Draggable is a function that takes state and draggable helper, returns SVG JSX.
  */
-export type Manipulable<T extends object> = (
-  props: ManipulableProps<T>
-) => Svgx;
+export type Draggable<T extends object> = (props: DraggableProps<T>) => Svgx;
 
-export type ManipulableProps<T extends object> = {
+export type DraggableProps<T extends object> = {
   state: T;
   drag: Drag<T>;
   draggedId: string | null;
@@ -34,9 +32,9 @@ export type SetState<T> = (
 
 export type Drag<T> = typeof unsafeDrag<T>;
 
-// this is exported so that ManipulableDrawer can import it and
-// provide it to manipulables, but it's important for type-safety
-// that manipulables not use it directly.
+// this is exported so that DraggableRenderer can import it and
+// provide it to draggables, but it's important for type-safety
+// that draggables not use it directly.
 export function unsafeDrag<T>(
   dragSpec: (() => DragSpec<T>) | DragSpec<T>
 ): OnDragPropValue<T> {

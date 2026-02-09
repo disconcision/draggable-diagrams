@@ -1,7 +1,7 @@
 import _ from "lodash";
-import { DemoDrawer, DemoNotes } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
+import { Draggable } from "../draggable";
 import { closest, span, withSnapRadius } from "../DragSpec";
-import { Manipulable } from "../manipulable";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -33,7 +33,7 @@ const initialState: State = {
   },
 };
 
-const manipulable: Manipulable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, drag }) => {
   const TILE_SIZE = 50;
 
   return (
@@ -117,8 +117,8 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 export const Fifteen = () => (
   <div>
     <DemoNotes>Weird experiment: I made the blank draggable</DemoNotes>
-    <DemoDrawer
-      manipulable={manipulable}
+    <DemoDraggable
+      draggable={draggable}
       initialState={initialState}
       width={250}
       height={250}

@@ -8,9 +8,9 @@ import {
   Rewrite,
   Tree,
 } from "../asts";
-import { ConfigCheckbox, ConfigPanel, DemoDrawer } from "../demo-ui";
+import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
+import { Drag, Draggable } from "../draggable";
 import { closest, span } from "../DragSpec";
-import { Drag, Manipulable } from "../manipulable";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
@@ -166,7 +166,7 @@ const defaultActiveRewriteSets = rewriteSets.map(
   (rs) => rs.defaultEnabled ?? false
 );
 
-function manipulableFactory(activeRewrites: Rewrite[]): Manipulable<State> {
+function draggableFactory(activeRewrites: Rewrite[]): Draggable<State> {
   return ({ state, drag }) => {
     return renderTree(state, state, drag, activeRewrites).element;
   };
@@ -372,8 +372,8 @@ export const NoolTree = () => {
     [activeRewriteSets]
   );
 
-  const manipulable = useMemo(
-    () => manipulableFactory(activeRewrites),
+  const draggable = useMemo(
+    () => draggableFactory(activeRewrites),
     [activeRewrites]
   );
 
@@ -381,15 +381,15 @@ export const NoolTree = () => {
     <div className="flex flex-col md:flex-row gap-4 items-start">
       <div>
         <h3 className="text-md font-medium italic mt-6 mb-1">state 1</h3>
-        <DemoDrawer
-          manipulable={manipulable}
+        <DemoDraggable
+          draggable={draggable}
           initialState={initialState1}
           width={300}
           height={350}
         />
         <h3 className="text-md font-medium italic mt-6 mb-1">state 2</h3>
-        <DemoDrawer
-          manipulable={manipulable}
+        <DemoDraggable
+          draggable={draggable}
           initialState={initialState2}
           width={300}
           height={300}
