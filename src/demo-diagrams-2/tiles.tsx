@@ -20,6 +20,15 @@ const stateLonely: State = {
   },
 };
 
+const stateFriendly: State = {
+  w: 5,
+  h: 5,
+  tiles: {
+    A: { x: 2, y: 2 },
+    B: { x: 4, y: 4 },
+  },
+};
+
 const manipulable: Manipulable<State> = ({ state, drag }) => {
   const TILE_SIZE = 50;
   return (
@@ -93,10 +102,20 @@ const manipulable: Manipulable<State> = ({ state, drag }) => {
 };
 
 export const Tiles = () => (
-  <DemoDrawer
-    manipulable={manipulable}
-    initialState={stateLonely}
-    width={300}
-    height={300}
-  />
+  <div>
+    <h3 className="text-md font-medium italic mt-6 mb-1">lonely</h3>
+    <DemoDrawer
+      manipulable={manipulable}
+      initialState={stateLonely}
+      width={300}
+      height={300}
+    />
+    <h3 className="text-md font-medium italic mt-6 mb-1">friendly</h3>
+    <DemoDrawer
+      manipulable={manipulable}
+      initialState={stateFriendly}
+      width={300}
+      height={300}
+    />
+  </div>
 );

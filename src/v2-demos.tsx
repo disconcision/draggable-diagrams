@@ -60,6 +60,7 @@ export const v2Demos: V2Demo[] = [
   { id: "tiles", Component: Tiles },
   { id: "grid-poly", Component: GridPoly },
   { id: "nool-tree", Component: NoolTree },
+  { id: "outline", Component: Outline },
   { id: "braid", Component: Braid },
   { id: "carousel", Component: Carousel },
   { id: "rush-hour", Component: RushHour },
@@ -84,5 +85,4 @@ export const v2Demos: V2Demo[] = [
   { id: "multi-circle-points", Component: MultiCirclePoints },
   { id: "node-wires", Component: NodeWires },
   { id: "simplest-just", Component: SimplestJust },
-  { id: "outline", Component: Outline },
 ];
