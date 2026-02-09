@@ -356,7 +356,7 @@ export namespace NoolStageBuilder {
           fullState,
           andThen(removeStageHoles(eraseState), removeStageHoles(cleanState)),
         ],
-        { backdrop: { ...cleanedWithout, voidStack: newVoidStack } }
+        { backdrop: andThen(cleanedWithout, { ...cleanedWithout, voidStack: newVoidStack }) }
       );
     });
   }
@@ -486,7 +486,51 @@ export namespace NoolStageBuilder {
           ...reorderTargets,
           andThen(removeStageHoles(eraseState), removeStageHoles(cleanState)),
         ],
-        { backdrop: { ...stateWithout, voidStack: newVoidStack } }
+        { backdrop: andThen(stateWithout, { ...stateWithout, voidStack: newVoidStack }) }
+      );
+    });
+  }
+
+  function makeVoidDrag(
+    state: State,
+    drag: Drag<State>
+  ): ReturnType<Drag<State>> | undefined {
+    if (state.voidStack.length === 0) return undefined;
+    const tree = state.voidStack[0];
+    const stateWithout: State = {
+      ...state,
+      voidStack: state.voidStack.slice(1),
+    };
+
+    return drag(() => {
+      const holes = findAllHolesInTrees(stateWithout.trees);
+      const holeTargets = holes.map(({ treeIdx, holeId }) =>
+        removeStageHoles({
+          ...stateWithout,
+          trees: replaceInTrees(stateWithout.trees, treeIdx, holeId, tree),
+        })
+      );
+      const insertTargets = allInsertionPointsInTrees(stateWithout.trees).map(
+        ({ treeIdx, parentId, index }) =>
+          removeStageHoles({
+            ...stateWithout,
+            trees: insertInTrees(
+              stateWithout.trees,
+              treeIdx,
+              parentId,
+              index,
+              tree
+            ),
+          })
+      );
+      const paletteTargets = state.paletteExpanded
+        ? paletteInsertionTargets(stateWithout, tree)
+        : [];
+      const stageTargets = emptyStageTarget(stateWithout, tree);
+
+      return floating(
+        [...holeTargets, ...insertTargets, ...paletteTargets, ...stageTargets],
+        { backdrop: andThen(stateWithout, state) }
       );
     });
   }
@@ -949,6 +993,7 @@ export namespace NoolStageBuilder {
   export const manipulable: Manipulable<State> = ({
     state,
     drag,
+    draggedId,
     setState,
   }) => {
     const layout = computeLayout(state, drag);
@@ -1124,17 +1169,27 @@ export namespace NoolStageBuilder {
 
         {/* Void */}
         <g transform={translate(layout.x.void, 0)}>
+          {/* Glow circle — fades in when dragging toward void */}
+          <circle
+            cx={VOID_SIZE / 2}
+            cy={VOID_SIZE / 2}
+            r={VOID_SIZE / 2}
+            fill="#f5c6c6"
+            opacity={state.voided ? 0.8 : 0}
+            pointerEvents="none"
+          />
           <text
             x={VOID_SIZE / 2}
             y={VOID_SIZE / 2}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={16}
+            fontSize={state.voided ? 18 : 16}
             fill={state.voidStack.length > 0 ? "#999" : "#ccc"}
             pointerEvents="none"
           >
             🗑
           </text>
+          {/* Count badge */}
           <circle
             cx={VOID_SIZE / 2 + 12}
             cy={VOID_SIZE / 2 - 8}
@@ -1156,9 +1211,19 @@ export namespace NoolStageBuilder {
           >
             {state.voidStack.length || ""}
           </text>
+          {/* Voided tree — hidden (opacity 0) but present for framework element lookup */}
           {state.voided &&
-            renderTree(state.voided, { pointerEventsNone: true }).element}
+            renderTree(state.voided, { pointerEventsNone: true, opacity: 0 }).element}
         </g>
+
+        {/* Top of void stack — invisible until dragged, overlaps trash icon for click target */}
+        {!state.voided && state.voidStack.length > 0 &&
+          renderTree(state.voidStack[0], {
+            rootTransform: translate(layout.x.void, 0),
+            rootOnDrag: makeVoidDrag(state, drag),
+            opacity: draggedId === state.voidStack[0].id ? 1 : 0,
+            flatZIndex: true,
+          }).element}
       </g>
     );
   };
