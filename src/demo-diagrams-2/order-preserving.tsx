@@ -1,15 +1,24 @@
 import { curveCardinal, line } from "d3-shape";
 import _ from "lodash";
+import { useMemo, useState } from "react";
+import { arrowhead } from "../arrows";
+import { ConfigCheckbox } from "../configurable";
+import { DemoDrawer } from "../DemoDrawer";
 import { span, withSnapRadius } from "../DragSpec2";
 import { overlapIntervals } from "../layout";
 import { Drag, Manipulable } from "../manipulable2";
 import { Vec2 } from "../math/vec2";
 import { Svgx } from "../svgx";
 import { Finalizers, pointRef, PointRef } from "../svgx/finalizers";
-import { translate } from "../svgx/helpers";
-import { getAllMorphs, getNodeById, TreeMorph, TreeNode } from "../trees";
-import { DemoDrawer } from "../DemoDrawer";
-import { tree3, tree7 } from "../trees";
+import { path, translate } from "../svgx/helpers";
+import {
+  getAllMorphs,
+  getNodeById,
+  tree3,
+  tree7,
+  TreeMorph,
+  TreeNode,
+} from "../trees";
 
 // returns the path from `node` to another node `n` such that `pred(n)==true`.
 function traverseUntilPred<T>(
@@ -39,23 +48,34 @@ const nodeDist = (a: TreeNode, b: TreeNode) =>
     (n) => n === b
   )!.length;
 
+type Config = {
+  oneNodeAtATime: boolean;
+  showTradRep: boolean;
+};
+
+const defaultConfig: Config = {
+  oneNodeAtATime: false,
+  showTradRep: false,
+};
+
 type State = {
   morph: TreeMorph;
 };
 
-const initialStateFactory = (
-  domainTree: TreeNode,
-  codomainTree: TreeNode
-): State => ({
-  morph: getAllMorphs(domainTree, codomainTree)[0],
-});
+// Pre-compute allMorphs at module level
+const allMorphs3 = getAllMorphs(tree3, tree3);
+const allMorphs7 = getAllMorphs(tree7, tree7);
+
+const initialState3: State = { morph: allMorphs3[0] };
+const initialState7: State = { morph: allMorphs7[0] };
 
 const manipulableFactory = (
   domainTree: TreeNode,
-  codomainTree: TreeNode
+  codomainTree: TreeNode,
+  allMorphs: TreeMorph[],
+  config: Config,
+  yForTradRep: number
 ): Manipulable<State> => {
-  const allMorphs = getAllMorphs(domainTree, codomainTree);
-
   return ({ state, drag }) => {
     const finalizers = new Finalizers();
     const ctx: Ctx = {
@@ -64,11 +84,20 @@ const manipulableFactory = (
       drag,
       allMorphs,
       codomainTree,
+      domainTree,
+      config,
+      yForTradRep,
     };
 
+    const elements: Svgx[] = [];
     const r = drawBgTree(codomainTree, domainTree, ctx);
+    elements.push(r.element);
 
-    const mainTree = <g>{r.element}</g>;
+    if (config.showTradRep) {
+      elements.push(...drawTradRep(ctx));
+    }
+
+    const mainTree = <g>{elements}</g>;
     return <g>{[mainTree, ...finalizers.run(mainTree)]}</g>;
   };
 };
@@ -79,6 +108,9 @@ type Ctx = {
   drag: Drag<State>;
   allMorphs: TreeMorph[];
   codomainTree: TreeNode;
+  domainTree: TreeNode;
+  config: Config;
+  yForTradRep: number;
 };
 
 // # Drag spec
@@ -86,26 +118,37 @@ type Ctx = {
 function dragSpec(draggedNodeId: string, ctx: Ctx) {
   const domainIds = Object.keys(ctx.morph);
 
-  // Group morphisms by where they send draggedNodeId
-  const morphsByDragTarget = _.groupBy(
-    ctx.allMorphs,
-    (targetMorph) => targetMorph[draggedNodeId]
-  );
+  let newMorphs;
 
-  // For each group, pick the morphism with minimum total movement
-  const newMorphs = Object.values(morphsByDragTarget).map(
-    (morphsWithDragTarget) =>
-      _.minBy(morphsWithDragTarget, (newMorph) =>
-        _.sum(
-          domainIds.map((nodeId) =>
-            nodeDist(
-              getNodeById(ctx.codomainTree, ctx.morph[nodeId])!,
-              getNodeById(ctx.codomainTree, newMorph[nodeId])!
+  if (ctx.config.oneNodeAtATime) {
+    newMorphs = ctx.allMorphs.filter((newMorph) =>
+      domainIds.every(
+        (nodeId) =>
+          nodeId === draggedNodeId || ctx.morph[nodeId] === newMorph[nodeId]
+      )
+    );
+  } else {
+    // Group morphisms by where they send draggedNodeId
+    const morphsByDragTarget = _.groupBy(
+      ctx.allMorphs,
+      (targetMorph) => targetMorph[draggedNodeId]
+    );
+
+    // For each group, pick the morphism with minimum total movement
+    newMorphs = Object.values(morphsByDragTarget).map(
+      (morphsWithDragTarget) =>
+        _.minBy(morphsWithDragTarget, (newMorph) =>
+          _.sum(
+            domainIds.map((nodeId) =>
+              nodeDist(
+                getNodeById(ctx.codomainTree, ctx.morph[nodeId])!,
+                getNodeById(ctx.codomainTree, newMorph[nodeId])!
+              )
             )
           )
-        )
-      )!
-  );
+        )!
+    );
+  }
 
   return withSnapRadius(span(newMorphs.map((morph) => ({ morph }))), 20, {
     transition: true,
@@ -255,10 +298,7 @@ function drawBgNodeWithFgNodesInside(
   for (const fgNode of fgNodesHere) {
     const r = drawFgSubtreeInBgNode(fgNode, bgNode.id, ctx);
     elementsInRect.push(
-      <g
-        id={`fg-in-bg-${bgNode.id}-${fgNode.id}`}
-        transform={translate(x, y)}
-      >
+      <g id={`fg-in-bg-${bgNode.id}-${fgNode.id}`} transform={translate(x, y)}>
         {r.element}
       </g>
     );
@@ -427,27 +467,204 @@ function drawFgSubtreeInBgNode(
   };
 }
 
-// Module-level instances to avoid recreating on each render
-const manipulable3 = manipulableFactory(tree3, tree3);
-const initialState3 = initialStateFactory(tree3, tree3);
-const manipulable7 = manipulableFactory(tree7, tree7);
-const initialState7 = initialStateFactory(tree7, tree7);
+// # Traditional representation
 
-export const OrderPreserving = () => (
-  <div>
-    <h3 className="text-md font-medium italic mt-6 mb-1">3→3</h3>
-    <DemoDrawer
-      manipulable={manipulable3}
-      initialState={initialState3}
-      width={300}
-      height={400}
-    />
-    <h3 className="text-md font-medium italic mt-6 mb-1">7→7</h3>
-    <DemoDrawer
-      manipulable={manipulable7}
-      initialState={initialState7}
-      width={400}
-      height={600}
-    />
-  </div>
-);
+function nodeSvgId(nodeId: string, prefix: string): string {
+  return `${prefix}-${nodeId}`;
+}
+
+function drawTradRep(ctx: Ctx): Svgx[] {
+  const elements: Svgx[] = [];
+
+  const domR = drawTree(ctx.domainTree, "domain", "fg", ctx.finalizers);
+  elements.push(
+    <g transform={translate(0, ctx.yForTradRep)}>{domR.element}</g>
+  );
+
+  const codR = drawTree(ctx.codomainTree, "codomain", "bg", ctx.finalizers);
+  elements.push(
+    <g transform={translate(domR.w + 40, ctx.yForTradRep)}>{codR.element}</g>
+  );
+
+  for (const [domElem, codElem] of Object.entries(ctx.morph)) {
+    ctx.finalizers.push((resolve) => {
+      const from = resolve(pointRef(nodeSvgId(domElem, "domain"), Vec2(0)));
+      const to = resolve(pointRef(nodeSvgId(codElem, "codomain"), Vec2(0)));
+      const mid = from.lerp(to, 0.5).add(Vec2(0, -from.dist(to) / 6));
+      const fromAdjusted = from.towards(mid, FG_NODE_SIZE / 2);
+      const toAdjusted = to.towards(mid, FG_NODE_SIZE / 2);
+
+      return (
+        <g id={`morphism-arrow-${domElem}`}>
+          <path
+            d={path("M", fromAdjusted, "Q", mid, toAdjusted.towards(mid, 5))}
+            fill="none"
+            stroke="#4287f5"
+            strokeWidth={2}
+          />
+          {arrowhead({
+            tip: toAdjusted,
+            headAngleRad: Math.PI / 10,
+            direction: to.sub(mid),
+            headLength: 15,
+            fill: "#4287f5",
+            "data-on-drag": ctx.drag(() => dragSpec(domElem, ctx)),
+          })}
+        </g>
+      );
+    });
+  }
+
+  return elements;
+}
+
+function drawTree(
+  node: TreeNode,
+  idPrefix: string,
+  style: "fg" | "bg",
+  finalizers: Finalizers
+): {
+  element: Svgx;
+  w: number;
+  h: number;
+} {
+  const r = drawSubtree(node, idPrefix, style, finalizers);
+  return {
+    element: r.element,
+    w: r.w,
+    h: r.h,
+  };
+}
+
+function drawSubtree(
+  node: TreeNode,
+  idPrefix: string,
+  style: "fg" | "bg",
+  finalizers: Finalizers
+): {
+  element: Svgx;
+  w: number;
+  h: number;
+} {
+  const childrenElements: Svgx[] = [];
+  let childrenX = 0;
+  let childrenMaxH = 0;
+
+  for (const [i, child] of node.children.entries()) {
+    if (i > 0) {
+      childrenX += FG_NODE_GAP;
+    }
+    const r = drawSubtree(child, idPrefix, style, finalizers);
+    childrenElements.push(
+      <g
+        id={`${idPrefix}-child-${node.id}-${child.id}`}
+        transform={translate(childrenX, 0)}
+      >
+        {r.element}
+      </g>
+    );
+    childrenX += r.w;
+    childrenMaxH = Math.max(childrenMaxH, r.h);
+
+    finalizers.push((resolve) => {
+      const from = resolve(pointRef(nodeSvgId(node.id, idPrefix), Vec2(0)));
+      const to = resolve(pointRef(nodeSvgId(child.id, idPrefix), Vec2(0)));
+      return (
+        <line
+          id={`${idPrefix}-edge-${node.id}-${child.id}`}
+          {...from.xy1()}
+          {...to.xy2()}
+          stroke={style === "fg" ? "black" : "lightgray"}
+          strokeWidth={style === "fg" ? 2 : 12}
+        />
+      );
+    });
+  }
+
+  let nodeX;
+  const childrenContainer =
+    childrenElements.length > 0 ? (
+      <g transform={translate(0, FG_NODE_SIZE + FG_NODE_GAP)}>
+        {childrenElements}
+      </g>
+    ) : null;
+
+  if (childrenX < FG_NODE_SIZE) {
+    nodeX = FG_NODE_SIZE / 2;
+  } else {
+    nodeX = childrenX / 2;
+  }
+
+  const nodeCenter = Vec2(nodeX, FG_NODE_SIZE / 2);
+
+  return {
+    element: (
+      <g>
+        <circle
+          id={nodeSvgId(node.id, idPrefix)}
+          transform={translate(nodeCenter)}
+          cx={0}
+          cy={0}
+          r={FG_NODE_SIZE / 2}
+          fill={style === "fg" ? "black" : "lightgray"}
+        />
+        {childrenContainer}
+      </g>
+    ),
+    w: Math.max(childrenX, FG_NODE_SIZE),
+    h: FG_NODE_SIZE + (childrenMaxH > 0 ? FG_NODE_GAP + childrenMaxH : 0),
+  };
+}
+
+// # Component
+
+export const OrderPreserving = () => {
+  const [config, setConfig] = useState(defaultConfig);
+
+  const manipulable3 = useMemo(
+    () => manipulableFactory(tree3, tree3, allMorphs3, config, 300),
+    [config]
+  );
+  const manipulable7 = useMemo(
+    () => manipulableFactory(tree7, tree7, allMorphs7, config, 500),
+    [config]
+  );
+
+  return (
+    <div className="flex gap-4 items-start">
+      <div>
+        <h3 className="text-md font-medium italic mt-6 mb-1">3→3</h3>
+        <DemoDrawer
+          manipulable={manipulable3}
+          initialState={initialState3}
+          width={300}
+          height={config.showTradRep ? 700 : 400}
+        />
+        <h3 className="text-md font-medium italic mt-6 mb-1">7→7</h3>
+        <DemoDrawer
+          manipulable={manipulable7}
+          initialState={initialState7}
+          width={config.showTradRep ? 600 : 400}
+          height={config.showTradRep ? 1100 : 600}
+        />
+      </div>
+      <div className="bg-gray-50 rounded p-3 shrink-0 sticky top-4">
+        <div className="text-xs font-medium text-gray-700 mb-2">Options</div>
+        <div className="flex flex-col gap-1">
+          <ConfigCheckbox
+            value={config.oneNodeAtATime}
+            onChange={(v) => setConfig((c) => ({ ...c, oneNodeAtATime: v }))}
+          >
+            Only drag one node at a time
+          </ConfigCheckbox>
+          <ConfigCheckbox
+            value={config.showTradRep}
+            onChange={(v) => setConfig((c) => ({ ...c, showTradRep: v }))}
+          >
+            Show traditional representation
+          </ConfigCheckbox>
+        </div>
+      </div>
+    </div>
+  );
+};
