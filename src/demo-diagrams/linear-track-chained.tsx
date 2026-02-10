@@ -1,6 +1,5 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -11,7 +10,7 @@ const SIZE = 40;
 
 const initialState: State = { value: 0 };
 
-const draggable: Draggable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, d }) => (
   <g>
     <polyline
       points={[0, 1, 2, 3]
@@ -29,12 +28,14 @@ const draggable: Draggable<State> = ({ state, drag }) => (
       width={SIZE}
       height={SIZE}
       rx={4}
-      data-on-drag={drag(() =>
-        closest([
-          state.value > 0 && span([state, { value: state.value - 1 }]),
-          state.value < 3 && span([state, { value: state.value + 1 }]),
-        ]).withSnapRadius(10, { chain: true })
-      )}
+      data-on-drag={() =>
+        d
+          .closest([
+            state.value > 0 && d.span([state, { value: state.value - 1 }]),
+            state.value < 3 && d.span([state, { value: state.value + 1 }]),
+          ])
+          .withSnapRadius(10, { chain: true })
+      }
     />
   </g>
 );

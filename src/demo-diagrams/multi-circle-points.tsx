@@ -1,7 +1,7 @@
 import { produce } from "immer";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, lessThan, vary } from "../DragSpec";
+import { lessThan } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 
@@ -51,7 +51,7 @@ const getPointAbsolutePos = (state: State, point: Point): Vec2 => {
   return Vec2(circle.x + point.dx, circle.y + point.dy);
 };
 
-const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   return (
     <g>
       {/* Render circles */}
@@ -69,13 +69,13 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
               strokeWidth={isCircleDragged ? 3 : 2}
               strokeDasharray={isCircleDragged ? undefined : "6 4"}
               data-z-index={isCircleDragged ? 2 : 1}
-              data-on-drag={drag(
-                vary(
+              data-on-drag={() =>
+                d.vary(
                   state,
                   ["circles", circleIdx, "x"],
                   ["circles", circleIdx, "y"]
                 )
-              )}
+              }
             />
           </g>
         );
@@ -101,7 +101,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
             }
           });
 
-          return vary(
+          return d.vary(
             stateInCircle,
             ["points", pointIdx, "dx"],
             ["points", pointIdx, "dy"],
@@ -126,7 +126,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
             stroke="white"
             strokeWidth={2}
             data-z-index={isPointDragged ? 10 : 3}
-            data-on-drag={drag(closest(varySpecs))}
+            data-on-drag={() => d.closest(varySpecs)}
           />
         );
       })}

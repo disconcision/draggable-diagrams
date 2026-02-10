@@ -3,7 +3,6 @@ import _ from "lodash";
 import { amb, produceAmb } from "../amb";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type Tile = { key: string; label: string };
@@ -27,7 +26,7 @@ const initialState: State = {
   ],
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const TILE_SIZE = 50;
 
   const drawTile = ({
@@ -37,7 +36,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
   }: {
     tile: Tile;
     transform: string;
-    onDrag?: ReturnType<typeof drag>;
+    onDrag?: () => ReturnType<typeof d.closest>;
   }) => {
     const id = `tile-${tile.key}`;
     return (
@@ -89,7 +88,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
         drawTile({
           tile,
           transform: translate(5 + idx * TILE_SIZE, 0),
-          onDrag: drag(() => {
+          onDrag: () => {
             const storeItem = tile;
 
             const stateWithout = produce(state, (draft) => {
@@ -101,10 +100,10 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               draft.items.splice(insertIdx, 0, storeItem);
             });
 
-            return closest(statesWith.map((s) => floating(s))).withBackground(
-              floating(stateWithout)
-            );
-          }),
+            return d
+              .closest(statesWith.map((s) => d.floating(s)))
+              .withBackground(d.floating(stateWithout));
+          },
         })
       )}
 
@@ -113,7 +112,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
         drawTile({
           tile,
           transform: translate(idx * TILE_SIZE, toolbarHeight + 10),
-          onDrag: drag(() => {
+          onDrag: () => {
             const draggedItem = tile;
 
             const stateWithout = produce(state, (draft) => {
@@ -133,12 +132,13 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               draft.deleted = undefined;
             });
 
-            return closest([
-              ...rearrangeStates.map((s) => floating(s)),
-              // ...floatings(rearrangeStates),
-              floating(deleteState).andThen(postDeleteState),
-            ]).withBackground(floating(stateWithout));
-          }),
+            return d
+              .closest([
+                ...d.floating(rearrangeStates),
+                d.floating(deleteState).andThen(postDeleteState),
+              ])
+              .withBackground(d.floating(stateWithout));
+          },
         })
       )}
 

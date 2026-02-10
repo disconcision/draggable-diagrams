@@ -1,6 +1,6 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, vary } from "../DragSpec";
+
 import { translate } from "../svgx/helpers";
 
 // New v2-only demo: a planet that can orbit around different stars.
@@ -26,7 +26,7 @@ const initialState: State = {
   angle: 0,
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const star = STARS[state.currentStar];
   const planetX = star.x + ORBIT_RADIUS * Math.cos(state.angle);
   const planetY = star.y + ORBIT_RADIUS * Math.sin(state.angle);
@@ -67,13 +67,13 @@ const draggable: Draggable<State> = ({ state, drag }) => {
         id="planet"
         transform={translate(planetX, planetY)}
         data-z-index={1}
-        data-on-drag={drag(() =>
-          closest(
+        data-on-drag={() =>
+          d.closest(
             STARS.map((_, starIdx) =>
-              vary({ currentStar: starIdx, angle: state.angle }, ["angle"])
+              d.vary({ currentStar: starIdx, angle: state.angle }, ["angle"])
             )
           )
-        )}
+        }
       >
         <circle r={PLANET_RADIUS} fill="#333" stroke="#666" strokeWidth={1} />
       </g>

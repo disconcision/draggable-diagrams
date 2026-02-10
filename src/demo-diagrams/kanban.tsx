@@ -3,7 +3,6 @@ import _ from "lodash";
 import { amb, produceAmb, require } from "../amb";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floatings, span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type Card = {
@@ -51,7 +50,7 @@ const CARD_GAP = 5;
 const HEADER_HEIGHT = 25;
 const COLUMN_PADDING = 5;
 
-const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   return (
     <g>
       {state.columns.map((column, colIdx) => {
@@ -74,11 +73,11 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
             id={`column-${column.id}`}
             transform={translate(colX, 0)}
             data-z-index={draggedId === `column-${column.id}` ? 5 : 0}
-            data-on-drag={drag(() =>
-              span([state, ...columnReorderStates]).withSnapRadius(20, {
+            data-on-drag={() =>
+              d.span([state, ...columnReorderStates]).withSnapRadius(20, {
                 transition: true,
               })
-            )}
+            }
           >
             {/* Column background */}
             <rect
@@ -127,13 +126,13 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
                   data-z-index={
                     isDragged ? 10 : draggedId === `column-${column.id}` ? 6 : 1
                   }
-                  data-on-drag={drag(() =>
-                    closest(
-                      floatings(cardMoveStates, {
+                  data-on-drag={() =>
+                    d.closest(
+                      d.floating(cardMoveStates, {
                         ghost: { opacity: 0.3 },
                       })
                     )
-                  )}
+                  }
                 >
                   <rect
                     x={0}

@@ -3,7 +3,6 @@ import _ from "lodash";
 import { amb, produceAmb } from "../amb";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating, vary } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 // v2 port of demo-diagrams/canvas-of-lists.tsx
@@ -66,7 +65,7 @@ const initialState: State = {
   },
 };
 
-const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   const TILE_SIZE = 50;
   const TILE_GAP = 8;
   const ROW_PADDING = 8;
@@ -82,9 +81,9 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
             id={rowId}
             transform={translate(row.x, row.y)}
             data-z-index={isDragged ? 10 : 0}
-            data-on-drag={drag(() =>
-              vary(state, ["rows", rowId, "x"], ["rows", rowId, "y"])
-            )}
+            data-on-drag={() =>
+              d.vary(state, ["rows", rowId, "x"], ["rows", rowId, "y"])
+            }
           >
             <rect
               width={
@@ -124,7 +123,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
                   ROW_PADDING
                 )}
                 data-z-index={isDragged ? 11 : 1}
-                data-on-drag={drag(() => {
+                data-on-drag={() => {
                   const stateWithout = produce(state, (draft) => {
                     draft.rows[rowId].items.splice(idx, 1);
                     if (draft.rows[rowId].items.length === 0) {
@@ -149,15 +148,16 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
                       y: 0,
                     };
                   });
-                  return closest(statesWith.map((s) => floating(s)))
+                  return d
+                    .closest(statesWith.map((s) => d.floating(s)))
                     .withBackground(
-                      vary(
+                      d.vary(
                         stateWithNewRow,
                         ["rows", newRowId, "x"],
                         ["rows", newRowId, "y"]
                       )
                     );
-                })}
+                }}
               >
                 <rect
                   x={0}

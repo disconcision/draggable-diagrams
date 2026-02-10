@@ -1,12 +1,7 @@
 import { produce } from "immer";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import {
-  closest,
-  just,
-  transitionToAndThen,
-  vary,
-} from "../DragSpec";
+import { transitionToAndThen } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 const NODE_W = 90;
@@ -103,24 +98,24 @@ const initialState: State = {
   },
 };
 
-const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   function endDragSpec(wireId: string, endKey: "from" | "to") {
     // ways to snap it
     const side = endKey === "to" ? "in" : "out";
     const snapSpecs = allPorts(side).map(({ nodeId, port }) =>
-      just(
-        produce(state, (d) => {
-          d.wires[wireId][endKey] = { type: "on-port", nodeId, port };
+      d.just(
+        produce(state, (draft) => {
+          draft.wires[wireId][endKey] = { type: "on-port", nodeId, port };
         })
       )
     );
 
     // ways to leave it danglin'
     const [px, py] = endPos(state.nodes, state.wires[wireId][endKey]);
-    const freeState = produce(state, (d) => {
-      d.wires[wireId][endKey] = { type: "free", x: px, y: py };
+    const freeState = produce(state, (draft) => {
+      draft.wires[wireId][endKey] = { type: "free", x: px, y: py };
     });
-    let varySpec = vary(
+    let varySpec = d.vary(
       freeState,
       ["wires", wireId, endKey, "x"],
       ["wires", wireId, endKey, "y"]
@@ -130,14 +125,14 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
       freeState.wires[wireId].to.type === "free"
     ) {
       varySpec = varySpec.andThen(
-        produce(freeState, (d) => {
-          delete d.wires[wireId];
+        produce(freeState, (draft) => {
+          delete draft.wires[wireId];
         })
       );
     }
 
     // put 'em together
-    return closest(snapSpecs).withBackground(varySpec, { radius: 20 });
+    return d.closest(snapSpecs).withBackground(varySpec, { radius: 20 });
   }
 
   return (
@@ -165,7 +160,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
               stroke={wire.from.type === "free" ? "#999" : "none"}
               strokeWidth={wire.from.type === "free" ? 1 : 0}
               data-z-index={3}
-              data-on-drag={drag(() => endDragSpec(wid, "from"))}
+              data-on-drag={() => endDragSpec(wid, "from")}
             />
             <circle
               id={`wire-${wid}-to`}
@@ -175,7 +170,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
               stroke={wire.to.type === "free" ? "#999" : "none"}
               strokeWidth={wire.to.type === "free" ? 1 : 0}
               data-z-index={3}
-              data-on-drag={drag(() => endDragSpec(wid, "to"))}
+              data-on-drag={() => endDragSpec(wid, "to")}
             />
           </g>
         );
@@ -191,9 +186,9 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
             id={`node-${nid}`}
             transform={translate(node.x, node.y)}
             data-z-index={draggedId === `node-${nid}` ? 5 : 1}
-            data-on-drag={drag(
-              vary(state, ["nodes", nid, "x"], ["nodes", nid, "y"])
-            )}
+            data-on-drag={() =>
+              d.vary(state, ["nodes", nid, "x"], ["nodes", nid, "y"])
+            }
           >
             <rect
               width={NODE_W}
@@ -243,12 +238,12 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
                     id={`${side === "in" ? "port" : "oport"}-${nid}-${port}`}
                     data-on-drag={
                       !connected &&
-                      drag(() => {
+                      (() => {
                         const [px, py] = portPos(state.nodes, nid, port);
                         const wid = nextWireId(state);
                         const endKey = side === "out" ? "to" : "from";
-                        const newState = produce(state, (d) => {
-                          d.wires[wid] =
+                        const newState = produce(state, (draft) => {
+                          draft.wires[wid] =
                             side === "out"
                               ? {
                                   from: {

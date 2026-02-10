@@ -1,6 +1,5 @@
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { vary } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
@@ -21,7 +20,7 @@ const initialState: State = {
 
 const LEVELS = 7;
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   function dragon(p1: Vec2, p2: Vec2, dir: number, level: number): Svgx[] {
     if (level == 0) {
       return [
@@ -31,7 +30,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
           stroke="black"
           strokeWidth={4}
           strokeLinecap="round"
-          data-on-drag={drag(() => vary(state, ["squareness"]))}
+          data-on-drag={() => d.vary(state, ["squareness"])}
         />,
       ];
     } else {
@@ -55,13 +54,13 @@ const draggable: Draggable<State> = ({ state, drag }) => {
         transform={translate(state.from)}
         r={8}
         fill="red"
-        data-on-drag={drag(() => vary(state, ["from", "x"], ["from", "y"]))}
+        data-on-drag={() => d.vary(state, ["from", "x"], ["from", "y"])}
       />
       <circle
         transform={translate(state.to)}
         r={8}
         fill="blue"
-        data-on-drag={drag(() => vary(state, ["to", "x"], ["to", "y"]))}
+        data-on-drag={() => d.vary(state, ["to", "x"], ["to", "y"])}
       />
     </g>
   );

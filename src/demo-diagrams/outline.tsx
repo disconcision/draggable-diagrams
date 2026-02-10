@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
-import { Drag, Draggable } from "../draggable";
-import { closest, floating, just, span } from "../DragSpec";
+import { Draggable } from "../draggable";
+import { type DragSpecBuilders } from "../DragSpec";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
@@ -174,7 +174,7 @@ function renderTree(
   tree: Tree,
   rootState: Tree,
   draggedId: string | null,
-  drag: Drag<Tree>,
+  d: DragSpecBuilders<Tree>,
   config: Config
 ): {
   elem: Svgx;
@@ -211,7 +211,7 @@ function renderTree(
       <g
         id={tree.id}
         data-z-index={tree.id === draggedId ? 1 : 0}
-        data-on-drag={drag(() => {
+        data-on-drag={() => {
           const stateWithout = structuredClone(rootState);
           let foundNode: Tree | null = null;
           function removeKey(node: Tree): boolean {
@@ -229,18 +229,19 @@ function renderTree(
           }
           removeKey(stateWithout);
           if (!foundNode) {
-            return just(rootState);
+            return d.just(rootState);
           }
 
           const statesWith = insertAtAllPositions(stateWithout, foundNode);
 
           if (config.useFloating) {
-            return closest(statesWith.map((s) => floating(s)))
-              .withBackground(floating(stateWithout));
+            return d
+              .closest(statesWith.map((s) => d.floating(s)))
+              .withBackground(d.floating(stateWithout));
           } else {
-            return span(statesWith);
+            return d.span(statesWith);
           }
-        })}
+        }}
       >
         {block}
         {tree.children.map((child) => {
@@ -248,7 +249,7 @@ function renderTree(
             child,
             rootState,
             draggedId,
-            drag,
+            d,
             config
           );
           const childPositioned = (
@@ -302,9 +303,9 @@ function insertAtAllPositions(tree: Tree, child: Tree): Tree[] {
 }
 
 function draggableFactory(config: Config): Draggable<State> {
-  return ({ state, drag, draggedId }) => (
+  return ({ state, d, draggedId }) => (
     <g transform={translate(10, 10)}>
-      {renderTree(state, state, draggedId, drag, config).elem}
+      {renderTree(state, state, draggedId, d, config).elem}
     </g>
   );
 }

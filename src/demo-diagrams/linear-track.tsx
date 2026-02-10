@@ -1,6 +1,5 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -12,7 +11,7 @@ const TRACK_LENGTH = 60;
 
 const initialState: State = { value: false };
 
-const draggable: Draggable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, d }) => (
   <g>
     <line
       x1={SQUARE_SIZE / 2}
@@ -29,11 +28,12 @@ const draggable: Draggable<State> = ({ state, drag }) => (
       width={SQUARE_SIZE}
       height={SQUARE_SIZE}
       rx={4}
-      data-on-drag={drag(() =>
-        span([{ value: true }, { value: false }])
+      data-on-drag={() =>
+        d
+          .span([{ value: true }, { value: false }])
           .withSnapRadius(10)
           .withDropTransition("elastic-out")
-      )}
+      }
     />
   </g>
 );

@@ -3,7 +3,7 @@ import { amb, produceAmb, require } from "../amb";
 import { arrowhead } from "../arrows";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { span, vary } from "../DragSpec";
+
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 import { uPairs } from "../utils";
@@ -44,7 +44,7 @@ function stateIsValid(state: State) {
   );
 }
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const NODE_R = 20;
 
   return (
@@ -92,14 +92,13 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               headLength: arrowHeadLength,
               id: `head-${key}`,
               fill: "black",
-              "data-on-drag": drag(() =>
-                span(
+              "data-on-drag": () =>
+                d.span(
                   produceAmb(state, (draft) => {
                     draft.edges[key].to = amb(Object.keys(state.nodes));
                     require(stateIsValid(draft));
                   })
-                )
-              ),
+                ),
               "data-z-index": 1,
             })}
             <circle
@@ -107,14 +106,14 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               transform={translate(tailPos)}
               r={5}
               fill="black"
-              data-on-drag={drag(() =>
-                span(
+              data-on-drag={() =>
+                d.span(
                   produceAmb(state, (draft) => {
                     draft.edges[key].from = amb(Object.keys(state.nodes));
                     require(stateIsValid(draft));
                   })
                 )
-              )}
+              }
               data-z-index={1}
             />
           </g>
@@ -128,9 +127,9 @@ const draggable: Draggable<State> = ({ state, drag }) => {
           transform={translate(node.x, node.y)}
           r={NODE_R}
           fill="black"
-          data-on-drag={drag(
-            vary(state, ["nodes", key, "x"], ["nodes", key, "y"])
-          )}
+          data-on-drag={() =>
+            d.vary(state, ["nodes", key, "x"], ["nodes", key, "y"])
+          }
         />
       ))}
     </g>

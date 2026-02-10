@@ -4,7 +4,6 @@ import { SVGProps } from "react";
 import { amb, produceAmb } from "../amb";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating, vary } from "../DragSpec";
 import { getAtPath, PathIn } from "../paths";
 import { translate } from "../svgx/helpers";
 
@@ -75,7 +74,7 @@ const initialState: State = {
   ],
 };
 
-const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   const TILE_SIZE = 50;
   const TILE_GAP = 8;
   const ROW_PADDING = 8;
@@ -117,7 +116,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
   ) {
     const isDragged = draggedId === item.id;
 
-    const onDrag = drag(() => {
+    const onDrag = () => {
       // Remove item from current location
       const stateWithout = produce(state, (draft) => {
         const items = getAtPath<State, (Tile | Row)[]>(draft, itemsPath);
@@ -153,15 +152,16 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
         }
       });
 
-      return closest(statesWith.map((s) => floating(s)))
+      return d
+        .closest(statesWith.map((s) => d.floating(s)))
         .withBackground(
-          vary(
+          d.vary(
             stateWithTopRow,
             ["rows", stateWithTopRow.rows.length - 1, "x"],
             ["rows", stateWithTopRow.rows.length - 1, "y"]
           )
         );
-    });
+    };
 
     const effectiveZIndex = isDragged ? zIndexBase + 10 : zIndexBase;
 

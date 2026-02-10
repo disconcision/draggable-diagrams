@@ -1,6 +1,6 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { lessThan, vary } from "../DragSpec";
+import { lessThan } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 
@@ -16,7 +16,7 @@ const trackLeft = 20;
 const trackRight = 280;
 const trackY = 50;
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const knobX = trackLeft + (state.value / 100) * (trackRight - trackLeft);
 
   return (
@@ -84,11 +84,11 @@ const draggable: Draggable<State> = ({ state, drag }) => {
         transform={translate(Vec2(knobX, trackY))}
         r={12}
         fill="black"
-        data-on-drag={drag(
-          vary(state, ["value"], {
+        data-on-drag={() =>
+          d.vary(state, ["value"], {
             constraint: (s) => [lessThan(20, s.value), lessThan(s.value, 80)],
           })
-        )}
+        }
       />
       {/* value display */}
       <text

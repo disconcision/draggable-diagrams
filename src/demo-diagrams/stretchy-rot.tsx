@@ -1,6 +1,5 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { vary } from "../DragSpec";
 import { rotateDeg, scale, translate } from "../svgx/helpers";
 
 type State = {
@@ -10,7 +9,7 @@ type State = {
 
 const initialState: State = { angle: 0, scaleX: 1 };
 
-const draggable: Draggable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, d }) => (
   <circle
     transform={
       translate(100, 100) +
@@ -21,7 +20,7 @@ const draggable: Draggable<State> = ({ state, drag }) => (
     cy={0}
     r={50}
     fill="lightblue"
-    data-on-drag={drag(() => vary(state, ["angle"], ["scaleX"]))}
+    data-on-drag={() => d.vary(state, ["angle"], ["scaleX"])}
   />
 );
 

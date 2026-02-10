@@ -1,6 +1,5 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { vary } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 
@@ -12,7 +11,7 @@ const initialState: State = {
   angle: 0,
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const center = Vec2(100, 100);
   const radius = 100;
   const knobPos = Vec2(radius, 0).rotateDeg(state.angle).add(center);
@@ -23,7 +22,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
         transform={translate(knobPos)}
         r={20}
         fill="black"
-        data-on-drag={drag(vary(state, ["angle"]))}
+        data-on-drag={() => d.vary(state, ["angle"])}
       />
       <line
         {...center.xy1()}

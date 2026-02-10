@@ -2,7 +2,6 @@ import { produce } from "immer";
 import _ from "lodash";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -17,7 +16,7 @@ const initialState: State = {
   ],
 };
 
-const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   const TILE_SIZE = 50;
   const ROW_PADDING = 5;
 
@@ -40,7 +39,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
                   : 0
               }
               transform={translate(idx * TILE_SIZE + ROW_PADDING, ROW_PADDING)}
-              data-on-drag={drag(() => {
+              data-on-drag={() => {
                 const draggedRowIdx = state.rows.findIndex((r) =>
                   r.includes(p)
                 );
@@ -61,8 +60,8 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
                     );
                   }
                 }
-                return span(states).withSnapRadius(10);
-              })}
+                return d.span(states).withSnapRadius(10);
+              }}
             >
               <rect
                 x={0}

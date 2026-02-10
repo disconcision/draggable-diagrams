@@ -1,6 +1,5 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { vary } from "../DragSpec";
 import { rotateDeg, translate } from "../svgx/helpers";
 
 type State = {
@@ -11,7 +10,7 @@ const initialState: State = {
   angle: 0,
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const radius = 100;
 
   return (
@@ -24,7 +23,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
           cy={0}
           r={20}
           fill="black"
-          data-on-drag={drag(vary(state, ["angle"]))}
+          data-on-drag={() => d.vary(state, ["angle"])}
         />
       </g>
     </g>

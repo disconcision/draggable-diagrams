@@ -3,7 +3,6 @@ import _ from "lodash";
 import { amb, produceAmb } from "../amb";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 // v2 port of demo-diagrams/list-of-lists.tsx
@@ -51,7 +50,7 @@ const initialState: State = {
   ],
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const TILE_SIZE = 50;
   const TILE_GAP = 8;
   const ROW_PADDING = 8;
@@ -69,7 +68,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               0,
               rowIdx * (TILE_SIZE + ROW_PADDING * 2 + ROW_GAP)
             )}
-            data-on-drag={drag(() => {
+            data-on-drag={() => {
               const stateWithout = produce(state, (draft) => {
                 draft.rows.splice(rowIdx, 1);
               });
@@ -78,9 +77,10 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                   draft.rows.splice(newIdx, 0, row);
                 })
               );
-              return closest(statesWith.map((s) => floating(s)))
-                .withBackground(floating(stateWithout));
-            })}
+              return d
+                .closest(statesWith.map((s) => d.floating(s)))
+                .withBackground(d.floating(stateWithout));
+            }}
           >
             <rect
               width={
@@ -120,7 +120,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                     ROW_PADDING,
                   ROW_PADDING
                 )}
-                data-on-drag={drag(() => {
+                data-on-drag={() => {
                   const stateWithout = produce(state, (draft) => {
                     draft.rows[rowIdx].items.splice(idx, 1);
                   });
@@ -129,9 +129,10 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                     const newColIdx = amb(_.range(newRow.items.length + 1));
                     newRow.items.splice(newColIdx, 0, p);
                   });
-                  return closest(statesWith.map((s) => floating(s)))
-                    .withBackground(floating(stateWithout).andThen(state));
-                })}
+                  return d
+                    .closest(statesWith.map((s) => d.floating(s)))
+                    .withBackground(d.floating(stateWithout).andThen(state));
+                }}
               >
                 <rect
                   x={0}

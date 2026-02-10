@@ -2,7 +2,7 @@ import _ from "lodash";
 import { useMemo, useState } from "react";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span } from "../DragSpec";
+
 import { Vec2 } from "../math/vec2";
 import { inXYWH } from "../math/xywh";
 import { translate } from "../svgx/helpers";
@@ -67,7 +67,7 @@ const defaultConfig: Config = {
 };
 
 function draggableFactory(config: Config): Draggable<State> {
-  return ({ state, drag }) => {
+  return ({ state, d }) => {
     const TILE_SIZE = 50;
 
     function isInBounds(pos: Vec2): boolean {
@@ -117,33 +117,34 @@ function draggableFactory(config: Config): Draggable<State> {
             data-z-index={object.type === "goal" ? 1 : 0}
             data-on-drag={
               config.levelEditable
-                ? drag(() =>
-                    closest(
-                      (
-                        [
-                          [-1, 0],
-                          [1, 0],
-                          [0, -1],
-                          [0, 1],
-                        ] as const
-                      )
-                        .map((d) => {
-                          const newLoc = object.pos.add(d);
-                          if (!isInBounds(newLoc)) return;
-                          return span([
-                            state,
-                            {
-                              ...state,
-                              objects: {
-                                ...state.objects,
-                                [id]: { ...object, pos: newLoc },
+                ? () =>
+                    d
+                      .closest(
+                        (
+                          [
+                            [-1, 0],
+                            [1, 0],
+                            [0, -1],
+                            [0, 1],
+                          ] as const
+                        )
+                          .map((dir) => {
+                            const newLoc = object.pos.add(dir);
+                            if (!isInBounds(newLoc)) return;
+                            return d.span([
+                              state,
+                              {
+                                ...state,
+                                objects: {
+                                  ...state.objects,
+                                  [id]: { ...object, pos: newLoc },
+                                },
                               },
-                            },
-                          ]);
-                        })
-                        .filter(defined)
-                    ).withSnapRadius(3, { transition: true, chain: true })
-                  )
+                            ]);
+                          })
+                          .filter(defined)
+                      )
+                      .withSnapRadius(3, { transition: true, chain: true })
                 : undefined
             }
           >
@@ -185,49 +186,51 @@ function draggableFactory(config: Config): Draggable<State> {
             state.player.y * TILE_SIZE
           )}
           data-z-index={2}
-          data-on-drag={drag(() =>
-            closest(
-              (
-                [
-                  [-1, 0],
-                  [1, 0],
-                  [0, -1],
-                  [0, 1],
-                ] as const
-              )
-                .map((d) => {
-                  const curLoc = Vec2(state.player);
-                  const newLoc = curLoc.add(d);
-                  if (!isFloor(newLoc)) return;
+          data-on-drag={() =>
+            d
+              .closest(
+                (
+                  [
+                    [-1, 0],
+                    [1, 0],
+                    [0, -1],
+                    [0, 1],
+                  ] as const
+                )
+                  .map((dir) => {
+                    const curLoc = Vec2(state.player);
+                    const newLoc = curLoc.add(dir);
+                    if (!isFloor(newLoc)) return;
 
-                  const boxId = idOfBoxAt(newLoc);
-                  if (boxId === undefined) {
-                    return span([state, { ...state, player: newLoc }]);
-                  }
+                    const boxId = idOfBoxAt(newLoc);
+                    if (boxId === undefined) {
+                      return d.span([state, { ...state, player: newLoc }]);
+                    }
 
-                  // Box present, try to push
-                  const boxNewLoc = newLoc.add(d);
-                  if (!isFloor(boxNewLoc)) return;
-                  if (idOfBoxAt(boxNewLoc) !== undefined) return;
+                    // Box present, try to push
+                    const boxNewLoc = newLoc.add(dir);
+                    if (!isFloor(boxNewLoc)) return;
+                    if (idOfBoxAt(boxNewLoc) !== undefined) return;
 
-                  return span([
-                    state,
-                    {
-                      ...state,
-                      player: newLoc,
-                      objects: {
-                        ...state.objects,
-                        [boxId]: {
-                          ...state.objects[boxId],
-                          pos: boxNewLoc,
+                    return d.span([
+                      state,
+                      {
+                        ...state,
+                        player: newLoc,
+                        objects: {
+                          ...state.objects,
+                          [boxId]: {
+                            ...state.objects[boxId],
+                            pos: boxNewLoc,
+                          },
                         },
                       },
-                    },
-                  ]);
-                })
-                .filter(defined)
-            ).withSnapRadius(3, { transition: true, chain: true })
-          )}
+                    ]);
+                  })
+                  .filter(defined)
+              )
+              .withSnapRadius(3, { transition: true, chain: true })
+          }
         >
           <rect
             x={0}

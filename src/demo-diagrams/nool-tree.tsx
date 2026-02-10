@@ -9,8 +9,8 @@ import {
   Tree,
 } from "../asts";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
-import { Drag, Draggable } from "../draggable";
-import { closest, span } from "../DragSpec";
+import { Draggable } from "../draggable";
+import { type DragSpecBuilders } from "../DragSpec";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
@@ -167,14 +167,13 @@ const defaultActiveRewriteSets = rewriteSets.map(
 );
 
 function draggableFactory(activeRewrites: Rewrite[]): Draggable<State> {
-  return ({ state, drag }) =>
-    renderTree(state, state, drag, activeRewrites).element;
+  return ({ state, d }) => renderTree(state, state, d, activeRewrites).element;
 }
 
 function renderTree(
   state: State,
   tree: Tree,
-  drag: Drag<State>,
+  d: DragSpecBuilders<State>,
   activeRewrites: Rewrite[]
 ): {
   element: Svgx;
@@ -188,7 +187,7 @@ function renderTree(
   const LABEL_MIN_HEIGHT = 20;
 
   const renderedChildren = tree.children.map((child) =>
-    renderTree(state, child, drag, activeRewrites)
+    renderTree(state, child, d, activeRewrites)
   );
 
   const renderedChildrenElements: Svgx[] = [];
@@ -229,7 +228,7 @@ function renderTree(
         textAnchor="middle"
         fontSize={20}
         fill="black"
-        data-on-drag={drag(() => dragTargets(state, tree.id, activeRewrites))}
+        data-on-drag={() => dragTargets(d, state, tree.id, activeRewrites)}
       >
         {tree.label}
       </text>
@@ -250,13 +249,14 @@ function renderTree(
 }
 
 function dragTargets(
+  d: DragSpecBuilders<State>,
   state: State,
   draggedKey: string,
   activeRewrites: Rewrite[]
 ) {
   const newTrees = allPossibleRewrites(state, activeRewrites, draggedKey);
-  if (newTrees.length === 0) return span([state]);
-  return closest(newTrees.map((newTree) => span([state, newTree])));
+  if (newTrees.length === 0) return d.span([state]);
+  return d.closest(newTrees.map((newTree) => d.span([state, newTree])));
 }
 
 // # Rewrite rule display

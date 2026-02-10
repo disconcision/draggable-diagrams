@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating, just, span } from "../DragSpec";
+
 import { translate } from "../svgx/helpers";
 import { assertNever } from "../utils";
 
@@ -21,7 +21,7 @@ const initialState: State = { posIndex: 0 };
 function draggableFactory(
   mode: "span" | "floating" | "just"
 ): Draggable<State> {
-  return ({ state, drag }) => (
+  return ({ state, d }) => (
     <g>
       {/* background positions */}
       {POSITIONS.map((pos, i) => (
@@ -43,21 +43,21 @@ function draggableFactory(
         width={SQUARE_SIZE}
         height={SQUARE_SIZE}
         rx={4}
-        data-on-drag={drag(() => {
+        data-on-drag={() => {
           const states: State[] = _.range(POSITIONS.length).map((i) => ({
             posIndex: i,
           }));
 
           if (mode === "span") {
-            return span(states);
+            return d.span(states);
           } else if (mode === "floating") {
-            return closest(states.map((s) => floating(s)));
+            return d.closest(states.map((s) => d.floating(s)));
           } else if (mode === "just") {
-            return closest(states.map((s) => just(s)));
+            return d.closest(states.map((s) => d.just(s)));
           } else {
             assertNever(mode);
           }
-        })}
+        }}
       />
       <line
         x1={POSITIONS[0][0] + SQUARE_SIZE / 2}

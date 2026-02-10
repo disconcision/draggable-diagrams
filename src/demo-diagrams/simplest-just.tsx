@@ -1,6 +1,6 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating, just } from "../DragSpec";
+
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -9,7 +9,7 @@ type State = {
 
 const initialState: State = { value: 0 };
 
-const draggable: Draggable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, d }) => (
   <rect
     id="switch"
     transform={translate(state.value * 100, 0)}
@@ -17,14 +17,14 @@ const draggable: Draggable<State> = ({ state, drag }) => (
     y={0}
     width={100}
     height={100}
-    data-on-drag={drag(() =>
-      closest([
-        just({ value: 0 }),
-        floating({ value: 1 }, { ghost: { opacity: 0.5 } }),
-        just({ value: 2 }),
-        floating({ value: 3 }, { ghost: { opacity: 0.5 } }),
+    data-on-drag={() =>
+      d.closest([
+        d.just({ value: 0 }),
+        d.floating({ value: 1 }, { ghost: { opacity: 0.5 } }),
+        d.just({ value: 2 }),
+        d.floating({ value: 3 }, { ghost: { opacity: 0.5 } }),
       ])
-    )}
+    }
   />
 );
 

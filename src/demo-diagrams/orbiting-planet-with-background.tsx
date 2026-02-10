@@ -1,6 +1,6 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, vary } from "../DragSpec";
+
 import { translate } from "../svgx/helpers";
 
 // Variant of orbiting-planet where the planet can also float freely.
@@ -26,7 +26,7 @@ const initialState: State = {
   angle: 0,
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const planetX =
     state.mode === "orbiting"
       ? STARS[state.currentStar].x + ORBIT_RADIUS * Math.cos(state.angle)
@@ -72,26 +72,29 @@ const draggable: Draggable<State> = ({ state, drag }) => {
         id="planet"
         transform={translate(planetX, planetY)}
         data-z-index={1}
-        data-on-drag={drag(() => {
+        data-on-drag={() => {
           const angle = state.mode === "orbiting" ? state.angle : 0;
-          return closest(
-            STARS.map((_, starIdx) =>
-              vary({ mode: "orbiting" as const, currentStar: starIdx, angle }, [
-                "angle",
-              ])
+          return d
+            .closest(
+              STARS.map((_, starIdx) =>
+                d.vary(
+                  { mode: "orbiting" as const, currentStar: starIdx, angle },
+                  ["angle"]
+                )
+              )
             )
-          ).withBackground(
-            vary({ mode: "free", x: planetX, y: planetY }, ["x"], ["y"]),
-            { radius: 50 }
-          );
-          // return closest([
+            .withBackground(
+              d.vary({ mode: "free", x: planetX, y: planetY }, ["x"], ["y"]),
+              { radius: 50 }
+            );
+          // return d.closest([
           //   ...STARS.map((_, starIdx) =>
-          //     vary<State>({ mode: "orbiting", currentStar: starIdx, angle }, [
+          //     d.vary<State>({ mode: "orbiting", currentStar: starIdx, angle }, [
           //       "angle",
           //     ])
           //   ),
           //   withDistance(
-          //     vary<State>(
+          //     d.vary<State>(
           //       { mode: "free", x: planetX, y: planetY },
           //       ["x"],
           //       ["y"]
@@ -99,7 +102,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
           //     () => 200
           //   ),
           // ]);
-        })}
+        }}
       >
         <circle
           r={PLANET_RADIUS}

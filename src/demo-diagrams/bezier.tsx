@@ -1,6 +1,5 @@
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { vary } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -36,7 +35,7 @@ function bezierPath(state: State): string {
   return `M ${p0.x} ${p0.y} C ${p1.x} ${p1.y}, ${p2.x} ${p2.y}, ${p3.x} ${p3.y}`;
 }
 
-const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   const { p0, p1, p2, p3 } = state;
   const ENDPOINT_R = 12;
   const CONTROL_R = 8;
@@ -90,9 +89,9 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
             cy={0}
             r={isDragged ? 8 : 12}
             fill={isDragged ? "rgba(37, 99, 235, 0.3)" : "transparent"}
-            data-on-drag={drag(
-              vary(state, ["p1", "x"], ["p1", "y"], ["p2", "x"], ["p2", "y"])
-            )}
+            data-on-drag={() =>
+              d.vary(state, ["p1", "x"], ["p1", "y"], ["p2", "x"], ["p2", "y"])
+            }
           />
         );
       })}
@@ -106,7 +105,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
         fill={draggedId === "control-p1" ? "#f59e0b" : "#fbbf24"}
         stroke="#92400e"
         strokeWidth={2}
-        data-on-drag={drag(vary(state, ["p1", "x"], ["p1", "y"]))}
+        data-on-drag={() => d.vary(state, ["p1", "x"], ["p1", "y"])}
       />
 
       <circle
@@ -118,7 +117,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
         fill={draggedId === "control-p2" ? "#f59e0b" : "#fbbf24"}
         stroke="#92400e"
         strokeWidth={2}
-        data-on-drag={drag(vary(state, ["p2", "x"], ["p2", "y"]))}
+        data-on-drag={() => d.vary(state, ["p2", "x"], ["p2", "y"])}
       />
 
       <circle
@@ -130,7 +129,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
         fill={draggedId === "endpoint-p0" ? "#dc2626" : "#ef4444"}
         stroke="#7f1d1d"
         strokeWidth={2}
-        data-on-drag={drag(vary(state, ["p0", "x"], ["p0", "y"]))}
+        data-on-drag={() => d.vary(state, ["p0", "x"], ["p0", "y"])}
       />
 
       <circle
@@ -142,7 +141,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
         fill={draggedId === "endpoint-p3" ? "#dc2626" : "#ef4444"}
         stroke="#7f1d1d"
         strokeWidth={2}
-        data-on-drag={drag(vary(state, ["p3", "x"], ["p3", "y"]))}
+        data-on-drag={() => d.vary(state, ["p3", "x"], ["p3", "y"])}
       />
 
       <text

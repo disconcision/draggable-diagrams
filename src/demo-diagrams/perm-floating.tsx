@@ -3,7 +3,7 @@ import _ from "lodash";
 import { amb, produceAmb } from "../amb";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating, just } from "../DragSpec";
+
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -14,7 +14,7 @@ const initialState: State = {
   perm: ["A", "B", "C", "D", "E"],
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const TILE_SIZE = 50;
 
   return (
@@ -24,7 +24,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
           <g
             id={p}
             transform={translate(idx * TILE_SIZE, 0)}
-            data-on-drag={drag(() => {
+            data-on-drag={() => {
               const draggedIdx = state.perm.indexOf(p);
               const stateWithout = produce(state, (draft) => {
                 draft.perm.splice(draggedIdx, 1);
@@ -33,9 +33,10 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                 const idx = amb(_.range(stateWithout.perm.length + 1));
                 draft.perm.splice(idx, 0, p);
               });
-              return closest(statesWith.map((s) => floating(s)))
-                .withBackground(just(state));
-            })}
+              return d
+                .closest(statesWith.map((s) => d.floating(s)))
+                .withBackground(d.just(state));
+            }}
           >
             <rect
               x={0}

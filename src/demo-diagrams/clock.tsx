@@ -1,6 +1,5 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { vary } from "../DragSpec";
 import { rotateDeg, translate } from "../svgx/helpers";
 
 type State = {
@@ -11,7 +10,7 @@ const initialState: State = {
   hours: 4.333333,
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   function hand(
     name: string,
     degrees: number,
@@ -34,7 +33,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
           cy={0}
           r={10}
           fill="black"
-          data-on-drag={drag(vary(state, ["hours"]))}
+          data-on-drag={() => d.vary(state, ["hours"])}
         />
       </g>
     );

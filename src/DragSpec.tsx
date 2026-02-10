@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { SVGProps, cloneElement } from "react";
-import { Draggable, unsafeDrag } from "./draggable";
+import { Draggable } from "./draggable";
 import {
   Transition,
   TransitionLike,
@@ -45,6 +45,10 @@ import {
 
 // ## Data representation
 
+// Brand marker so jsx.d.ts can reference DragSpec without a generic parameter.
+declare const _dragSpecBrand: unique symbol;
+export type DragSpecBrand = { readonly [_dragSpecBrand]: true };
+
 // Fluent methods available on every DragSpec value.
 export interface DragSpecMethods<T> {
   andThen(state: T): DragSpec<T>;
@@ -73,7 +77,7 @@ export type DragSpecData<T> =
   | DragSpecSpan<T>
   | DragSpecTransitionToAndThen<T>;
 
-export type DragSpec<T> = DragSpecData<T> & DragSpecMethods<T>;
+export type DragSpec<T> = DragSpecData<T> & DragSpecMethods<T> & DragSpecBrand;
 
 export type DragSpecJust<T> = {
   type: "just";
@@ -160,25 +164,34 @@ function withMethods<T>(data: DragSpecData<T>): DragSpec<T> {
 
 // ## Constructors
 
-export function just<T>(state: T): DragSpec<T> {
-  return withMethods({ type: "just", state });
+function just<T>(states: T[]): DragSpec<T>[];
+function just<T>(state: T): DragSpec<T>;
+function just<T>(stateOrStates: T | T[]): DragSpec<T> | DragSpec<T>[] {
+  if (Array.isArray(stateOrStates)) {
+    return stateOrStates.map((s) => just(s));
+  }
+  return withMethods({ type: "just", state: stateOrStates });
 }
 
-export function floating<T>(
-  state: T,
-  { ghost }: { ghost?: SVGProps<SVGElement> | undefined } = {}
-): DragSpec<T> {
-  return withMethods({ type: "floating", state, ghost });
-}
-
-export function floatings<T>(
+function floating<T>(
   states: T[],
-  { ghost }: { ghost?: SVGProps<SVGElement> | undefined } = {}
-): DragSpec<T>[] {
-  return states.map((s) => floating(s, { ghost }));
+  opts?: { ghost?: SVGProps<SVGElement> }
+): DragSpec<T>[];
+function floating<T>(
+  state: T,
+  opts?: { ghost?: SVGProps<SVGElement> }
+): DragSpec<T>;
+function floating<T>(
+  stateOrStates: T | T[],
+  { ghost }: { ghost?: SVGProps<SVGElement> } = {}
+): DragSpec<T> | DragSpec<T>[] {
+  if (Array.isArray(stateOrStates)) {
+    return stateOrStates.map((s) => floating(s, { ghost }));
+  }
+  return withMethods({ type: "floating", state: stateOrStates, ghost });
 }
 
-export function closest<T>(specs: Many<DragSpec<T>>): DragSpec<T> {
+function closest<T>(specs: Many<DragSpec<T>>): DragSpec<T> {
   return withMethods({ type: "closest", specs: manyToArray(specs) });
 }
 
@@ -228,15 +241,12 @@ function parseVaryArgs<T>(args: VaryArgs<T>): {
   return { paramPaths: args as PathIn<T, number>[], options: {} };
 }
 
-export function vary<T>(
-  state: T,
-  ...paramPaths: PathIn<T, number>[]
-): DragSpec<T>;
-export function vary<T>(
+function vary<T>(state: T, ...paramPaths: PathIn<T, number>[]): DragSpec<T>;
+function vary<T>(
   state: T,
   ...args: [...PathIn<T, number>[], VaryOptions<T>]
 ): DragSpec<T>;
-export function vary<T>(state: T, ...args: VaryArgs<T>): DragSpec<T> {
+function vary<T>(state: T, ...args: VaryArgs<T>): DragSpec<T> {
   const { paramPaths, options } = parseVaryArgs(args);
   return withMethods({ type: "vary", state, paramPaths, ...options });
 }
@@ -273,7 +283,7 @@ export function withDropTransition<T>(
   });
 }
 
-export function span<T>(states: T[]): DragSpec<T> {
+function span<T>(states: T[]): DragSpec<T> {
   assert(states.length > 0, "span requires at least one state");
   return withMethods({ type: "span", states });
 }
@@ -284,6 +294,31 @@ export function transitionToAndThen<T>(
 ): DragSpec<T> {
   return withMethods({ type: "transition-to-and-then", state, draggedId });
 }
+
+// ## Pre-bound builders (the "d" object)
+
+export type DragSpecBuilders<T> = {
+  just(states: T[]): DragSpec<T>[];
+  just(state: T): DragSpec<T>;
+  floating(states: T[], opts?: { ghost?: SVGProps<SVGElement> }): DragSpec<T>[];
+  floating(state: T, opts?: { ghost?: SVGProps<SVGElement> }): DragSpec<T>;
+  span(states: T[]): DragSpec<T>;
+  closest(specs: Many<DragSpec<T>>): DragSpec<T>;
+  vary(state: T, ...paramPaths: PathIn<T, number>[]): DragSpec<T>;
+  vary(
+    state: T,
+    ...args: [...PathIn<T, number>[], VaryOptions<T>]
+  ): DragSpec<T>;
+};
+
+// Single shared instance — safe because generics are erased at runtime.
+export const dragSpecBuilders: DragSpecBuilders<any> = {
+  just,
+  floating,
+  span,
+  closest,
+  vary,
+};
 
 /** Constraint helper: returns a - b, so a < b when result ≤ 0 */
 export function lessThan(a: number, b: number): number {
@@ -324,7 +359,7 @@ function renderStateReadOnly<T extends object>(
   return pipe(
     ctx.draggable({
       state,
-      drag: unsafeDrag,
+      d: dragSpecBuilders,
       draggedId: ctx.draggedId,
       ghostId: null,
       setState: throwError,
@@ -556,7 +591,7 @@ export function dragSpecToBehavior<T extends object>(
       const content = pipe(
         ctx.draggable({
           state: candidateState,
-          drag: unsafeDrag,
+          d: dragSpecBuilders,
           draggedId: ctx.draggedId,
           ghostId: null,
           setState: throwError,

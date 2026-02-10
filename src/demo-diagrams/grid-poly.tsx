@@ -2,7 +2,6 @@ import _ from "lodash";
 import { amb, produceAmb, require } from "../amb";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { span } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 import { uPairs } from "../utils";
@@ -19,7 +18,7 @@ const initialState: State = {
   points: [Vec2(1, 1), Vec2(4, 2), Vec2(3, 5), Vec2(1, 4)],
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const TILE_SIZE = 50;
 
   return (
@@ -51,8 +50,8 @@ const draggable: Draggable<State> = ({ state, drag }) => {
           transform={translate(pt.x * TILE_SIZE, pt.y * TILE_SIZE)}
           r={10}
           fill="black"
-          data-on-drag={drag(() =>
-            span(
+          data-on-drag={() =>
+            d.span(
               produceAmb(state, (draft) => {
                 draft.points[idx] = Vec2(
                   amb(_.range(state.w)),
@@ -61,7 +60,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                 require(uPairs(draft.points).every(([p1, p2]) => !p1.eq(p2)));
               })
             )
-          )}
+          }
         />
       ))}
     </g>

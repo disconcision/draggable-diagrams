@@ -1,6 +1,5 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { vary } from "../DragSpec";
 import { scale, translate } from "../svgx/helpers";
 
 type State = {
@@ -10,7 +9,7 @@ type State = {
 
 const initialState: State = { scaleX: 1, scaleY: 1 };
 
-const draggable: Draggable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, d }) => (
   <g>
     <circle
       transform={translate(100, 100) + scale(state.scaleX, state.scaleY)}
@@ -18,7 +17,7 @@ const draggable: Draggable<State> = ({ state, drag }) => (
       cy={0}
       r={50}
       fill="lightblue"
-      data-on-drag={drag(() => vary(state, ["scaleX"], ["scaleY"]))}
+      data-on-drag={() => d.vary(state, ["scaleX"], ["scaleY"])}
     />
     <ellipse
       cx={100}

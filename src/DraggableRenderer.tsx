@@ -14,13 +14,13 @@ import {
   DragFrame,
   DragResult,
   DragSpec,
+  dragSpecBuilders,
   dragSpecToBehavior,
 } from "./DragSpec";
 import {
   Draggable,
   DraggableProps,
   getDragSpecCallbackOnElement,
-  unsafeDrag,
 } from "./draggable";
 import { Vec2 } from "./math/vec2";
 import { Svgx, findElement, updatePropsDownTree } from "./svgx";
@@ -187,7 +187,7 @@ export function DraggableRenderer<T extends object>({
           const content = pipe(
             draggable({
               state: newState,
-              drag: unsafeDrag,
+              d: dragSpecBuilders,
               draggedId: newDraggedId,
               ghostId: null,
               setState: throwError,
@@ -421,10 +421,13 @@ function runSpring(
 
 function renderReadOnly<T extends object>(
   draggable: Draggable<T>,
-  props: Omit<DraggableProps<T>, "drag" | "setState">
+  props: Omit<DraggableProps<T>, "setState">
 ): LayeredSvgx {
   return pipe(
-    draggable({ ...props, drag: unsafeDrag, setState: throwError }),
+    draggable({
+      ...props,
+      setState: throwError,
+    }),
     assignPaths,
     accumulateTransforms,
     layerSvg
@@ -447,6 +450,7 @@ function initDrag<T extends object>(
   if (draggedId) {
     const startLayered = renderReadOnly(draggable, {
       state,
+      d: dragSpecBuilders,
       draggedId,
       ghostId: null,
     });
@@ -557,7 +561,7 @@ const DrawIdleMode = memoGeneric(
   }) => {
     const content = ctx.draggable({
       state: dragState.state,
-      drag: unsafeDrag,
+      d: dragSpecBuilders,
       draggedId: null,
       ghostId: null,
       setState: ctx.catchToRenderError(
@@ -571,6 +575,7 @@ const DrawIdleMode = memoGeneric(
               : newState;
           const snapshot = renderReadOnly(ctx.draggable, {
             state: dragState.state,
+            d: dragSpecBuilders,
             draggedId: null,
             ghostId: null,
           });

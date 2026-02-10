@@ -1,6 +1,6 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { lessThan, vary } from "../DragSpec";
+import { lessThan } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 
@@ -17,7 +17,7 @@ const initialState: State = {
 const center = Vec2(150, 150);
 const radius = 100;
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   return (
     <g>
       {/* boundary circle */}
@@ -35,11 +35,11 @@ const draggable: Draggable<State> = ({ state, drag }) => {
         transform={translate(Vec2(state.x, state.y))}
         r={14}
         fill="black"
-        data-on-drag={drag(
-          vary(state, ["x"], ["y"], {
+        data-on-drag={() =>
+          d.vary(state, ["x"], ["y"], {
             constraint: (s) => lessThan(center.dist2(s), radius ** 2),
           })
-        )}
+        }
       />
     </g>
   );

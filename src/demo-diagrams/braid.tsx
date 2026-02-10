@@ -2,7 +2,7 @@ import { produce } from "immer";
 import _ from "lodash";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span } from "../DragSpec";
+
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -15,7 +15,7 @@ const initialState: State = {
   seq: [],
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const TILE_SIZE = 50;
 
   let perm = _.range(state.n);
@@ -106,7 +106,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
             (state.seq.length + 1) * TILE_SIZE
           )}
           data-z-index={1}
-          data-on-drag={drag(() => {
+          data-on-drag={() => {
             const spanStates: State[] = [state];
             if (i > 0) {
               spanStates.push(
@@ -122,10 +122,10 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                 })
               );
             }
-            const specs = [span(spanStates)];
+            const specs = [d.span(spanStates)];
             if (state.seq.length > 0) {
               specs.push(
-                span([
+                d.span([
                   state,
                   produce(state, (s) => {
                     s.seq.pop();
@@ -133,8 +133,8 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                 ])
               );
             }
-            return closest(specs).withSnapRadius(1, { chain: true });
-          })}
+            return d.closest(specs).withSnapRadius(1, { chain: true });
+          }}
         >
           <circle r={20} fill="transparent" />
           <circle r={4} fill="gray" />

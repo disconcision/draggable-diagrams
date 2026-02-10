@@ -1,6 +1,5 @@
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -21,7 +20,7 @@ const HEIGHT = 250;
 const DOT_RADIUS = 6;
 const DOT_SPACING = 20;
 
-const draggable: Draggable<State> = ({ state, drag, setState }) => (
+const draggable: Draggable<State> = ({ state, d, setState }) => (
   <g>
     {/* Main carousel container */}
     <rect
@@ -45,14 +44,14 @@ const draggable: Draggable<State> = ({ state, drag, setState }) => (
         <g
           id={`slide-${idx}`}
           transform={translate(xOffset, 0)}
-          data-on-drag={drag(() => {
+          data-on-drag={() => {
             const specs = [];
             if (state.slideIdx > 0)
-              specs.push(span([state, { slideIdx: state.slideIdx - 1 }]));
+              specs.push(d.span([state, { slideIdx: state.slideIdx - 1 }]));
             if (state.slideIdx < SLIDES.length - 1)
-              specs.push(span([state, { slideIdx: state.slideIdx + 1 }]));
-            return closest(specs);
-          })}
+              specs.push(d.span([state, { slideIdx: state.slideIdx + 1 }]));
+            return d.closest(specs);
+          }}
           opacity={idx === state.slideIdx ? 1 : 0}
           pointerEvents={idx === state.slideIdx ? "auto" : "none"}
         >
@@ -122,9 +121,7 @@ const draggable: Draggable<State> = ({ state, drag, setState }) => (
         )}
         r={DOT_RADIUS}
         fill="transparent"
-        data-on-drag={drag(() =>
-          span(SLIDES.map((_, idx) => ({ slideIdx: idx })))
-        )}
+        data-on-drag={() => d.span(SLIDES.map((_, idx) => ({ slideIdx: idx })))}
       />
     </g>
 

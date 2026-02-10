@@ -2,7 +2,6 @@ import { produce } from "immer";
 import _ from "lodash";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -13,7 +12,7 @@ const initialState: State = {
   perm: ["A", "B", "C", "D", "E"],
 };
 
-const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
+const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   const TILE_SIZE = 50;
 
   return (
@@ -25,9 +24,9 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
             id={p}
             transform={translate(idx * TILE_SIZE, isDragged ? -10 : 0)}
             data-z-index={isDragged ? 1 : 0}
-            data-on-drag={drag(() => {
+            data-on-drag={() => {
               const draggedIdx = state.perm.indexOf(p);
-              return span(
+              return d.span(
                 _.range(state.perm.length).map((idx) =>
                   produce(state, (draft) => {
                     draft.perm.splice(draggedIdx, 1);
@@ -35,7 +34,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
                   })
                 )
               );
-            })}
+            }}
           >
             <rect
               x={0}

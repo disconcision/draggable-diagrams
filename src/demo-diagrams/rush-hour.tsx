@@ -1,7 +1,6 @@
 import _ from "lodash";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type Car = {
@@ -34,7 +33,7 @@ const initialState: State = {
   },
 };
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const TILE_SIZE = 50;
   const BORDER_WIDTH = 10;
   const redCarY = Object.values(state.cars).find((t) => t.color === "red")?.y;
@@ -71,7 +70,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
           strokeWidth={2}
           transform={translate(car.x * TILE_SIZE, car.y * TILE_SIZE)}
           data-z-index={5}
-          data-on-drag={drag(() => {
+          data-on-drag={() => {
             const nextStates: State[] = [state];
 
             function tryMove(dx: number, dy: number) {
@@ -121,8 +120,8 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               tryMove(0, 1);
             }
 
-            return span(nextStates).withSnapRadius(10);
-          })}
+            return d.span(nextStates).withSnapRadius(10);
+          }}
         />
       ))}
 

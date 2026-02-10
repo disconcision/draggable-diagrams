@@ -3,7 +3,6 @@ import _ from "lodash";
 import { useMemo, useState } from "react";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
 import { Draggable, SetState } from "../draggable";
-import { closest, floating, span } from "../DragSpec";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
@@ -38,7 +37,7 @@ const defaultConfig: Config = {
 };
 
 function draggableFactory(config: Config): Draggable<State> {
-  return ({ state, drag, draggedId, setState }) => (
+  return ({ state, d, draggedId, setState }) => (
     <g>
       <foreignObject
         x={10}
@@ -100,7 +99,7 @@ function draggableFactory(config: Config): Draggable<State> {
           "data-z-index": isDragged ? 1 : 0,
           opacity: 1,
           setState,
-          "data-on-drag": drag(() => {
+          "data-on-drag": () => {
             const stateWithout = produce(state, (s) => {
               s.todos.splice(idx, 1);
             });
@@ -110,10 +109,11 @@ function draggableFactory(config: Config): Draggable<State> {
               })
             );
             return config.useFloating
-              ? closest(statesWith.map((s) => floating(s)))
-                  .withBackground(floating(stateWithout))
-              : span(statesWith);
-          }),
+              ? d
+                  .closest(statesWith.map((s) => d.floating(s)))
+                  .withBackground(d.floating(stateWithout))
+              : d.span(statesWith);
+          },
         });
       })}
     </g>

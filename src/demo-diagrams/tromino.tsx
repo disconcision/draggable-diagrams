@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { amb, produceAmb } from "../amb";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating, span } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { path, rotateDeg, translate } from "../svgx/helpers";
 
@@ -39,7 +38,7 @@ const COLORS = [
 ];
 
 function draggableFactory(config: Config): Draggable<State> {
-  return ({ state, drag }) => (
+  return ({ state, d }) => (
     <g>
       {drawState(state)}
       <rect
@@ -51,28 +50,28 @@ function draggableFactory(config: Config): Draggable<State> {
         width={CELL_SIZE - 2 * TROMINO_PADDING}
         height={CELL_SIZE - 2 * TROMINO_PADDING}
         fill="black"
-        data-on-drag={drag(() => {
+        data-on-drag={() => {
           if (config.mazeMode) {
             const singleRotations = singleRotationStates(state);
             return (
               config.snappyMode
-                ? closest(
+                ? d.closest(
                     [...singleRotations, state].map((s) =>
-                      floating(s, { ghost: { opacity: 0.2 } })
+                      d.floating(s, { ghost: { opacity: 0.2 } })
                     )
                   )
-                : closest(singleRotations.map((s) => span([state, s])))
+                : d.closest(singleRotations.map((s) => d.span([state, s])))
             ).withSnapRadius(1, { chain: true });
           } else {
             return config.snappyMode
-              ? closest(
+              ? d.closest(
                   allStates(state).map((s) =>
-                    floating(s, { ghost: { opacity: 0.2 } })
+                    d.floating(s, { ghost: { opacity: 0.2 } })
                   )
                 )
-              : span(allStates(state));
+              : d.span(allStates(state));
           }
-        })}
+        }}
       />
     </g>
   );

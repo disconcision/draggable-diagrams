@@ -1,7 +1,7 @@
 import { produce } from "immer";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span } from "../DragSpec";
+
 import { rotateDeg, translate } from "../svgx/helpers";
 
 type State = {
@@ -15,7 +15,7 @@ const initialState: State = {
 const TILE_SIZE = 50;
 const RADIUS = 100;
 
-const draggable: Draggable<State> = ({ state, drag }) => (
+const draggable: Draggable<State> = ({ state, d }) => (
   <g transform={translate(130, 130)}>
     {/* background circle */}
     <circle
@@ -37,7 +37,7 @@ const draggable: Draggable<State> = ({ state, drag }) => (
             rotateDeg(angle) + translate(RADIUS, 0) + rotateDeg(-angle)
           }
           data-z-index={1}
-          data-on-drag={drag(() => {
+          data-on-drag={() => {
             const newState1 = produce(state, (s) => {
               s.perm.push(s.perm.shift()!);
             });
@@ -45,11 +45,10 @@ const draggable: Draggable<State> = ({ state, drag }) => (
               s.perm.unshift(s.perm.pop()!);
             });
 
-            return closest([
-              span([state, newState1]),
-              span([state, newState2]),
-            ]).withSnapRadius(10, { chain: true });
-          })}
+            return d
+              .closest([d.span([state, newState1]), d.span([state, newState2])])
+              .withSnapRadius(10, { chain: true });
+          }}
         >
           <circle
             cx={0}

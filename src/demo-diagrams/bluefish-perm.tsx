@@ -3,7 +3,6 @@ import { produce } from "immer";
 import { bluefishWithAttach } from "../bluefish";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { span } from "../DragSpec";
 
 type State = {
   perm: string[];
@@ -15,7 +14,7 @@ const initialState: State = {
 
 const TILE_SIZE = 50;
 
-const draggable: Draggable<State> = ({ state, drag, draggedId }) =>
+const draggable: Draggable<State> = ({ state, d, draggedId }) =>
   bluefishWithAttach((attach) =>
     StackH({ spacing: 0 }, [
       ...state.perm.map((p) => {
@@ -24,8 +23,8 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) =>
         const labelName = createName("label");
 
         attach(p, {
-          "data-on-drag": drag(() =>
-            span(
+          "data-on-drag": () =>
+            d.span(
               state.perm.map((_, idx) =>
                 produce(state, (draft) => {
                   const draggedIdx = draft.perm.indexOf(p);
@@ -33,8 +32,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) =>
                   draft.perm.splice(idx, 0, p);
                 })
               )
-            )
-          ),
+            ),
           "data-z-index": p === draggedId ? 1 : 0,
         });
 

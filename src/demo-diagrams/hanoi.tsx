@@ -2,7 +2,6 @@ import { produce } from "immer";
 import { amb, produceAmb, require } from "../amb";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -31,7 +30,7 @@ function diskWidth(diskId: number): number {
   return MIN_DISK_WIDTH + (diskId - 1) * DISK_WIDTH_INCREMENT;
 }
 
-const draggable: Draggable<State> = ({ state, drag }) => {
+const draggable: Draggable<State> = ({ state, d }) => {
   const PEG_HEIGHT = (state.numDisks + 1) * DISK_HEIGHT;
   const BASE_WIDTH = diskWidth(state.numDisks + 1);
   const PEG_SPACING = BASE_WIDTH + 40;
@@ -90,7 +89,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               transform={translate(x, y)}
               data-on-drag={
                 isTopDisk &&
-                drag(() => {
+                (() => {
                   const stateWithout = produce(state, (draft) => {
                     draft.pegs[pegIdx].shift();
                   });
@@ -101,9 +100,9 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                     require(newPeg.length === 1 || newPeg[0] < newPeg[1]);
                   });
 
-                  return closest(
+                  return d.closest(
                     statesWith.map((s) =>
-                      floating(s, { ghost: { opacity: 0.5 } })
+                      d.floating(s, { ghost: { opacity: 0.5 } })
                     )
                   );
                 })

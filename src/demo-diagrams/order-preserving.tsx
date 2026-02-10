@@ -8,8 +8,8 @@ import {
   DemoDraggable,
   DemoNotes,
 } from "../demo-ui";
-import { Drag, Draggable } from "../draggable";
-import { span } from "../DragSpec";
+import { Draggable } from "../draggable";
+import { type DragSpecBuilders } from "../DragSpec";
 import { overlapIntervals } from "../layout";
 import { Vec2 } from "../math/vec2";
 import { Svgx } from "../svgx";
@@ -80,12 +80,12 @@ function draggableFactory(
   config: Config,
   yForTradRep: number
 ): Draggable<State> {
-  return ({ state, drag }) => {
+  return ({ state, d }) => {
     const finalizers = new Finalizers();
     const ctx: Ctx = {
       finalizers,
       morph: state.morph,
-      drag,
+      d,
       allMorphs,
       codomainTree,
       domainTree,
@@ -109,7 +109,7 @@ function draggableFactory(
 type Ctx = {
   finalizers: Finalizers;
   morph: TreeMorph;
-  drag: Drag<State>;
+  d: DragSpecBuilders<State>;
   allMorphs: TreeMorph[];
   codomainTree: TreeNode;
   domainTree: TreeNode;
@@ -154,7 +154,7 @@ function dragSpec(draggedNodeId: string, ctx: Ctx) {
     );
   }
 
-  return span(newMorphs.map((morph) => ({ morph }))).withSnapRadius(20, {
+  return ctx.d.span(newMorphs.map((morph) => ({ morph }))).withSnapRadius(20, {
     transition: true,
   });
 }
@@ -460,7 +460,7 @@ function drawFgSubtreeInBgNode(
           cy={0}
           r={FG_NODE_SIZE / 2}
           fill="black"
-          data-on-drag={ctx.drag(() => dragSpec(fgNode.id, ctx))}
+          data-on-drag={() => dragSpec(fgNode.id, ctx)}
         />
         {childrenContainer}
       </g>
@@ -512,7 +512,7 @@ function drawTradRep(ctx: Ctx): Svgx[] {
             direction: to.sub(mid),
             headLength: 15,
             fill: "#4287f5",
-            "data-on-drag": ctx.drag(() => dragSpec(domElem, ctx)),
+            "data-on-drag": () => dragSpec(domElem, ctx),
           })}
         </g>
       );
