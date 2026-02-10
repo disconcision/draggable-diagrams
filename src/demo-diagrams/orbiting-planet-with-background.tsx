@@ -1,6 +1,6 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, vary, withBackground } from "../DragSpec";
+import { closest, vary } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 // Variant of orbiting-planet where the planet can also float freely.
@@ -74,14 +74,13 @@ const draggable: Draggable<State> = ({ state, drag }) => {
         data-z-index={1}
         data-on-drag={drag(() => {
           const angle = state.mode === "orbiting" ? state.angle : 0;
-          return withBackground(
-            closest(
-              STARS.map((_, starIdx) =>
-                vary({ mode: "orbiting", currentStar: starIdx, angle }, [
-                  "angle",
-                ])
-              )
-            ),
+          return closest(
+            STARS.map((_, starIdx) =>
+              vary({ mode: "orbiting" as const, currentStar: starIdx, angle }, [
+                "angle",
+              ])
+            )
+          ).withBackground(
             vary({ mode: "free", x: planetX, y: planetY }, ["x"], ["y"]),
             { radius: 50 }
           );

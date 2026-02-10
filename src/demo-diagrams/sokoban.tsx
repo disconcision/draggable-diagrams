@@ -2,7 +2,7 @@ import _ from "lodash";
 import { useMemo, useState } from "react";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span, withSnapRadius } from "../DragSpec";
+import { closest, span } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { inXYWH } from "../math/xywh";
 import { translate } from "../svgx/helpers";
@@ -118,35 +118,31 @@ function draggableFactory(config: Config): Draggable<State> {
             data-on-drag={
               config.levelEditable
                 ? drag(() =>
-                    withSnapRadius(
-                      closest(
-                        (
-                          [
-                            [-1, 0],
-                            [1, 0],
-                            [0, -1],
-                            [0, 1],
-                          ] as const
-                        )
-                          .map((d) => {
-                            const newLoc = object.pos.add(d);
-                            if (!isInBounds(newLoc)) return;
-                            return span([
-                              state,
-                              {
-                                ...state,
-                                objects: {
-                                  ...state.objects,
-                                  [id]: { ...object, pos: newLoc },
-                                },
+                    closest(
+                      (
+                        [
+                          [-1, 0],
+                          [1, 0],
+                          [0, -1],
+                          [0, 1],
+                        ] as const
+                      )
+                        .map((d) => {
+                          const newLoc = object.pos.add(d);
+                          if (!isInBounds(newLoc)) return;
+                          return span([
+                            state,
+                            {
+                              ...state,
+                              objects: {
+                                ...state.objects,
+                                [id]: { ...object, pos: newLoc },
                               },
-                            ]);
-                          })
-                          .filter(defined)
-                      ),
-                      3,
-                      { transition: true, chain: true }
-                    )
+                            },
+                          ]);
+                        })
+                        .filter(defined)
+                    ).withSnapRadius(3, { transition: true, chain: true })
                   )
                 : undefined
             }
@@ -190,51 +186,47 @@ function draggableFactory(config: Config): Draggable<State> {
           )}
           data-z-index={2}
           data-on-drag={drag(() =>
-            withSnapRadius(
-              closest(
-                (
-                  [
-                    [-1, 0],
-                    [1, 0],
-                    [0, -1],
-                    [0, 1],
-                  ] as const
-                )
-                  .map((d) => {
-                    const curLoc = Vec2(state.player);
-                    const newLoc = curLoc.add(d);
-                    if (!isFloor(newLoc)) return;
+            closest(
+              (
+                [
+                  [-1, 0],
+                  [1, 0],
+                  [0, -1],
+                  [0, 1],
+                ] as const
+              )
+                .map((d) => {
+                  const curLoc = Vec2(state.player);
+                  const newLoc = curLoc.add(d);
+                  if (!isFloor(newLoc)) return;
 
-                    const boxId = idOfBoxAt(newLoc);
-                    if (boxId === undefined) {
-                      return span([state, { ...state, player: newLoc }]);
-                    }
+                  const boxId = idOfBoxAt(newLoc);
+                  if (boxId === undefined) {
+                    return span([state, { ...state, player: newLoc }]);
+                  }
 
-                    // Box present, try to push
-                    const boxNewLoc = newLoc.add(d);
-                    if (!isFloor(boxNewLoc)) return;
-                    if (idOfBoxAt(boxNewLoc) !== undefined) return;
+                  // Box present, try to push
+                  const boxNewLoc = newLoc.add(d);
+                  if (!isFloor(boxNewLoc)) return;
+                  if (idOfBoxAt(boxNewLoc) !== undefined) return;
 
-                    return span([
-                      state,
-                      {
-                        ...state,
-                        player: newLoc,
-                        objects: {
-                          ...state.objects,
-                          [boxId]: {
-                            ...state.objects[boxId],
-                            pos: boxNewLoc,
-                          },
+                  return span([
+                    state,
+                    {
+                      ...state,
+                      player: newLoc,
+                      objects: {
+                        ...state.objects,
+                        [boxId]: {
+                          ...state.objects[boxId],
+                          pos: boxNewLoc,
                         },
                       },
-                    ]);
-                  })
-                  .filter(defined)
-              ),
-              3,
-              { transition: true, chain: true }
-            )
+                    },
+                  ]);
+                })
+                .filter(defined)
+            ).withSnapRadius(3, { transition: true, chain: true })
           )}
         >
           <rect

@@ -9,7 +9,7 @@ import {
   DemoNotes,
 } from "../demo-ui";
 import { Drag, Draggable } from "../draggable";
-import { span, withSnapRadius } from "../DragSpec";
+import { span } from "../DragSpec";
 import { overlapIntervals } from "../layout";
 import { Vec2 } from "../math/vec2";
 import { Svgx } from "../svgx";
@@ -154,7 +154,7 @@ function dragSpec(draggedNodeId: string, ctx: Ctx) {
     );
   }
 
-  return withSnapRadius(span(newMorphs.map((morph) => ({ morph }))), 20, {
+  return span(newMorphs.map((morph) => ({ morph }))).withSnapRadius(20, {
     transition: true,
   });
 }

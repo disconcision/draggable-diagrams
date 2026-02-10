@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span, withSnapRadius } from "../DragSpec";
+import { closest, span } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { inXYWH } from "../math/xywh";
 import { translate } from "../svgx/helpers";
@@ -52,28 +52,24 @@ const draggable: Draggable<State> = ({ state, drag }) => {
           id={`tile-${key}`}
           transform={translate(tile.x * TILE_SIZE, tile.y * TILE_SIZE)}
           data-on-drag={drag(() =>
-            withSnapRadius(
-              closest(
-                (
-                  [
-                    [-1, 0],
-                    [1, 0],
-                    [0, -1],
-                    [0, 1],
-                  ] as const
-                ).map((d) => {
-                  const adjLoc = Vec2(tile).add(d);
-                  if (!inXYWH(adjLoc, [0, 0, state.w - 1, state.h - 1])) return;
-                  if (Object.values(state.tiles).some((t) => adjLoc.eq(t)))
-                    return;
-                  const newState = structuredClone(state);
-                  newState.tiles[key] = { x: adjLoc.x, y: adjLoc.y };
-                  return span([state, newState]);
-                })
-              ),
-              3,
-              { transition: true, chain: true }
-            )
+            closest(
+              (
+                [
+                  [-1, 0],
+                  [1, 0],
+                  [0, -1],
+                  [0, 1],
+                ] as const
+              ).map((d) => {
+                const adjLoc = Vec2(tile).add(d);
+                if (!inXYWH(adjLoc, [0, 0, state.w - 1, state.h - 1])) return;
+                if (Object.values(state.tiles).some((t) => adjLoc.eq(t)))
+                  return;
+                const newState = structuredClone(state);
+                newState.tiles[key] = { x: adjLoc.x, y: adjLoc.y };
+                return span([state, newState]);
+              })
+            ).withSnapRadius(3, { transition: true, chain: true })
           )}
         >
           <rect

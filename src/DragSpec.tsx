@@ -45,7 +45,22 @@ import {
 
 // ## Data representation
 
-export type DragSpec<T> =
+// Fluent methods available on every DragSpec value.
+export interface DragSpecMethods<T> {
+  andThen(state: T): DragSpec<T>;
+  withBackground<B>(
+    background: DragSpec<B>,
+    opts?: { radius?: number }
+  ): DragSpec<T | B>;
+  withSnapRadius(
+    radius: number,
+    options?: { transition?: boolean; chain?: boolean }
+  ): DragSpec<T>;
+  withDropTransition(transition?: TransitionLike): DragSpec<T>;
+  withDistance(f: (distance: number) => number): DragSpec<T>;
+}
+
+export type DragSpecData<T> =
   | DragSpecJust<T>
   | DragSpecFloating<T>
   | DragSpecClosest<T>
@@ -57,6 +72,8 @@ export type DragSpec<T> =
   | DragSpecWithDropTransition<T>
   | DragSpecSpan<T>
   | DragSpecTransitionToAndThen<T>;
+
+export type DragSpec<T> = DragSpecData<T> & DragSpecMethods<T>;
 
 export type DragSpecJust<T> = {
   type: "just";
@@ -98,7 +115,7 @@ export type DragSpecWithDropTransition<T> = {
 export type DragSpecAndThen<T> = {
   type: "and-then";
   spec: DragSpec<T>;
-  andThen: T;
+  andThenState: T;
 };
 
 // Interface (not type) so constraint can use method syntax, which is bivariant.
@@ -128,17 +145,30 @@ export type DragSpecTransitionToAndThen<T> = {
   draggedId: string;
 };
 
+// ## Fluent method attachment
+
+function withMethods<T>(data: DragSpecData<T>): DragSpec<T> {
+  const spec = data as DragSpec<T>;
+  return Object.assign(spec, {
+    andThen: (state) => andThen(spec, state),
+    withBackground: (bg, opts) => withBackground(spec, bg, opts),
+    withSnapRadius: (radius, options) => withSnapRadius(spec, radius, options),
+    withDropTransition: (transition) => withDropTransition(spec, transition),
+    withDistance: (f) => withDistance(spec, f),
+  } satisfies DragSpecMethods<T>);
+}
+
 // ## Constructors
 
 export function just<T>(state: T): DragSpec<T> {
-  return { type: "just", state };
+  return withMethods({ type: "just", state });
 }
 
 export function floating<T>(
   state: T,
   { ghost }: { ghost?: SVGProps<SVGElement> | undefined } = {}
 ): DragSpec<T> {
-  return { type: "floating", state, ghost };
+  return withMethods({ type: "floating", state, ghost });
 }
 
 export function floatings<T>(
@@ -149,7 +179,7 @@ export function floatings<T>(
 }
 
 export function closest<T>(specs: Many<DragSpec<T>>): DragSpec<T> {
-  return { type: "closest", specs: manyToArray(specs) };
+  return withMethods({ type: "closest", specs: manyToArray(specs) });
 }
 
 // Two type params so specs with different narrow types can combine into a union.
@@ -158,11 +188,16 @@ export function withBackground<F, B>(
   background: DragSpec<B>,
   { radius = 50 }: { radius?: number } = {}
 ): DragSpec<F | B> {
-  return { type: "with-background", foreground, background, radius };
+  return withMethods({
+    type: "with-background",
+    foreground,
+    background,
+    radius,
+  } as DragSpecData<F | B>);
 }
 
-export function andThen<T>(spec: DragSpec<T>, andThen: T): DragSpec<T> {
-  return { type: "and-then", spec, andThen };
+export function andThen<T>(spec: DragSpec<T>, state: T): DragSpec<T> {
+  return withMethods({ type: "and-then", spec, andThenState: state });
 }
 
 export type VaryOptions<T> = {
@@ -203,14 +238,14 @@ export function vary<T>(
 ): DragSpec<T>;
 export function vary<T>(state: T, ...args: VaryArgs<T>): DragSpec<T> {
   const { paramPaths, options } = parseVaryArgs(args);
-  return { type: "vary", state, paramPaths, ...options };
+  return withMethods({ type: "vary", state, paramPaths, ...options });
 }
 
 export function withDistance<T>(
   spec: DragSpec<T>,
   f: (distance: number) => number
 ): DragSpec<T> {
-  return { type: "with-distance", spec, f };
+  return withMethods({ type: "with-distance", spec, f });
 }
 
 export function withSnapRadius<T>(
@@ -218,36 +253,36 @@ export function withSnapRadius<T>(
   radius: number,
   options: { transition?: boolean; chain?: boolean } = {}
 ): DragSpec<T> {
-  return {
+  return withMethods({
     type: "with-snap-radius",
     spec,
     radius,
     transition: options.transition ?? false,
     chain: options.chain ?? false,
-  };
+  });
 }
 
 export function withDropTransition<T>(
   spec: DragSpec<T>,
   transition: TransitionLike = true
 ): DragSpec<T> {
-  return {
+  return withMethods({
     type: "with-drop-transition",
     spec,
     transition: resolveTransitionLike(transition),
-  };
+  });
 }
 
 export function span<T>(states: T[]): DragSpec<T> {
   assert(states.length > 0, "span requires at least one state");
-  return { type: "span", states };
+  return withMethods({ type: "span", states });
 }
 
 export function transitionToAndThen<T>(
   state: T,
   draggedId: string
 ): DragSpec<T> {
-  return { type: "transition-to-and-then", state, draggedId };
+  return withMethods({ type: "transition-to-and-then", state, draggedId });
 }
 
 /** Constraint helper: returns a - b, so a < b when result ≤ 0 */
@@ -501,7 +536,7 @@ export function dragSpecToBehavior<T extends object>(
     const subBehavior = dragSpecToBehavior(spec.spec, ctx);
     return (frame) => {
       const result = subBehavior(frame);
-      return { ...result, dropState: spec.andThen };
+      return { ...result, dropState: spec.andThenState };
       // activePath passes through from child
     };
   } else if (spec.type === "vary") {

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
 import { Drag, Draggable } from "../draggable";
-import { closest, floating, just, span, withBackground } from "../DragSpec";
+import { closest, floating, just, span } from "../DragSpec";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
@@ -235,10 +235,8 @@ function renderTree(
           const statesWith = insertAtAllPositions(stateWithout, foundNode);
 
           if (config.useFloating) {
-            return withBackground(
-              closest(statesWith.map((s) => floating(s))),
-              floating(stateWithout)
-            );
+            return closest(statesWith.map((s) => floating(s)))
+              .withBackground(floating(stateWithout));
           } else {
             return span(statesWith);
           }

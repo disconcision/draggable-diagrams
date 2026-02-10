@@ -2,7 +2,7 @@ import { produce } from "immer";
 import _ from "lodash";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span, withSnapRadius } from "../DragSpec";
+import { closest, span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -133,7 +133,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                 ])
               );
             }
-            return withSnapRadius(closest(specs), 1, { chain: true });
+            return closest(specs).withSnapRadius(1, { chain: true });
           })}
         >
           <circle r={20} fill="transparent" />

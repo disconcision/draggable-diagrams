@@ -2,7 +2,7 @@ import { produce } from "immer";
 import _ from "lodash";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { span, withSnapRadius } from "../DragSpec";
+import { span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -61,7 +61,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
                     );
                   }
                 }
-                return withSnapRadius(span(states), 10);
+                return span(states).withSnapRadius(10);
               })}
             >
               <rect

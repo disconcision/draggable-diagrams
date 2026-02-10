@@ -2,12 +2,10 @@ import { produce } from "immer";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
 import {
-  andThen,
   closest,
   just,
   transitionToAndThen,
   vary,
-  withBackground,
 } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
@@ -131,8 +129,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
       freeState.wires[wireId].from.type === "free" &&
       freeState.wires[wireId].to.type === "free"
     ) {
-      varySpec = andThen(
-        varySpec,
+      varySpec = varySpec.andThen(
         produce(freeState, (d) => {
           delete d.wires[wireId];
         })
@@ -140,7 +137,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
     }
 
     // put 'em together
-    return withBackground(closest(snapSpecs), varySpec, { radius: 20 });
+    return closest(snapSpecs).withBackground(varySpec, { radius: 20 });
   }
 
   return (

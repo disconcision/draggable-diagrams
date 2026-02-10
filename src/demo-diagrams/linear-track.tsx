@@ -1,6 +1,6 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { span, withDropTransition, withSnapRadius } from "../DragSpec";
+import { span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -30,10 +30,9 @@ const draggable: Draggable<State> = ({ state, drag }) => (
       height={SQUARE_SIZE}
       rx={4}
       data-on-drag={drag(() =>
-        withDropTransition(
-          withSnapRadius(span([{ value: true }, { value: false }]), 10),
-          "elastic-out"
-        )
+        span([{ value: true }, { value: false }])
+          .withSnapRadius(10)
+          .withDropTransition("elastic-out")
       )}
     />
   </g>

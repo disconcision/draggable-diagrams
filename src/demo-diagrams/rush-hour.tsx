@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { span, withSnapRadius } from "../DragSpec";
+import { span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type Car = {
@@ -121,7 +121,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               tryMove(0, 1);
             }
 
-            return withSnapRadius(span(nextStates), 10);
+            return span(nextStates).withSnapRadius(10);
           })}
         />
       ))}

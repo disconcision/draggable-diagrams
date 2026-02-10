@@ -4,7 +4,7 @@ import { SVGProps } from "react";
 import { amb, produceAmb } from "../amb";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating, vary, withBackground } from "../DragSpec";
+import { closest, floating, vary } from "../DragSpec";
 import { getAtPath, PathIn } from "../paths";
 import { translate } from "../svgx/helpers";
 
@@ -153,14 +153,14 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
         }
       });
 
-      return withBackground(
-        closest(statesWith.map((s) => floating(s))),
-        vary(
-          stateWithTopRow,
-          ["rows", stateWithTopRow.rows.length - 1, "x"],
-          ["rows", stateWithTopRow.rows.length - 1, "y"]
-        )
-      );
+      return closest(statesWith.map((s) => floating(s)))
+        .withBackground(
+          vary(
+            stateWithTopRow,
+            ["rows", stateWithTopRow.rows.length - 1, "x"],
+            ["rows", stateWithTopRow.rows.length - 1, "y"]
+          )
+        );
     });
 
     const effectiveZIndex = isDragged ? zIndexBase + 10 : zIndexBase;

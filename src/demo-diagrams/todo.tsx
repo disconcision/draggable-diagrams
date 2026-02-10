@@ -3,7 +3,7 @@ import _ from "lodash";
 import { useMemo, useState } from "react";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
 import { Draggable, SetState } from "../draggable";
-import { closest, floating, span, withBackground } from "../DragSpec";
+import { closest, floating, span } from "../DragSpec";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
@@ -110,10 +110,8 @@ function draggableFactory(config: Config): Draggable<State> {
               })
             );
             return config.useFloating
-              ? withBackground(
-                  closest(statesWith.map((s) => floating(s))),
-                  floating(stateWithout)
-                )
+              ? closest(statesWith.map((s) => floating(s)))
+                  .withBackground(floating(stateWithout))
               : span(statesWith);
           }),
         });

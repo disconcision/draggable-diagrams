@@ -1,7 +1,7 @@
 import { produce } from "immer";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span, withSnapRadius } from "../DragSpec";
+import { closest, span } from "../DragSpec";
 import { rotateDeg, translate } from "../svgx/helpers";
 
 type State = {
@@ -45,11 +45,10 @@ const draggable: Draggable<State> = ({ state, drag }) => (
               s.perm.unshift(s.perm.pop()!);
             });
 
-            return withSnapRadius(
-              closest([span([state, newState1]), span([state, newState2])]),
-              10,
-              { chain: true }
-            );
+            return closest([
+              span([state, newState1]),
+              span([state, newState2]),
+            ]).withSnapRadius(10, { chain: true });
           })}
         >
           <circle

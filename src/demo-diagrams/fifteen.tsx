@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span, withSnapRadius } from "../DragSpec";
+import { closest, span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -84,7 +84,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               newState.tiles[adjTileKey] = { x: tile.x, y: tile.y };
               return span([state, newState]);
             });
-            return withSnapRadius(closest(spans), 10, { chain: true });
+            return closest(spans).withSnapRadius(10, { chain: true });
           })}
         >
           <rect

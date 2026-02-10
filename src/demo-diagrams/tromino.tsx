@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { amb, produceAmb } from "../amb";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating, span, withSnapRadius } from "../DragSpec";
+import { closest, floating, span } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { path, rotateDeg, translate } from "../svgx/helpers";
 
@@ -54,17 +54,15 @@ function draggableFactory(config: Config): Draggable<State> {
         data-on-drag={drag(() => {
           if (config.mazeMode) {
             const singleRotations = singleRotationStates(state);
-            return withSnapRadius(
+            return (
               config.snappyMode
                 ? closest(
                     [...singleRotations, state].map((s) =>
                       floating(s, { ghost: { opacity: 0.2 } })
                     )
                   )
-                : closest(singleRotations.map((s) => span([state, s]))),
-              1,
-              { chain: true }
-            );
+                : closest(singleRotations.map((s) => span([state, s])))
+            ).withSnapRadius(1, { chain: true });
           } else {
             return config.snappyMode
               ? closest(

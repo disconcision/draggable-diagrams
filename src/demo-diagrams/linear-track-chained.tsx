@@ -1,6 +1,6 @@
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, span, withSnapRadius } from "../DragSpec";
+import { closest, span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -30,14 +30,10 @@ const draggable: Draggable<State> = ({ state, drag }) => (
       height={SIZE}
       rx={4}
       data-on-drag={drag(() =>
-        withSnapRadius(
-          closest([
-            state.value > 0 && span([state, { value: state.value - 1 }]),
-            state.value < 3 && span([state, { value: state.value + 1 }]),
-          ]),
-          10,
-          { chain: true }
-        )
+        closest([
+          state.value > 0 && span([state, { value: state.value - 1 }]),
+          state.value < 3 && span([state, { value: state.value + 1 }]),
+        ]).withSnapRadius(10, { chain: true })
       )}
     />
   </g>

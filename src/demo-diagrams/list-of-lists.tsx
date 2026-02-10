@@ -3,7 +3,7 @@ import _ from "lodash";
 import { amb, produceAmb } from "../amb";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { andThen, closest, floating, withBackground } from "../DragSpec";
+import { closest, floating } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 // v2 port of demo-diagrams/list-of-lists.tsx
@@ -78,10 +78,8 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                   draft.rows.splice(newIdx, 0, row);
                 })
               );
-              return withBackground(
-                closest(statesWith.map((s) => floating(s))),
-                floating(stateWithout)
-              );
+              return closest(statesWith.map((s) => floating(s)))
+                .withBackground(floating(stateWithout));
             })}
           >
             <rect
@@ -131,10 +129,8 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                     const newColIdx = amb(_.range(newRow.items.length + 1));
                     newRow.items.splice(newColIdx, 0, p);
                   });
-                  return withBackground(
-                    closest(statesWith.map((s) => floating(s))),
-                    andThen(floating(stateWithout), state)
-                  );
+                  return closest(statesWith.map((s) => floating(s)))
+                    .withBackground(floating(stateWithout).andThen(state));
                 })}
               >
                 <rect

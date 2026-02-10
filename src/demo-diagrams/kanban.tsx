@@ -3,7 +3,7 @@ import _ from "lodash";
 import { amb, produceAmb, require } from "../amb";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floatings, span, withSnapRadius } from "../DragSpec";
+import { closest, floatings, span } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type Card = {
@@ -75,7 +75,7 @@ const draggable: Draggable<State> = ({ state, drag, draggedId }) => {
             transform={translate(colX, 0)}
             data-z-index={draggedId === `column-${column.id}` ? 5 : 0}
             data-on-drag={drag(() =>
-              withSnapRadius(span([state, ...columnReorderStates]), 20, {
+              span([state, ...columnReorderStates]).withSnapRadius(20, {
                 transition: true,
               })
             )}

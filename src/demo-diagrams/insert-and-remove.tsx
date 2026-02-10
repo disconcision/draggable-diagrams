@@ -3,7 +3,7 @@ import _ from "lodash";
 import { amb, produceAmb } from "../amb";
 import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { andThen, closest, floating, withBackground } from "../DragSpec";
+import { closest, floating } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type Tile = { key: string; label: string };
@@ -101,8 +101,7 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               draft.items.splice(insertIdx, 0, storeItem);
             });
 
-            return withBackground(
-              closest(statesWith.map((s) => floating(s))),
+            return closest(statesWith.map((s) => floating(s))).withBackground(
               floating(stateWithout)
             );
           }),
@@ -134,14 +133,11 @@ const draggable: Draggable<State> = ({ state, drag }) => {
               draft.deleted = undefined;
             });
 
-            return withBackground(
-              closest([
-                ...rearrangeStates.map((s) => floating(s)),
-                // ...floatings(rearrangeStates),
-                andThen(floating(deleteState), postDeleteState),
-              ]),
-              floating(stateWithout)
-            );
+            return closest([
+              ...rearrangeStates.map((s) => floating(s)),
+              // ...floatings(rearrangeStates),
+              floating(deleteState).andThen(postDeleteState),
+            ]).withBackground(floating(stateWithout));
           }),
         })
       )}

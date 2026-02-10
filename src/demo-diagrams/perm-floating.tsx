@@ -3,7 +3,7 @@ import _ from "lodash";
 import { amb, produceAmb } from "../amb";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { closest, floating, just, withBackground } from "../DragSpec";
+import { closest, floating, just } from "../DragSpec";
 import { translate } from "../svgx/helpers";
 
 type State = {
@@ -33,10 +33,8 @@ const draggable: Draggable<State> = ({ state, drag }) => {
                 const idx = amb(_.range(stateWithout.perm.length + 1));
                 draft.perm.splice(idx, 0, p);
               });
-              return withBackground(
-                closest(statesWith.map((s) => floating(s))),
-                just(state)
-              );
+              return closest(statesWith.map((s) => floating(s)))
+                .withBackground(just(state));
             })}
           >
             <rect
