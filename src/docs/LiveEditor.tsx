@@ -5,7 +5,7 @@ import { produce } from "immer";
 import _ from "lodash";
 import parserBabel from "prettier/parser-babel";
 import prettier from "prettier/standalone";
-import { createElement, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useState } from "react";
 import { Draggable } from "../draggable";
 import { DraggableRenderer } from "../DraggableRenderer";
 import { andThen, dragSpecBuilders, withSnapRadius } from "../DragSpec";
@@ -50,19 +50,21 @@ export function LiveEditor({
   height,
   minHeight = 200,
 }: LiveEditorProps) {
-  const [code, setCode] = useState(() => {
+  const [code, setCode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // initialize the code; in useEffect cuz prettier is async :(
     const normalized = normalizeIndent`${initialCode}`;
-    try {
-      return prettier.format(normalized, {
+    prettier
+      .format(normalized, {
         parser: "babel",
         plugins: [parserBabel],
         printWidth: 60,
-      });
-    } catch {
-      return normalized;
-    }
-  });
-  const [error, setError] = useState<string | null>(null);
+      })
+      .then(setCode)
+      .catch(() => setCode(normalized));
+  }, [initialCode]);
 
   const result = useMemo(() => {
     try {
@@ -107,6 +109,8 @@ export function LiveEditor({
   }, [code, secretCode]);
 
   const [debugMode, setDebugMode] = useState(false);
+
+  if (code === null) return null;
 
   return (
     <div
