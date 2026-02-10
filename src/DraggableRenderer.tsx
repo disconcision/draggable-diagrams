@@ -13,10 +13,9 @@ import {
   DragBehavior,
   DragFrame,
   DragResult,
-  DragSpec,
-  dragSpecBuilders,
   dragSpecToBehavior,
-} from "./DragSpec";
+} from "./DragBehavior";
+import { DragSpec, DragSpecBuilder } from "./DragSpec";
 import {
   Draggable,
   DraggableProps,
@@ -187,7 +186,7 @@ export function DraggableRenderer<T extends object>({
           const content = pipe(
             draggable({
               state: newState,
-              d: dragSpecBuilders,
+              d: new DragSpecBuilder<T>(),
               draggedId: newDraggedId,
               ghostId: null,
               setState: throwError,
@@ -450,7 +449,7 @@ function initDrag<T extends object>(
   if (draggedId) {
     const startLayered = renderReadOnly(draggable, {
       state,
-      d: dragSpecBuilders,
+      d: new DragSpecBuilder<T>(),
       draggedId,
       ghostId: null,
     });
@@ -561,7 +560,7 @@ const DrawIdleMode = memoGeneric(
   }) => {
     const content = ctx.draggable({
       state: dragState.state,
-      d: dragSpecBuilders,
+      d: new DragSpecBuilder<T>(),
       draggedId: null,
       ghostId: null,
       setState: ctx.catchToRenderError(
@@ -575,7 +574,7 @@ const DrawIdleMode = memoGeneric(
               : newState;
           const snapshot = renderReadOnly(ctx.draggable, {
             state: dragState.state,
-            d: dragSpecBuilders,
+            d: new DragSpecBuilder<T>(),
             draggedId: null,
             ghostId: null,
           });

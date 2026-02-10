@@ -1,6 +1,6 @@
 import { ReactElement, SetStateAction } from "react";
 import { TransitionLike } from "./DraggableRenderer";
-import { DragSpec, type DragSpecBuilders as D } from "./DragSpec";
+import { DragSpec, DragSpecBuilder } from "./DragSpec";
 import { Svgx } from "./svgx";
 
 /**
@@ -10,7 +10,7 @@ export type Draggable<T extends object> = (props: DraggableProps<T>) => Svgx;
 
 export type DraggableProps<T extends object> = {
   state: T;
-  d: D<T>;
+  d: DragSpecBuilder<T>;
   draggedId: string | null;
   ghostId: string | null;
   setState: SetState<T>;

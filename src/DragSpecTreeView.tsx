@@ -1,4 +1,4 @@
-import { DragSpec } from "./DragSpec";
+import { DragSpec, DragSpecData } from "./DragSpec";
 import { assertNever } from "./utils";
 
 export function DragSpecTreeView<T>({
@@ -38,7 +38,7 @@ function SpecNode<T>({
   path,
   colorMap,
 }: {
-  spec: DragSpec<T>;
+  spec: DragSpecData<T>;
   activePath: string | null;
   path: string;
   colorMap: Map<string, string> | null;

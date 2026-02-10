@@ -9,7 +9,7 @@ import {
   DemoNotes,
 } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { type DragSpecBuilders } from "../DragSpec";
+import { type DragSpecBuilder } from "../DragSpec";
 import { overlapIntervals } from "../layout";
 import { Vec2 } from "../math/vec2";
 import { Svgx } from "../svgx";
@@ -109,7 +109,7 @@ function draggableFactory(
 type Ctx = {
   finalizers: Finalizers;
   morph: TreeMorph;
-  d: DragSpecBuilders<State>;
+  d: DragSpecBuilder<State>;
   allMorphs: TreeMorph[];
   codomainTree: TreeNode;
   domainTree: TreeNode;

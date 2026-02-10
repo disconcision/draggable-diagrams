@@ -10,7 +10,7 @@ import {
 } from "../asts";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { type DragSpecBuilders } from "../DragSpec";
+import { type DragSpecBuilder } from "../DragSpec";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
@@ -173,7 +173,7 @@ function draggableFactory(activeRewrites: Rewrite[]): Draggable<State> {
 function renderTree(
   state: State,
   tree: Tree,
-  d: DragSpecBuilders<State>,
+  d: DragSpecBuilder<State>,
   activeRewrites: Rewrite[],
 ): {
   element: Svgx;
@@ -249,7 +249,7 @@ function renderTree(
 }
 
 function dragTargets(
-  d: DragSpecBuilders<State>,
+  d: DragSpecBuilder<State>,
   state: State,
   draggedKey: string,
   activeRewrites: Rewrite[],

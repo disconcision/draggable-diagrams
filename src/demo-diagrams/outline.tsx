@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-import { type DragSpecBuilders } from "../DragSpec";
+import { type DragSpecBuilder } from "../DragSpec";
 import { Svgx } from "../svgx";
 import { translate } from "../svgx/helpers";
 
@@ -174,7 +174,7 @@ function renderTree(
   tree: Tree,
   rootState: Tree,
   draggedId: string | null,
-  d: DragSpecBuilders<Tree>,
+  d: DragSpecBuilder<Tree>,
   config: Config,
 ): {
   elem: Svgx;
