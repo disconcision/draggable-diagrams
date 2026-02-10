@@ -1,10 +1,10 @@
 import { PrettyPrint } from "@joshuahhh/pretty-print";
 import { createContext, ReactNode, useContext, useState } from "react";
 import {
-  OverlayLegend,
-  SpatialOverlaySvg,
-  useOverlayData,
-} from "./DragSpecSpatialOverlay";
+  DropZoneLegend,
+  DropZonesSvg,
+  useDropZoneData,
+} from "./DragSpecDropZones";
 import { DragSpecTreeView } from "./DragSpecTreeView";
 import { DebugDragInfo, DraggableRenderer } from "./DraggableRenderer";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -96,7 +96,7 @@ export function DemoDraggable<T extends object>({
 
   const draggingDebugInfo = debugInfo.type === "dragging" ? debugInfo : null;
 
-  const { data: overlayData, computing: overlayComputing } = useOverlayData(
+  const { data: overlayData, computing: overlayComputing } = useDropZoneData(
     showDropZones ? draggingDebugInfo : null,
     width,
     height
@@ -115,11 +115,7 @@ export function DemoDraggable<T extends object>({
             showDebugOverlay={showDebugOverlay}
           />
           {showDropZones && overlayData && (
-            <SpatialOverlaySvg
-              data={overlayData}
-              width={width}
-              height={height}
-            />
+            <DropZonesSvg data={overlayData} width={width} height={height} />
           )}
           {showDropZones && overlayComputing && (
             <svg
@@ -187,7 +183,7 @@ export function DemoDraggable<T extends object>({
         )}
       </div>
       {showDropZones && !showTreeView && overlayData && (
-        <OverlayLegend data={overlayData} />
+        <DropZoneLegend data={overlayData} />
       )}
     </div>
   );

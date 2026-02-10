@@ -9,7 +9,7 @@ import { Vec2 } from "./math/vec2";
 
 // # Types
 
-export type OverlayData = {
+export type DropZoneData = {
   regions: { activePath: string; svgPath: string; color: string }[];
   colorMap: Map<string, string>;
 };
@@ -256,14 +256,14 @@ function polygonToSvgPath(points: Vec2[]): string {
   return parts.join("");
 }
 
-// # Overlay SVG component
+// # Drop zones SVG component
 
-export function SpatialOverlaySvg({
+export function DropZonesSvg({
   data,
   width,
   height,
 }: {
-  data: OverlayData;
+  data: DropZoneData;
   width: number;
   height: number;
 }) {
@@ -285,7 +285,7 @@ export function SpatialOverlaySvg({
 
 // # Legend component
 
-export function OverlayLegend({ data }: { data: OverlayData }) {
+export function DropZoneLegend({ data }: { data: DropZoneData }) {
   const entries = [...data.colorMap.entries()];
   return (
     <div className="text-xs font-mono flex flex-wrap gap-x-4 gap-y-1">
@@ -308,7 +308,7 @@ export function OverlayLegend({ data }: { data: OverlayData }) {
   );
 }
 
-// # Cooperative overlay generator
+// # Cooperative drop zone generator
 //
 // Yields periodically so the main thread stays responsive during computation.
 // Uses a time budget: checks performance.now() every few samples and yields
@@ -317,11 +317,11 @@ export function OverlayLegend({ data }: { data: OverlayData }) {
 const CHUNK_BUDGET_MS = 8;
 const CHECK_EVERY = 4;
 
-function* computeOverlay(
+function* computeDropZones(
   sample: (x: number, y: number) => string,
   width: number,
   height: number
-): Generator<void, OverlayData, void> {
+): Generator<void, DropZoneData, void> {
   let chunkStart = performance.now();
   let sinceCheck = 0;
 
@@ -433,7 +433,7 @@ function* computeOverlay(
 
 // # Hook: drives the generator cooperatively
 
-export function useOverlayData<T extends object>(
+export function useDropZoneData<T extends object>(
   dragging: {
     spec: DragSpec<T>;
     behaviorCtx: BehaviorContext<T>;
@@ -441,12 +441,12 @@ export function useOverlayData<T extends object>(
   } | null,
   width: number,
   height: number
-): { data: OverlayData | null; computing: boolean } {
+): { data: DropZoneData | null; computing: boolean } {
   const spec = dragging?.spec ?? null;
   const behaviorCtx = dragging?.behaviorCtx ?? null;
   const pointerStart = dragging?.pointerStart ?? null;
 
-  const [data, setData] = useState<OverlayData | null>(null);
+  const [data, setData] = useState<DropZoneData | null>(null);
   const [computing, setComputing] = useState(false);
   const specRef = useRef(spec);
   const dataRef = useRef(data);
@@ -479,7 +479,7 @@ export function useOverlayData<T extends object>(
       }
     }
 
-    const gen = computeOverlay(sample, width, height);
+    const gen = computeDropZones(sample, width, height);
     let cancelled = false;
 
     function step() {
