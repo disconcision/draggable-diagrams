@@ -1,160 +1,150 @@
 # Claude Code Workspace Guide
 
-This document provides guidance for working on the draggable-diagrams codebase.
+## Rules
 
-## How not to annoy the user
-
-- NEVER say "Perfect!" or similar overly enthusiastic confirmations – your work is rarely perfect. Just explain what was done.
-- NEVER use `any` as a lazy workaround for type errors. Only use `any` when it is truly called for (e.g., interfacing with untyped external code, or when the type system genuinely cannot express the constraint). Ask first.
-- NEVER use React keys in "Draggable" definitions. They don't use them.
+- NEVER say "Perfect!" or similar overly enthusiastic confirmations.
+- NEVER use `any` as a lazy workaround for type errors. Only use `any` when truly called for. Ask first.
 - NEVER run `npm run dev`. The user will start the dev server when needed.
 
-## Project Overview
+## 1. Working on the Library Codebase
 
-This project implements interactive, draggable SVG diagrams with sophisticated state interpolation. The core concept is **manifolds** - continuous spaces of valid states that elements can be dragged through. When you drag an element, the system finds nearby valid states and smoothly interpolates between them.
-
-## Development Workflow
+### Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Run tests
-npm test
-
-# Run specific test file
-npm test -- svg-transform.test --run
-
-# Build
-npm run build
-
-# Type check
-npm run typecheck
+npm install       # Install dependencies
+npm test          # Run tests
+npm run build     # Build
+npm run typecheck # Type check
 ```
 
-**IMPORTANT:** Do NOT run `npm run dev` automatically. The user will start the dev server when needed.
+### Key Files
 
-## Important Gotchas
+| File | Purpose |
+|---|---|
+| `src/draggable.tsx` | `Draggable<T>` type, `Drag`, `SetState`, `OnDragPropValue` |
+| `src/DraggableRenderer.tsx` | Low-level component that runs a `Draggable` with drag handling, spring animation |
+| `src/DragSpec.tsx` | `DragSpec<T>` union type + constructors (`span`, `just`, `floating`, `closest`, `vary`, `andThen`, `withSnapRadius`, etc.) |
+| `src/demo-ui.tsx` | `DemoDraggable` (wraps `DraggableRenderer` with debug UI), `DemoSettingsProvider`, `DemoSettingsBar`, `ConfigPanel`, `ConfigCheckbox`, `ConfigSelect`, `DemoNotes` |
+| `src/demos.tsx` | Demo registry — array of `{ id, Component }` |
+| `src/demo-diagrams/` | Individual demo implementations |
+| `src/DemoPage.tsx` | Gallery page showing all demos |
+| `src/SingleDemoPage.tsx` | Single demo page |
+| `src/docs/LiveEditor.tsx` | Interactive code editor for docs (evaluates user code that exports `draggable` + `initialState`) |
+| `src/svgx/` | SVG representation (`Svgx`, `LayeredSvgx`), transforms, interpolation |
 
-### 1. Transform Ordering
+### Architecture
 
-SVG transforms are right-to-left. Always put `translate()` first in your string:
+```
+Draggable<T>  (render function: state → SVG)
+     ↓
+DraggableRenderer  (low-level: drag state machine, spring animation, pointer handling)
+     ↓
+DemoDraggable  (wraps with debug overlays, tree view, state viewer)
+```
+
+DragSpec data flow:
+```
+DragSpec (plain data) → dragSpecToBehavior() → DragBehavior (frame → DragResult) → DraggableRenderer renders result
+```
+
+### SVG Representation
+
+- `Svgx` = `React.ReactElement<React.SVGProps<SVGElement>>`
+- `LayeredSvgx` = `{ byId: Map<string, Svgx>, descendents: ... }` — elements with `id` get pulled to top-level
+- Root goes in with key `""`
+
+## 2. Making Draggables
+
+### Structure
+
+Each demo in `src/demo-diagrams/` is a self-contained file registered in `src/demos.tsx`.
+
+A draggable definition has four parts:
 
 ```typescript
-// ✓ Correct
-transform={translate(x, y) + rotate(angle)}
+import { DemoDraggable } from "../demo-ui";
+import { Draggable } from "../draggable";
+import { span } from "../DragSpec";
 
-// ✗ Wrong
-transform={rotate(angle) + translate(x, y)}
+// 1. State type (must be an object)
+type State = { value: boolean };
+
+// 2. Initial state
+const initialState: State = { value: false };
+
+// 3. Draggable render function
+const draggable: Draggable<State> = ({ state, drag }) => (
+  <g>
+    <rect
+      id="my-element"
+      data-on-drag={drag(() => span([{ value: true }, { value: false }]))}
+    />
+  </g>
+);
+
+// 4. Export as a component using DemoDraggable
+export const MyDemo = () => (
+  <DemoDraggable
+    draggable={draggable}
+    initialState={initialState}
+    width={400}
+    height={300}
+  />
+);
 ```
 
-### 2. No React Keys
+### Drag Spec Constructors
 
-The framework uses `id` attributes for element tracking, not React's `key`:
+| Function | Use |
+|---|---|
+| `span([state1, state2, ...])` | Drag between discrete states (interpolated) |
+| `just(state)` | Always resolve to this state |
+| `vary(state, ["x"], ["y"])` | Continuous numeric variation along paths |
+| `floating(states, { backdrop })` | Float between states with a backdrop |
+| `closest([spec1, spec2])` | Pick whichever spec is closest |
+| `andThen(spec, nextState)` | Chain into a new drag on state change |
+| `withSnapRadius(spec, radius)` | Snap within radius |
+| `withDropTransition(spec, easing)` | Custom transition on drop |
 
-```typescript
-// ✓ Correct
-<rect id="my-element" />
+### Gotchas
 
-// ✗ Wrong
-<rect key="my-element" />  // Error!
-```
-
-### 3. No Slashes in IDs
-
-IDs cannot contain `/` - use hyphens or other separators:
-
-```typescript
-// ✓ Correct
-<g id="node-1-2" />
-
-// ✗ Wrong
-<g id="node/1/2" />  // Error!
-```
-
-### 4. Read Before Edit/Write
-
-The Edit and Write tools require reading the file first. Always use Read tool before modifying files.
-
-## How to Make a Draggable Diagram
-
-### Basic Structure
-
-1. **Define your state type** - Must be an object. This represents all possible configurations of your diagram:
-
-   ```typescript
-   export type State = {
-     items: string[];
-     selectedId?: string;
-   };
-   ```
-
-2. **Export initial states** - Provide one or more starting configurations:
-
-   ```typescript
-   export const state1: State = {
-     items: ["A", "B", "C"],
-   };
-   ```
-
-3. **Write the draggable** - A function that renders SVG based on state:
-   ```typescript
-   export const draggable: Draggable<State> = ({
-     state,
-     drag,
-     draggedId,
-   }) => {
-     return <g>{/* your SVG elements */}</g>;
-   };
-   ```
-
-### Making Things Draggable
-
-**For discrete state changes** (e.g., reordering, moving between positions):
-
-- Attach `data-on-drag={drag(...)}` to the element
-- Use `span([...states])` to drag between multiple states
-- Only attach to elements that should be draggable (check conditions first)
-
-**For continuous state changes** (e.g., angles, positions):
-
-- Use `vary(["path", "to", "number"])` to control a numeric value
-- Use `vary(["x"], ["y"])` for multiple values
-
-**Floating pattern** (moving items between containers):
-
-```typescript
-data-on-drag={drag(() => {
-  // Remove item from current location
-  const stateWithout = produce(state, (draft) => {
-    draft.items.splice(currentIdx, 1);
-  });
-
-  // Generate all valid placement states
-  const statesWith = possiblePositions.map(pos =>
-    produce(stateWithout, (draft) => {
-      draft.items.splice(pos, 0, item);
-    })
-  );
-
-  return floating(statesWith, { backdrop: stateWithout });
-})}
-```
-
-### Key Patterns
-
-- **Positioning**: Always use `transform={translate(x, y)}`, never `x` and `y` attributes
-- **Element tracking**: Use `id` attributes on draggable elements (required for proper interpolation)
+- **Transform ordering**: SVG transforms are right-to-left. Put `translate()` first: `translate(x, y) + rotate(angle)`
+- **No React keys**: Use `id` attributes for element tracking, never `key`
+- **No slashes in IDs**: Use hyphens — `id="node-1-2"` not `id="node/1/2"`
+- **Positioning**: Always use `transform={translate(x, y)}`, never `x`/`y` attributes directly
 - **Layering**: Use `data-z-index={isDragged ? 2 : 1}` to control draw order
-- **Conditional draggability**: Use `data-on-drag={condition && drag(...)}` to only make certain elements draggable
-- **Visual feedback**: Use `draggedId` to style the currently-dragged element differently
+- **Conditional drag**: `data-on-drag={condition && drag(...)}` to make things conditionally draggable
+- **drag() wrapper**: Every `data-on-drag` value must be wrapped in `drag(...)` — the framework throws if you don't
+- **`data-transition={false}`**: Elements with this skip spring animation and track the cursor directly
 
 ### Registration
 
-Add your diagram to `src/demos.tsx`:
+Add to `src/demos.tsx`:
 
 ```typescript
-import { YourDiagram } from "./demo-diagrams/your-diagram";
+import { MyDemo } from "./demo-diagrams/my-demo";
 
-{ id: "your-diagram", Component: YourDiagram },
+// Add to the demos array:
+{ id: "my-demo", Component: MyDemo },
+```
+
+### Config Panels
+
+For demos with user-configurable options:
+
+```typescript
+import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../demo-ui";
+
+export const MyDemo = () => {
+  const [showLabels, setShowLabels] = useState(true);
+  const draggable = useMemo(() => makeDraggable(showLabels), [showLabels]);
+  return (
+    <div className="flex flex-col md:flex-row gap-4 items-start">
+      <DemoDraggable draggable={draggable} initialState={state} width={400} height={300} />
+      <ConfigPanel>
+        <ConfigCheckbox label="Show labels" value={showLabels} onChange={setShowLabels} />
+      </ConfigPanel>
+    </div>
+  );
+};
 ```
