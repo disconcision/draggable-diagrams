@@ -73,13 +73,13 @@ const allMorphs7 = getAllMorphs(tree7, tree7);
 const initialState3: State = { morph: allMorphs3[0] };
 const initialState7: State = { morph: allMorphs7[0] };
 
-const draggableFactory = (
+function draggableFactory(
   domainTree: TreeNode,
   codomainTree: TreeNode,
   allMorphs: TreeMorph[],
   config: Config,
   yForTradRep: number
-): Draggable<State> => {
+): Draggable<State> {
   return ({ state, drag }) => {
     const finalizers = new Finalizers();
     const ctx: Ctx = {
@@ -104,7 +104,7 @@ const draggableFactory = (
     const mainTree = <g>{elements}</g>;
     return <g>{[mainTree, ...finalizers.run(mainTree)]}</g>;
   };
-};
+}
 
 type Ctx = {
   finalizers: Finalizers;

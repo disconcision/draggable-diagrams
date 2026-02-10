@@ -167,9 +167,8 @@ const defaultActiveRewriteSets = rewriteSets.map(
 );
 
 function draggableFactory(activeRewrites: Rewrite[]): Draggable<State> {
-  return ({ state, drag }) => {
-    return renderTree(state, state, drag, activeRewrites).element;
-  };
+  return ({ state, drag }) =>
+    renderTree(state, state, drag, activeRewrites).element;
 }
 
 function renderTree(

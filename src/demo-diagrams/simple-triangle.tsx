@@ -18,58 +18,59 @@ const SQUARE_SIZE = 40;
 
 const initialState: State = { posIndex: 0 };
 
-const draggableFactory =
-  (mode: "span" | "floating" | "just"): Draggable<State> =>
-  ({ state, drag }) =>
-    (
-      <g>
-        {/* background positions */}
-        {POSITIONS.map((pos, i) => (
-          <rect
-            key={i}
-            transform={translate(pos)}
-            width={SQUARE_SIZE}
-            height={SQUARE_SIZE}
-            rx={4}
-            fill="none"
-            stroke="#cbd5e1"
-            strokeWidth={1}
-          />
-        ))}
-        {/* draggable square */}
+function draggableFactory(
+  mode: "span" | "floating" | "just"
+): Draggable<State> {
+  return ({ state, drag }) => (
+    <g>
+      {/* background positions */}
+      {POSITIONS.map((pos, i) => (
         <rect
-          id="switch"
-          transform={translate(POSITIONS[state.posIndex])}
+          key={i}
+          transform={translate(pos)}
           width={SQUARE_SIZE}
           height={SQUARE_SIZE}
           rx={4}
-          data-on-drag={drag(() => {
-            const states: State[] = _.range(POSITIONS.length).map((i) => ({
-              posIndex: i,
-            }));
-
-            if (mode === "span") {
-              return span(states);
-            } else if (mode === "floating") {
-              return closest(states.map((s) => floating(s)));
-            } else if (mode === "just") {
-              return closest(states.map((s) => just(s)));
-            } else {
-              assertNever(mode);
-            }
-          })}
-        />
-        <line
-          x1={POSITIONS[0][0] + SQUARE_SIZE / 2}
-          y1={POSITIONS[0][1] + SQUARE_SIZE / 2}
-          x2={POSITIONS[state.posIndex][0] + SQUARE_SIZE / 2}
-          y2={POSITIONS[state.posIndex][1] + SQUARE_SIZE / 2}
+          fill="none"
           stroke="#cbd5e1"
-          strokeWidth={6}
-          strokeLinecap="round"
+          strokeWidth={1}
         />
-      </g>
-    );
+      ))}
+      {/* draggable square */}
+      <rect
+        id="switch"
+        transform={translate(POSITIONS[state.posIndex])}
+        width={SQUARE_SIZE}
+        height={SQUARE_SIZE}
+        rx={4}
+        data-on-drag={drag(() => {
+          const states: State[] = _.range(POSITIONS.length).map((i) => ({
+            posIndex: i,
+          }));
+
+          if (mode === "span") {
+            return span(states);
+          } else if (mode === "floating") {
+            return closest(states.map((s) => floating(s)));
+          } else if (mode === "just") {
+            return closest(states.map((s) => just(s)));
+          } else {
+            assertNever(mode);
+          }
+        })}
+      />
+      <line
+        x1={POSITIONS[0][0] + SQUARE_SIZE / 2}
+        y1={POSITIONS[0][1] + SQUARE_SIZE / 2}
+        x2={POSITIONS[state.posIndex][0] + SQUARE_SIZE / 2}
+        y2={POSITIONS[state.posIndex][1] + SQUARE_SIZE / 2}
+        stroke="#cbd5e1"
+        strokeWidth={6}
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
 
 const spanDraggable = draggableFactory("span");
 const floatingDraggable = draggableFactory("floating");
