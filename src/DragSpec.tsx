@@ -192,7 +192,7 @@ export class DragSpecBuilder<T> {
     return attachMethods({ type: "vary", state, paramPaths, ...options });
   }
 
-  transitionToAndThen(state: T, draggedId: string): DragSpec<T> {
+  switchToStateAndFollow(state: T, draggedId: string): DragSpec<T> {
     return attachMethods({ type: "transition-to-and-then", state, draggedId });
   }
 }

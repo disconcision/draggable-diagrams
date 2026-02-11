@@ -262,7 +262,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                                   },
                                 };
                         });
-                        return d.transitionToAndThen(
+                        return d.switchToStateAndFollow(
                           newState,
                           `wire-${wid}-${endKey}`,
                         );
