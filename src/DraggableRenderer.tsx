@@ -641,6 +641,7 @@ function postProcessForInteraction<T extends object>(
           "Elements with data-on-drag cannot have onPointerDown (it is overwritten)",
         );
         return {
+          // put cursor first, so it's overriden by author-defined cursor
           style: { cursor: "grab", ...(el.props.style || {}) },
           onPointerDown: ctx.catchToRenderError((e: React.PointerEvent) => {
             e.stopPropagation();

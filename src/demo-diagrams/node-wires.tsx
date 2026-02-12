@@ -1,7 +1,6 @@
 import { produce } from "immer";
 import { DemoDraggable } from "../demo-ui";
 import { Draggable } from "../draggable";
-
 import { translate } from "../svgx/helpers";
 
 const NODE_W = 90;
@@ -32,20 +31,14 @@ function portY(count: number, idx: number, h: number) {
   return startY + idx * PORT_SPACING;
 }
 
-function portPos(
-  nodes: State["nodes"],
-  nodeId: string,
-  port: string,
-): [number, number] {
-  const n = nodes[nodeId];
+/** Port position relative to its node's origin. */
+function localPortPos(nodeId: string, port: string): [number, number] {
   const def = NODE_DEFS[nodeId];
   const h = nodeHeight(nodeId);
   const outIdx = def.outputs.indexOf(port);
-  if (outIdx >= 0) {
-    return [n.x + NODE_W, n.y + portY(def.outputs.length, outIdx, h)];
-  }
+  if (outIdx >= 0) return [NODE_W, portY(def.outputs.length, outIdx, h)];
   const inIdx = def.inputs.indexOf(port);
-  return [n.x, n.y + portY(def.inputs.length, inIdx, h)];
+  return [0, portY(def.inputs.length, inIdx, h)];
 }
 
 type WireEnd =
@@ -57,10 +50,19 @@ type State = {
   wires: Record<string, { from: WireEnd; to: WireEnd }>;
 };
 
+/** Port position in global coordinates. */
+function portPos(
+  nodes: State["nodes"],
+  nodeId: string,
+  port: string,
+): [number, number] {
+  const [lx, ly] = localPortPos(nodeId, port);
+  const n = nodes[nodeId];
+  return [n.x + lx, n.y + ly];
+}
+
 function endPos(nodes: State["nodes"], end: WireEnd): [number, number] {
-  if (end.type === "on-port") {
-    return portPos(nodes, end.nodeId, end.port);
-  }
+  if (end.type === "on-port") return portPos(nodes, end.nodeId, end.port);
   return [end.x, end.y];
 }
 
@@ -100,7 +102,6 @@ const initialState: State = {
 
 const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   function endDragSpec(wireId: string, endKey: "from" | "to") {
-    // ways to snap it
     const side = endKey === "to" ? "in" : "out";
     const snapSpecs = allPorts(side).map(({ nodeId, port }) =>
       d.just(
@@ -110,7 +111,6 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
       ),
     );
 
-    // ways to leave it danglin'
     const [px, py] = endPos(state.nodes, state.wires[wireId][endKey]);
     const freeState = produce(state, (draft) => {
       draft.wires[wireId][endKey] = { type: "free", x: px, y: py };
@@ -131,7 +131,6 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
       );
     }
 
-    // put 'em together
     return d.closest(snapSpecs).withBackground(varySpec, { radius: 20 });
   }
 
@@ -159,6 +158,11 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               fill={wire.from.type === "free" ? "#ccc" : "transparent"}
               stroke={wire.from.type === "free" ? "#999" : "none"}
               strokeWidth={wire.from.type === "free" ? 1 : 0}
+              style={
+                wire.from.type === "on-port"
+                  ? { cursor: "crosshair" }
+                  : undefined
+              }
               data-z-index={3}
               data-on-drag={() => endDragSpec(wid, "from")}
             />
@@ -169,6 +173,9 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               fill={wire.to.type === "free" ? "#ccc" : "transparent"}
               stroke={wire.to.type === "free" ? "#999" : "none"}
               strokeWidth={wire.to.type === "free" ? 1 : 0}
+              style={
+                wire.to.type === "on-port" ? { cursor: "crosshair" } : undefined
+              }
               data-z-index={3}
               data-on-drag={() => endDragSpec(wid, "to")}
             />
@@ -219,14 +226,13 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
 
             {(["in", "out"] as const).map((side) => {
               const ports = side === "in" ? def.inputs : def.outputs;
-              const cx = side === "in" ? 0 : NODE_W;
               const colors =
                 side === "in" ? ["#4a9eff", "#c0d8f0"] : ["#ff6b4a", "#f0c8c0"];
-              const wireEnd = side === "in" ? "to" : "from";
-              return ports.map((port, i) => {
-                const py = portY(ports.length, i, h);
+              const wireEndKey = side === "in" ? "to" : "from";
+              return ports.map((port) => {
+                const [lx, ly] = localPortPos(nid, port);
                 const connected = Object.values(state.wires).some((w) => {
-                  const end = w[wireEnd];
+                  const end = w[wireEndKey];
                   return (
                     end.type === "on-port" &&
                     end.nodeId === nid &&
@@ -236,50 +242,42 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                 return (
                   <g
                     id={`${side === "in" ? "port" : "oport"}-${nid}-${port}`}
+                    transform={translate(lx, ly)}
+                    style={{ cursor: "crosshair" }}
                     data-on-drag={
                       !connected &&
                       (() => {
                         const [px, py] = portPos(state.nodes, nid, port);
                         const wid = nextWireId(state);
-                        const endKey = side === "out" ? "to" : "from";
+                        const fixed: WireEnd = {
+                          type: "on-port",
+                          nodeId: nid,
+                          port,
+                        };
+                        const free: WireEnd = { type: "free", x: px, y: py };
+                        const freeEndKey =
+                          side === "out" ? "to" : ("from" as const);
                         const newState = produce(state, (draft) => {
                           draft.wires[wid] =
                             side === "out"
-                              ? {
-                                  from: {
-                                    type: "on-port",
-                                    nodeId: nid,
-                                    port,
-                                  },
-                                  to: { type: "free", x: px, y: py },
-                                }
-                              : {
-                                  from: { type: "free", x: px, y: py },
-                                  to: {
-                                    type: "on-port",
-                                    nodeId: nid,
-                                    port,
-                                  },
-                                };
+                              ? { from: fixed, to: free }
+                              : { from: free, to: fixed };
                         });
                         return d.switchToStateAndFollow(
                           newState,
-                          `wire-${wid}-${endKey}`,
+                          `wire-${wid}-${freeEndKey}`,
                         );
                       })
                     }
                   >
                     <circle
-                      cx={cx}
-                      cy={py}
                       r={PORT_R}
                       fill={connected ? colors[0] : colors[1]}
                       stroke="white"
                       strokeWidth={1.5}
                     />
                     <text
-                      x={side === "in" ? PORT_R + 4 : NODE_W - PORT_R - 4}
-                      y={py}
+                      x={side === "in" ? PORT_R + 4 : -(PORT_R + 4)}
                       dominantBaseline="middle"
                       textAnchor={side === "in" ? "start" : "end"}
                       fontSize={9}
