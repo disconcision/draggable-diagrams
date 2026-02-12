@@ -226,12 +226,12 @@ function SpecNode<T>({
         />
       </Box>
     );
-  } else if (spec.type === "transition-to-and-then") {
-    const fullPath = path + "transition-to-and-then";
+  } else if (spec.type === "switch-to-state-and-follow") {
+    const fullPath = path + "switch-to-state-and-follow";
     const active = activePath === fullPath;
     return (
       <Box
-        label={`transitionToAndThen → ${spec.draggedId}`}
+        label={`switchToStateAndFollow → ${spec.draggedId}`}
         active={active}
         color={colorMap?.get(fullPath)}
       />

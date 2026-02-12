@@ -508,13 +508,13 @@ export function dragSpecToBehavior<T extends object>(
         ),
       };
     };
-  } else if (spec.type === "transition-to-and-then") {
+  } else if (spec.type === "switch-to-state-and-follow") {
     const rendered = renderStateReadOnly(ctx, spec.state);
     return (_frame) => ({
       rendered,
       dropState: spec.state,
       distance: 0,
-      activePath: "transition-to-and-then",
+      activePath: "switch-to-state-and-follow",
       chainNow: spec.draggedId,
     });
   } else {

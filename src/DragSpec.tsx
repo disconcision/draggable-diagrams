@@ -20,7 +20,7 @@ export type DragSpecData<T> =
   | DragSpecWithSnapRadius<T>
   | DragSpecWithDropTransition<T>
   | DragSpecSpan<T>
-  | DragSpecTransitionToAndThen<T>;
+  | DragSpecSwitchToStateAndFollow<T>;
 
 export type DragSpecJust<T> = {
   type: "just";
@@ -84,8 +84,8 @@ export type DragSpecSpan<T> = {
   states: T[];
 };
 
-export type DragSpecTransitionToAndThen<T> = {
-  type: "transition-to-and-then";
+export type DragSpecSwitchToStateAndFollow<T> = {
+  type: "switch-to-state-and-follow";
   state: T;
   draggedId: string;
 };
@@ -193,7 +193,11 @@ export class DragSpecBuilder<T> {
   }
 
   switchToStateAndFollow(state: T, draggedId: string): DragSpec<T> {
-    return attachMethods({ type: "transition-to-and-then", state, draggedId });
+    return attachMethods({
+      type: "switch-to-state-and-follow",
+      state,
+      draggedId,
+    });
   }
 }
 
