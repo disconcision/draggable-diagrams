@@ -680,7 +680,10 @@ function postProcessForInteraction<T extends object>(
               },
             );
 
-            if (ctx.dragThreshold <= 0 || !el.props.onClick) {
+            if (
+              ctx.dragThreshold <= 0 ||
+              (!el.props.onClick && !el.props.onDoubleClick)
+            ) {
               ctx.setDragState(draggingState);
               ctx.onDebugDragInfoRef.current?.(debugInfo);
             } else {

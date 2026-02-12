@@ -1,4 +1,4 @@
-import { DemoDraggable } from "../demo-ui";
+import { DemoDraggable, DemoNotes } from "../demo-ui";
 import { Draggable } from "../draggable";
 import { translate } from "../svgx/helpers";
 
@@ -19,7 +19,7 @@ const colors = [
   "#ec4899",
 ];
 
-const draggable: Draggable<State> = ({ state, d }) => (
+const draggable: Draggable<State> = ({ state, d, setState }) => (
   <g>
     {state.dots.map((dot, i) => (
       <circle
@@ -27,9 +27,12 @@ const draggable: Draggable<State> = ({ state, d }) => (
         transform={translate(dot.x, dot.y)}
         r={DOT_RADIUS}
         fill={colors[i % colors.length]}
+        onDoubleClick={() => {
+          // Remove the dot on double click
+          setState({ dots: state.dots.filter((_, idx) => idx !== i) });
+        }}
         data-on-drag={() => {
-          const newDot = { ...dot };
-          const newState: State = { dots: [...state.dots, newDot] };
+          const newState: State = { dots: [...state.dots, { ...dot }] };
           const copyIdx = state.dots.length;
           return d.switchToStateAndFollow(
             newState,
@@ -43,10 +46,13 @@ const draggable: Draggable<State> = ({ state, d }) => (
 );
 
 export const DragToCopy = () => (
-  <DemoDraggable
-    draggable={draggable}
-    initialState={initialState}
-    width={400}
-    height={300}
-  />
+  <>
+    <DemoNotes>Drag to duplicate. Double click to remove.</DemoNotes>
+    <DemoDraggable
+      draggable={draggable}
+      initialState={initialState}
+      width={400}
+      height={300}
+    />
+  </>
 );
