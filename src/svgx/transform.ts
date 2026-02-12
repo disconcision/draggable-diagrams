@@ -45,8 +45,8 @@ export function parseTransform(str: string): Transform[] {
       case "scale":
         transforms.push({
           type: "scale",
-          x: args[0] || 1,
-          y: args[1] !== undefined ? args[1] : args[0] || 1,
+          x: args[0] ?? 1,
+          y: args[1] ?? args[0] ?? 1,
         });
         break;
     }
@@ -197,6 +197,20 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+/** Collapse multiple translations into a single one, preserving other transforms. */
+function collapseTranslations(transforms: Transform[]): Transform[] {
+  const translations = transforms.filter(
+    (t) => t.type === "translate",
+  ) as Array<{ type: "translate"; x: number; y: number }>;
+  const others = transforms.filter((t) => t.type !== "translate");
+  if (translations.length === 0) return others;
+  const sum = translations.reduce(
+    (acc, t) => ({ x: acc.x + t.x, y: acc.y + t.y }),
+    { x: 0, y: 0 },
+  );
+  return [{ type: "translate" as const, ...sum }, ...others];
+}
+
 /**
  * Lerps between two transform strings.
  */
@@ -230,7 +244,38 @@ export function lerpTransformString(a: string, b: string, t: number): string {
     return serializeTransform(lerpedTransforms);
   }
 
-  // Otherwise both must be non-empty
+  // If either has a scale, normalize transforms so they can be lerped.
+  // This handles emerge animations where one side has scale(0) and the other doesn't.
+  // We collapse translations since accumulated transforms from nested groups can have
+  // different numbers of translations.
+  const aHasScale = transformsA.some((t) => t.type === "scale");
+  const bHasScale = transformsB.some((t) => t.type === "scale");
+
+  if (aHasScale || bHasScale) {
+    let normA = collapseTranslations(transformsA);
+    let normB = collapseTranslations(transformsB);
+
+    // Pad with identity translate if one side has translations and the other doesn't
+    const aHasTranslate = normA.some((t) => t.type === "translate");
+    const bHasTranslate = normB.some((t) => t.type === "translate");
+    if (aHasTranslate && !bHasTranslate) {
+      normB = [{ type: "translate", x: 0, y: 0 }, ...normB];
+    } else if (bHasTranslate && !aHasTranslate) {
+      normA = [{ type: "translate", x: 0, y: 0 }, ...normA];
+    }
+
+    // Add identity scale to whichever side is missing it
+    if (!aHasScale) {
+      normA = [...normA, { type: "scale", x: 1, y: 1 }];
+    }
+    if (!bHasScale) {
+      normB = [...normB, { type: "scale", x: 1, y: 1 }];
+    }
+
+    return serializeTransform(lerpTransforms(normA, normB, t));
+  }
+
+  // Fallback for non-matchable transforms
   if (!a) return b;
   if (!b) return a;
 

@@ -124,11 +124,8 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               return d
                 .closest(
                   // to children
-                  d.span(
-                    state,
-                    { root: sprout(state.root, node.id, 0) },
-                    { root: sprout(state.root, node.id, 1) },
-                  ),
+                  d.span(state, { root: sprout(state.root, node.id, 0) }),
+                  d.span(state, { root: sprout(state.root, node.id, 1) }),
                   // to parent (if not root)
                   state.root.id !== node.id
                     ? d.span(state, { root: prune(state.root, node.id) })

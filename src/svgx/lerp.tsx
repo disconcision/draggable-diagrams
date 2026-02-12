@@ -293,23 +293,171 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+// # Emerge animation support
+
+type EmergeBounds = {
+  rectWidth: number;
+  rectHeight: number;
+  textY: number | null;
+};
+
+/** Finds the first <rect>'s dimensions and first <text>'s y position (direct children only). */
+function findEmergeBounds(element: Svgx): EmergeBounds | null {
+  const children = React.Children.toArray(
+    (element.props as any).children,
+  ) as Svgx[];
+
+  let rectWidth: number | null = null;
+  let rectHeight: number | null = null;
+  let textY: number | null = null;
+
+  for (const child of children) {
+    if (React.isValidElement(child)) {
+      if (child.type === "rect" && rectWidth === null) {
+        const props = child.props as any;
+        rectWidth = parseFloat(props.width);
+        rectHeight = parseFloat(props.height);
+      } else if (child.type === "text" && textY === null) {
+        const props = child.props as any;
+        textY = parseFloat(props.y);
+      }
+    }
+  }
+
+  if (
+    rectWidth !== null &&
+    rectHeight !== null &&
+    !isNaN(rectWidth) &&
+    !isNaN(rectHeight)
+  ) {
+    return {
+      rectWidth,
+      rectHeight,
+      textY: textY !== null && !isNaN(textY) ? textY : null,
+    };
+  }
+  return null;
+}
+
+/** Clone element with modified first <rect> dimensions and first <text> y. */
+function cloneWithBounds(element: Svgx, bounds: EmergeBounds): Svgx {
+  const props = element.props as any;
+  const children = React.Children.toArray(props.children) as Svgx[];
+
+  let foundRect = false;
+  let foundText = false;
+  const newChildren = children.map((child) => {
+    if (React.isValidElement(child)) {
+      if (!foundRect && child.type === "rect") {
+        foundRect = true;
+        return cloneElement(child, {
+          width: bounds.rectWidth,
+          height: bounds.rectHeight,
+        });
+      } else if (!foundText && child.type === "text" && bounds.textY !== null) {
+        foundText = true;
+        return cloneElement(child, { y: bounds.textY });
+      }
+    }
+    return child;
+  });
+
+  return cloneElement(element, { children: newChildren });
+}
+
+/**
+ * Creates a synthetic "before" version of an emerging element.
+ *
+ * Strategy:
+ * 1. If data-emerge-mode="clone", position at origin with full opacity (split/merge)
+ * 2. If both elements have rect+text structure, use bounds interpolation
+ * 3. Otherwise, fall back to transform scale(0) + opacity 0
+ */
+function createSyntheticBefore(newElement: Svgx, originElement: Svgx): Svgx {
+  const originTransform = (originElement.props as any).transform || "";
+  const emergeMode = (newElement.props as any)["data-emerge-mode"];
+
+  if (emergeMode === "clone") {
+    const originBounds = findEmergeBounds(originElement);
+    const newBounds = findEmergeBounds(newElement);
+    if (originBounds && newBounds) {
+      const synthetic = cloneWithBounds(newElement, originBounds);
+      return cloneElement(synthetic, {
+        transform: originTransform || undefined,
+      });
+    }
+    return cloneElement(newElement, {
+      transform: originTransform || undefined,
+    });
+  }
+
+  // Try bounds-based interpolation (nicer for rect+text tree nodes)
+  if (emergeMode !== "scale") {
+    const originBounds = findEmergeBounds(originElement);
+    const newBounds = findEmergeBounds(newElement);
+    if (originBounds && newBounds) {
+      const synthetic = cloneWithBounds(newElement, originBounds);
+      return cloneElement(synthetic, {
+        transform: originTransform || undefined,
+        opacity: 0,
+      });
+    }
+  }
+
+  // Fallback: scale from 0 at origin's position
+  return cloneElement(newElement, {
+    transform: originTransform + " scale(0)",
+    opacity: 0,
+  });
+}
+
 export function lerpLayered(
   a: LayeredSvgx,
   b: LayeredSvgx,
   t: number,
 ): LayeredSvgx {
+  // Preprocess: inject synthetic versions of emerging elements in BOTH directions.
+  // Bidirectional handling is needed because Delaunay interpolation can flip direction.
+  const augmentedA = new Map(a.byId);
+  const augmentedB = new Map(b.byId);
+
+  // Forward: elements in B that emerge from elements in A
+  for (const [key, bVal] of b.byId) {
+    if (!augmentedA.has(key)) {
+      const emergeFromId = (bVal.props as any)["data-emerge-from"];
+      if (emergeFromId && typeof emergeFromId === "string") {
+        const originElement = a.byId.get(emergeFromId);
+        if (originElement) {
+          augmentedA.set(key, createSyntheticBefore(bVal, originElement));
+        }
+      }
+    }
+  }
+
+  // Reverse: elements in A that emerge from elements in B
+  for (const [key, aVal] of a.byId) {
+    if (!augmentedB.has(key)) {
+      const emergeFromId = (aVal.props as any)["data-emerge-from"];
+      if (emergeFromId && typeof emergeFromId === "string") {
+        const originElement = b.byId.get(emergeFromId);
+        if (originElement) {
+          augmentedB.set(key, createSyntheticBefore(aVal, originElement));
+        }
+      }
+    }
+  }
+
+  // Main lerp loop
   const result = new Map<string, Svgx>();
-  const allKeys = new Set([...a.byId.keys(), ...b.byId.keys()]);
+  const allKeys = new Set([...augmentedA.keys(), ...augmentedB.keys()]);
 
   for (const key of allKeys) {
-    const aVal = a.byId.get(key);
-    const bVal = b.byId.get(key);
+    const aVal = augmentedA.get(key);
+    const bVal = augmentedB.get(key);
 
     if (aVal && bVal) {
-      // console.log("lerpLayered is lerping key:", key);
       result.set(key, lerpSvgx(aVal, bVal, t));
     } else if (aVal) {
-      // TODO: we're hard-coding "enter/exit by fading"
       const opacity = +(aVal.props.opacity ?? 1) * (1 - t);
       if (opacity > 1e-3) result.set(key, cloneElement(aVal, { opacity }));
     } else if (bVal) {
