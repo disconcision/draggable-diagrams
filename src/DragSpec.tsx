@@ -174,12 +174,12 @@ export class DragSpecBuilder<T> {
     return attachMethods({ type: "floating", state: stateOrStates, ghost });
   }
 
-  span(states: T[]): DragSpec<T> {
+  span(...states: Many<T>[]): DragSpec<T> {
     assert(states.length > 0, "span requires at least one state");
-    return attachMethods({ type: "span", states });
+    return attachMethods({ type: "span", states: manyToArray(states) });
   }
 
-  closest(specs: Many<DragSpec<T>>): DragSpec<T> {
+  closest(...specs: Many<DragSpec<T>>[]): DragSpec<T> {
     return attachMethods({ type: "closest", specs: manyToArray(specs) });
   }
 
