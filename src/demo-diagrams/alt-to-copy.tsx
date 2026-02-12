@@ -28,24 +28,21 @@ const draggable: Draggable<State> = ({ state, d }) => (
         r={DOT_RADIUS}
         fill={colors[i % colors.length]}
         data-on-drag={(dp) => {
-          const moveDot = (state: State) =>
-            d.vary(
-              state,
-              ["dots", state.dots.length, "x"],
-              ["dots", state.dots.length, "y"],
-            );
+          const moveDot = (s: State, idx: number) =>
+            d.vary(s, ["dots", idx, "x"], ["dots", idx, "y"]);
 
           if (dp.altKey) {
             // Copy: add a new dot at the same position, follow the copy
             const newState: State = { dots: [...state.dots, { ...dot }] };
+            const copyIdx = state.dots.length;
             return d.switchToStateAndFollow(
               newState,
-              `dot-${state.dots.length}`,
-              moveDot(newState),
+              `dot-${copyIdx}`,
+              moveDot(newState, copyIdx),
             );
           } else {
             // Move: vary this dot's position
-            return moveDot(state);
+            return moveDot(state, i);
           }
         }}
       />
@@ -55,15 +52,15 @@ const draggable: Draggable<State> = ({ state, d }) => (
 
 export const AltToCopy = () => (
   <>
+    <DemoNotes>
+      Hold <b>Alt/Option</b> while dragging to duplicate a dot. You can toggle
+      Alt mid-drag.
+    </DemoNotes>
     <DemoDraggable
       draggable={draggable}
       initialState={initialState}
       width={400}
       height={300}
     />
-    <DemoNotes>
-      Hold <b>Alt/Option</b> while dragging to duplicate a dot. You can toggle
-      Alt mid-drag.
-    </DemoNotes>
   </>
 );
