@@ -22,3 +22,6 @@ dist-ssr
 *.sw?
 
 .playwright-mcp
+
+# Peggy output
+/src/peggy/pattern.ts
