@@ -28,7 +28,9 @@ import { ListOfLists } from "./demo-diagrams/list-of-lists";
 import { ListOfListsSizes } from "./demo-diagrams/list-of-lists-sizes";
 import { MultiCirclePoints } from "./demo-diagrams/multi-circle-points";
 import { NodeWires } from "./demo-diagrams/node-wires";
+import { NoolStageBuilder } from "./demo-diagrams/nool/stage-builder";
 import { NoolTree } from "./demo-diagrams/nool/tree";
+import { NoolTreeMacro } from "./demo-diagrams/nool/tree-macro";
 import { OrbitingPlanet } from "./demo-diagrams/orbiting-planet";
 import { OrbitingPlanetWithBackground } from "./demo-diagrams/orbiting-planet-with-background";
 import { OrderPreserving } from "./demo-diagrams/order-preserving";
@@ -114,6 +116,16 @@ export const demos: Demo[] = [
   { id: "tiles", Component: Tiles },
   { id: "grid-poly", Component: GridPoly },
   { id: "nool-tree", Component: NoolTree, sourcePath: "nool/tree.tsx" },
+  {
+    id: "nool-stage-builder",
+    Component: NoolStageBuilder,
+    sourcePath: "nool/stage-builder.tsx",
+  },
+  {
+    id: "nool-tree-macro",
+    Component: NoolTreeMacro,
+    sourcePath: "nool/tree-macro.tsx",
+  },
   { id: "outline", Component: Outline },
   { id: "braid", Component: Braid },
   { id: "todo", Component: Todo },
