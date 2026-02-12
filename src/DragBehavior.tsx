@@ -2,7 +2,7 @@ import _ from "lodash";
 import { cloneElement } from "react";
 import { Draggable } from "./draggable";
 import { Transition } from "./DraggableRenderer";
-import { DragSpecBuilder, DragSpecData } from "./DragSpec";
+import { DragSpec, DragSpecBuilder, DragSpecData } from "./DragSpec";
 import { Delaunay } from "./math/delaunay";
 import { minimize } from "./math/minimize";
 import { Vec2 } from "./math/vec2";
@@ -37,7 +37,10 @@ export type DragResult<T> = {
   dropTransition?: Transition;
   distance: number;
   activePath: string;
-  chainNow?: boolean | string;
+  chainNow?: {
+    draggedId?: string;
+    followSpec?: DragSpec<T>;
+  };
   debugOverlay?: () => Svgx;
 };
 
@@ -410,7 +413,7 @@ export function dragSpecToBehavior<T extends object>(
         ...result,
         rendered,
         activePath,
-        chainNow: spec.chain && snapped,
+        chainNow: spec.chain && snapped ? {} : undefined,
       };
     };
   } else if (spec.type === "with-drop-transition") {
@@ -515,7 +518,7 @@ export function dragSpecToBehavior<T extends object>(
       dropState: spec.state,
       distance: 0,
       activePath: "switch-to-state-and-follow",
-      chainNow: spec.draggedId,
+      chainNow: { draggedId: spec.draggedId, followSpec: spec.followSpec },
     });
   } else {
     assertNever(spec);

@@ -12,6 +12,7 @@ import { ClickAndDrag } from "./demo-diagrams/click-and-drag";
 import { Clock } from "./demo-diagrams/clock";
 import { ConstrainedPoint } from "./demo-diagrams/constrained-point";
 import { ConstrainedSlider } from "./demo-diagrams/constrained-slider";
+import { DragToCopy } from "./demo-diagrams/drag-to-copy";
 import { Dragon } from "./demo-diagrams/dragon";
 import { Fifteen } from "./demo-diagrams/fifteen";
 import { Graph } from "./demo-diagrams/graph";
@@ -56,6 +57,7 @@ export const demos: Demo[] = [
   { id: "simple-triangle", Component: SimpleTriangle },
   { id: "simplest-clicker", Component: SimplestClicker },
   { id: "click-and-drag", Component: ClickAndDrag },
+  { id: "drag-to-copy", Component: DragToCopy },
   { id: "order-preserving", Component: OrderPreserving },
   { id: "perm", Component: Perm },
   { id: "perm-floating", Component: PermFloating },

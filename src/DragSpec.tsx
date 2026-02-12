@@ -88,6 +88,7 @@ export type DragSpecSwitchToStateAndFollow<T> = {
   type: "switch-to-state-and-follow";
   state: T;
   draggedId: string;
+  followSpec?: DragSpec<T>;
 };
 
 // # DragSpec
@@ -192,11 +193,16 @@ export class DragSpecBuilder<T> {
     return attachMethods({ type: "vary", state, paramPaths, ...options });
   }
 
-  switchToStateAndFollow(state: T, draggedId: string): DragSpec<T> {
+  switchToStateAndFollow(
+    state: T,
+    draggedId: string,
+    followSpec?: DragSpec<T>,
+  ): DragSpec<T> {
     return attachMethods({
       type: "switch-to-state-and-follow",
       state,
       draggedId,
+      followSpec,
     });
   }
 }

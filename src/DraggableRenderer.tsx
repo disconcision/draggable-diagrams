@@ -194,10 +194,7 @@ export function DraggableRenderer<T extends object>({
         // TODO: detection of "new state" probably isn't robust
         if (result.chainNow && result.dropState !== ds.startState) {
           const newState = result.dropState;
-          const newDraggedId =
-            typeof result.chainNow === "string"
-              ? result.chainNow
-              : ds.draggedId;
+          const newDraggedId = result.chainNow.draggedId ?? ds.draggedId;
           // Render the new state and find the dragged element
           const content = pipe(
             draggable({
@@ -210,15 +207,14 @@ export function DraggableRenderer<T extends object>({
             assignPaths,
             accumulateTransforms,
           );
-          const element =
-            typeof result.chainNow === "string"
-              ? findElement(content, (el) => el.props.id === result.chainNow)
-              : findByPath(ds.behaviorCtx.draggedPath, content);
+          const element = newDraggedId
+            ? findElement(content, (el) => el.props.id === newDraggedId)
+            : findByPath(ds.behaviorCtx.draggedPath, content);
           if (element) {
-            const dragSpecCallback = getDragSpecCallbackOnElement<T>(element);
-            if (dragSpecCallback) {
-              const newDragSpec = dragSpecCallback();
-
+            const newDragSpec =
+              result.chainNow.followSpec ??
+              getDragSpecCallbackOnElement<T>(element)?.();
+            if (newDragSpec) {
               // Start spring from current display
               const layered = runSpring(springingFrom, result.rendered);
               const newSpringingFrom: SpringingFrom = {
