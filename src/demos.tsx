@@ -8,6 +8,7 @@ import { Braid } from "./demo-diagrams/braid";
 import { CanvasOfLists } from "./demo-diagrams/canvas-of-lists";
 import { CanvasOfListsNested } from "./demo-diagrams/canvas-of-lists-nested";
 import { Carousel } from "./demo-diagrams/carousel";
+import { ClickAndDrag } from "./demo-diagrams/click-and-drag";
 import { Clock } from "./demo-diagrams/clock";
 import { ConstrainedPoint } from "./demo-diagrams/constrained-point";
 import { ConstrainedSlider } from "./demo-diagrams/constrained-slider";
@@ -54,6 +55,7 @@ export const demos: Demo[] = [
   { id: "linear-track-chained", Component: LinearTrackChained },
   { id: "simple-triangle", Component: SimpleTriangle },
   { id: "simplest-clicker", Component: SimplestClicker },
+  { id: "click-and-drag", Component: ClickAndDrag },
   { id: "order-preserving", Component: OrderPreserving },
   { id: "perm", Component: Perm },
   { id: "perm-floating", Component: PermFloating },
