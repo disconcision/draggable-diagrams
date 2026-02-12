@@ -1,5 +1,11 @@
 import { PrettyPrint } from "@joshuahhh/pretty-print";
-import { createContext, ReactNode, useContext, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import {
   DropZoneLegend,
   DropZonesSvg,
@@ -35,8 +41,21 @@ const DemoContext = createContext<{
 
 export const useDemoSettings = () => useContext(DemoContext).settings;
 
+const SETTINGS_KEY = "demo-settings";
+
+function loadSettings(): DemoSettings {
+  try {
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    if (stored) return { ...defaultSettings, ...JSON.parse(stored) };
+  } catch {}
+  return defaultSettings;
+}
+
 export function DemoSettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<DemoSettings>(defaultSettings);
+  const [settings, setSettings] = useState<DemoSettings>(loadSettings);
+  useEffect(() => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }, [settings]);
   return (
     <DemoContext.Provider value={{ settings, setSettings }}>
       {children}
