@@ -155,6 +155,10 @@ function attachMethods<T>(data: DragSpecData<T>): DragSpec<T> {
 // # DragSpecBuilder
 
 export class DragSpecBuilder<T> {
+  /**
+   * This drag behavior simply shows a static view of the given
+   * state.
+   */
   just(states: T[]): DragSpec<T>[];
   just(state: T): DragSpec<T>;
   just(stateOrStates: T | T[]): DragSpec<T> | DragSpec<T>[] {
@@ -163,6 +167,12 @@ export class DragSpecBuilder<T> {
     return attachMethods({ type: "just", state: stateOrStates });
   }
 
+  /**
+   * This drag behavior "detaches" a dragged element from its
+   * original position and lets it be dragged freely. Optionally, a
+   * "ghost" element can be rendered at the original position while
+   * dragging. Often used with `closest`.
+   */
   floating(states: T[], opts?: { ghost?: SVGProps<SVGElement> }): DragSpec<T>[];
   floating(state: T, opts?: { ghost?: SVGProps<SVGElement> }): DragSpec<T>;
   floating(
@@ -174,15 +184,30 @@ export class DragSpecBuilder<T> {
     return attachMethods({ type: "floating", state: stateOrStates, ghost });
   }
 
+  /**
+   * This drag behavior lets you interpolate smoothly between states
+   * by dragging inside their convex hull.
+   */
   between(...states: Many<T>[]): DragSpec<T> {
     assert(states.length > 0, "between requires at least one state");
     return attachMethods({ type: "between", states: manyToArray(states) });
   }
 
+  /**
+   * This drag behavior combines multiple behaviors. During the drag,
+   * it continuously switches to the behavior that gets the dragged
+   * element closest to the pointer.
+   */
   closest(...specs: Many<DragSpec<T>>[]): DragSpec<T> {
     return attachMethods({ type: "closest", specs: manyToArray(specs) });
   }
 
+  /**
+   * This drag behavior allows you to vary numbers in a state
+   * continuously by dragging. Provide a starting state and paths to
+   * the parameters you want to vary. An optional final parameter can
+   * configure constraints.
+   */
   vary(state: T, ...paramPaths: PathIn<T, number>[]): DragSpec<T>;
   vary(
     state: T,
@@ -193,6 +218,13 @@ export class DragSpecBuilder<T> {
     return attachMethods({ type: "vary", state, paramPaths, ...options });
   }
 
+  /**
+   * This drag behavior immediately transitions into a new state,
+   * then continues the drag from a different element in that state,
+   * identified by ID. If followSpec is provided, it will be used to
+   * continue the drag; otherwise, the spec attached to the new
+   * element (via data-on-drag) will be used.
+   */
   switchToStateAndFollow(
     state: T,
     draggedId: string,
@@ -208,8 +240,18 @@ export class DragSpecBuilder<T> {
 }
 
 export type VaryOptions<T> = {
+  /**
+   * A constraint function returns one or more numbers, all of which
+   * will be constrained to be negative. You can use `lessThan(a, b)`
+   * to express a < b constraints.
+   */
   constraint?: (state: T) => Many<number>;
-  /** Use parameter-space distance in pullback (faster, but less accurate) */
+  /**
+   * For use alongside `constraint`. If the parameters you are
+   * varying represent cartesian coordinates in screen space, you can
+   * set this to "true" for better performance. But this will lead to
+   * less accurate results if the varied parameters are, say, angles.
+   */
   constrainByParams?: boolean;
 };
 
