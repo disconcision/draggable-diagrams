@@ -34,7 +34,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
                 draft.perm.splice(idx, 0, p);
               });
               return d
-                .closest(statesWith.map((s) => d.floating(s)))
+                .closest(d.floating(statesWith))
                 .withBackground(d.just(state));
             }}
           >

@@ -56,18 +56,16 @@ function draggableFactory(config: Config): Draggable<State> {
             return (
               config.snappyMode
                 ? d.closest(
-                    [...singleRotations, state].map((s) =>
-                      d.floating(s, { ghost: { opacity: 0.2 } }),
-                    ),
+                    d.floating([...singleRotations, state], {
+                      ghost: { opacity: 0.2 },
+                    }),
                   )
                 : d.closest(singleRotations.map((s) => d.between([state, s])))
             ).withSnapRadius(1, { chain: true });
           } else {
             return config.snappyMode
               ? d.closest(
-                  allStates(state).map((s) =>
-                    d.floating(s, { ghost: { opacity: 0.2 } }),
-                  ),
+                  d.floating(allStates(state), { ghost: { opacity: 0.2 } }),
                 )
               : d.between(allStates(state));
           }

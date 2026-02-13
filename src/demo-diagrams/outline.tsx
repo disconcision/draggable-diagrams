@@ -236,7 +236,7 @@ function renderTree(
 
           if (config.useFloating) {
             return d
-              .closest(statesWith.map((s) => d.floating(s)))
+              .closest(d.floating(statesWith))
               .withBackground(d.floating(stateWithout));
           } else {
             return d.between(statesWith);

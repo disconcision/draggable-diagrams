@@ -51,9 +51,9 @@ function draggableFactory(
           if (mode === "between") {
             return d.between(states);
           } else if (mode === "floating") {
-            return d.closest(states.map((s) => d.floating(s)));
+            return d.closest(d.floating(states));
           } else if (mode === "just") {
-            return d.closest(states.map((s) => d.just(s)));
+            return d.closest(d.just(states));
           } else {
             assertNever(mode);
           }

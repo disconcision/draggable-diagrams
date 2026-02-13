@@ -150,7 +150,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                     };
                   });
                   return d
-                    .closest(statesWith.map((s) => d.floating(s)))
+                    .closest(d.floating(statesWith))
                     .withBackground(
                       d.vary(
                         stateWithNewRow,
