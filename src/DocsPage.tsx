@@ -1,4 +1,5 @@
 import { ComponentType } from "react";
+import { DemoSettingsBar, DemoSettingsProvider } from "./demo-ui";
 import * as Components from "./docs/components";
 import { LiveEditor } from "./docs/LiveEditor";
 import { MDXPage } from "./MDXPage";
@@ -34,6 +35,9 @@ export function DocsPage({ slug }: { slug: string }) {
   const Content = mdxModule.default;
 
   return (
-    <MDXPage components={{ ...Components, LiveEditor }}>{Content}</MDXPage>
+    <DemoSettingsProvider>
+      <MDXPage components={{ ...Components, LiveEditor }}>{Content}</MDXPage>
+      <DemoSettingsBar only={["showDebugOverlay"]} />
+    </DemoSettingsProvider>
   );
 }

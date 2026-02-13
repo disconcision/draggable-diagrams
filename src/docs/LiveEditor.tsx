@@ -7,6 +7,7 @@ import * as parserEstree from "prettier/plugins/estree";
 import parserTypescript from "prettier/plugins/typescript";
 import prettier from "prettier/standalone";
 import { createElement, useEffect, useMemo, useState } from "react";
+import { useDemoSettings } from "../demo-ui";
 import { Draggable } from "../draggable";
 import { DraggableRenderer } from "../DraggableRenderer";
 import { ErrorBoundary } from "../ErrorBoundary";
@@ -102,7 +103,7 @@ export function LiveEditor({
     }
   }, [code, secretCode]);
 
-  const [debugMode, setDebugMode] = useState(false);
+  const { showDebugOverlay } = useDemoSettings();
 
   if (code === null) return null;
 
@@ -133,15 +134,6 @@ export function LiveEditor({
               }}
               className="flex select-text items-start bg-white md:sticky md:top-0 relative"
             >
-              <label className="absolute top-2 right-2 text-xs text-gray-600 flex items-center gap-1 cursor-pointer z-20">
-                <input
-                  type="checkbox"
-                  className="cursor-pointer"
-                  checked={debugMode}
-                  onChange={(e) => setDebugMode(e.target.checked)}
-                />
-                <span>Debug mode</span>
-              </label>
               {error ? (
                 <div className="p-4 m-4 text-red-700 text-sm border border-red-300 bg-red-50 rounded">
                   <div className="font-semibold mb-1">Error:</div>
@@ -155,7 +147,7 @@ export function LiveEditor({
                     draggable={result.draggable as Draggable<any>}
                     initialState={result.initialState}
                     height={height ?? minHeight}
-                    showDebugOverlay={debugMode}
+                    showDebugOverlay={showDebugOverlay}
                   />
                 </ErrorBoundary>
               ) : null}

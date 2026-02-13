@@ -70,11 +70,14 @@ const settingsEntries = [
   { key: "showStateViewer", label: "State viewer", mobileHidden: true },
 ] as const;
 
-export function DemoSettingsBar() {
+export function DemoSettingsBar({ only }: { only?: (keyof DemoSettings)[] } = {}) {
   const { settings, setSettings } = useContext(DemoContext);
+  const entries = only
+    ? settingsEntries.filter(({ key }) => only.includes(key))
+    : settingsEntries;
   return (
     <div className="sticky bottom-0 bg-white/95 py-3 px-5 border-t border-gray-200 flex gap-5 items-center justify-center shadow-[0_-2px_4px_rgba(0,0,0,0.1)]">
-      {settingsEntries.map(({ key, label, mobileHidden }) => (
+      {entries.map(({ key, label, mobileHidden }) => (
         <label
           key={key}
           className={`${
