@@ -498,6 +498,21 @@ function detach(state: State, nodeId: string): State {
   });
 }
 
+function collectDescendants(
+  nodes: Record<string, CanvasNode>,
+  nid: string,
+): string[] {
+  const result: string[] = [nid];
+  const node = nodes[nid];
+  if (!node) return result;
+  const e = node.expr;
+  if (e.type === "between") for (const c of e.childIds) result.push(...collectDescendants(nodes, c));
+  if (e.type === "closest") for (const c of e.childIds) result.push(...collectDescendants(nodes, c));
+  if (e.type === "withSnapRadius" && e.childId) result.push(...collectDescendants(nodes, e.childId));
+  if (e.type === "floating" && e.childId) result.push(...collectDescendants(nodes, e.childId));
+  return result;
+}
+
 // ─── Drag Builder ───
 
 function nodeDrag(
@@ -566,12 +581,24 @@ function nodeDrag(
     }
   }
 
+  // Delete state: remove node and all its descendants
+  const idsToDelete = collectDescendants(base.nodes, nid);
+  const deleted = produce(base, (draft) => {
+    for (const id of idsToDelete) delete draft.nodes[id];
+    if (draft.activeSpecId && idsToDelete.includes(draft.activeSpecId))
+      draft.activeSpecId = null;
+  });
+
   const free = d.vary(base, ["nodes", nid, "x"], ["nodes", nid, "y"]);
 
   if (snaps.length > 0) {
-    return d.closest(d.floating(snaps)).withBackground(free, { radius: 40 });
+    return d
+      .closest([...d.floating(snaps), d.dropTarget(deleted, "trash-bin")])
+      .withBackground(free, { radius: 40 });
   }
-  return free;
+  return d
+    .closest([d.dropTarget(deleted, "trash-bin")])
+    .withBackground(free);
 }
 
 // ─── Initial State ───
@@ -750,25 +777,25 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           </text>
         </g>
       ),
-      x: 30 + i * 40,
+      x: 24 + i * 30,
     })),
     {
       label: "between",
       makeExpr: (): Expr => ({ type: "between", childIds: [] }),
       preview: tbPreview("between", S.between),
-      x: 195,
+      x: 150,
     },
     {
       label: "floating",
       makeExpr: (): Expr => ({ type: "floating", childId: null }),
       preview: tbPreview("floating", S.floating),
-      x: 290,
+      x: 230,
     },
     {
       label: "closest",
       makeExpr: (): Expr => ({ type: "closest", childIds: [] }),
       preview: tbPreview("closest", S.closest),
-      x: 385,
+      x: 310,
     },
     {
       label: "wsr",
@@ -778,7 +805,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         radius: 15,
       }),
       preview: tbPreview("withSnapRadius", S.wsr, 42, 8),
-      x: 510,
+      x: 410,
     },
   ];
 
@@ -1034,6 +1061,29 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           {t.preview}
         </g>
       ))}
+
+      {/* trash bin */}
+      <g id="trash-bin" transform={translate(CANVAS_W - 40, TOOLBAR_H / 2 + 4)}>
+        <rect
+          x={-16}
+          y={-16}
+          width={32}
+          height={32}
+          rx={6}
+          fill="#fee2e2"
+          stroke="#fca5a5"
+          strokeWidth={1.5}
+          strokeDasharray="4,3"
+        />
+        <text
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={16}
+          pointerEvents="none"
+        >
+          {"\u{1F5D1}"}
+        </text>
+      </g>
 
       {/* active spec slot (fixed, anchored to toolbar) */}
       <g transform={translate(0, TOOLBAR_H)}>
