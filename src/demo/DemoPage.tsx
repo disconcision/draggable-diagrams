@@ -5,7 +5,7 @@ import {
   DemoSettingsProvider,
   DemoTag,
 } from "./ui";
-import { Demo, demos, unlistedDemos } from "./registry";
+import { Demo, listedDemos, unlistedDemos } from "./registry";
 
 function hasTag(demo: Demo, tag: string) {
   return demo.tags?.includes(tag);
@@ -21,8 +21,8 @@ export function DemoPage() {
     });
 
   const filteredDemos = tagFilter
-    ? demos.filter((d) => hasTag(d, tagFilter))
-    : demos;
+    ? listedDemos.filter((d) => hasTag(d, tagFilter))
+    : listedDemos;
   const filteredUnlisted = tagFilter
     ? unlistedDemos.filter((d) => hasTag(d, tagFilter))
     : unlistedDemos;

@@ -42,7 +42,7 @@ for (const [path, mod] of Object.entries(modules)) {
 
 const listSet = new Set(demoList);
 
-export const demos: Demo[] = demoList.map((id) => {
+export const listedDemos: Demo[] = demoList.map((id) => {
   const demo = demosById.get(id);
   if (!demo) throw new Error(`Demo "${id}" not found in demos/`);
   return demo;

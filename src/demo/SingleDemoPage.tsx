@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import { DemoCard, DemoSettingsBar, DemoSettingsProvider } from "./ui";
-import { demos } from "./registry";
+import { demosById } from "./registry";
 
 export function SingleDemoPage({ id }: { id: string }) {
-  const demo = demos.find((d) => d.id === id);
+  const demo = demosById.get(id);
 
   if (!demo) {
     return (

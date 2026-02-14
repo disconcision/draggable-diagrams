@@ -1,7 +1,7 @@
 // Custom React components that can be used in MDX pages
 
 import { DemoSettingsProvider } from "../demo/ui";
-import { demos } from "../demo/registry";
+import { demosById } from "../demo/registry";
 
 export { normalizeIndent } from "../normalizeIndent";
 
@@ -26,7 +26,7 @@ export function Callout({
 }
 
 export function DemoEmbed({ demoId }: { demoId: string }) {
-  const demo = demos.find((d) => d.id === demoId);
+  const demo = demosById.get(demoId);
   if (!demo) return null;
   return (
     <DemoSettingsProvider>
