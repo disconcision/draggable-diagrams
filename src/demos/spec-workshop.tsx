@@ -237,180 +237,102 @@ function asChildOff(state: State): { x: number; y: number } {
   return { x: w / 2 - childW / 2, y: btwH() - WSR_NOTCH_D };
 }
 
+// ─── Path Segment Helpers ───
+
+const R = BLK_RX;
+const arc = (sweep: 0 | 1, x: number, y: number, cr = R) =>
+  ` A ${cr},${cr} 0 0 ${sweep} ${x},${y}`;
+const pRoundedTop = (w: number, h: number) =>
+  `M ${R},0 H ${w - R}${arc(1, w, R)} V ${h - R}${arc(1, w - R, h)}`;
+const pSquareTop = (w: number, h: number) =>
+  `M 0,0 H ${w} V ${h - R}${arc(1, w - R, h)}`;
+const pCloseRounded = (h: number) =>
+  ` H ${R}${arc(1, 0, h - R)} V ${R}${arc(1, R, 0)} Z`;
+const pCloseFlat = (h: number) => ` H ${R}${arc(1, 0, h - R)} Z`;
+
+// V-notch (diamond inlet): 3 path commands
+const pVNotch = (cx: number, hw: number, nd: number, h: number) =>
+  ` H ${cx + hw} L ${cx},${h - nd} L ${cx - hw},${h}`;
+const pVNotchCollapsed = (x: number, h: number) =>
+  ` H ${x} L ${x},${h} L ${x},${h}`;
+
+// Rounded-rect notch (spec inlet): 6 path commands
+const pRectNotch = (cx: number, hw: number, nd: number, h: number) =>
+  ` H ${cx + hw} V ${h - nd + R}${arc(0, cx + hw - R, h - nd)}` +
+  ` H ${cx - hw + R}${arc(0, cx - hw, h - nd + R)} V ${h}`;
+const pRectNotchCollapsed = (x: number, h: number) =>
+  ` H ${x} V ${h}${arc(0, x, h, 0.01)} H ${x}${arc(0, x, h, 0.01)} V ${h}`;
+
 // ─── Path Builders ───
 
 const MAX_BTW_SLOTS = 6;
+const MAX_CLS_SLOTS = 6;
 
 function betweenPathD(expr: BetweenExpr): string {
-  const w = btwW(expr);
-  const h = btwH();
-  const r = BLK_RX;
-  const slots = btwSlots(expr);
-  const nhw = BTW_NOTCH_HW;
-  const nd = BTW_NOTCH_D;
-
-  let p = `M ${r},0`;
-  p += ` H ${w - r}`;
-  p += ` A ${r},${r} 0 0 1 ${w},${r}`;
-  p += ` V ${h - r}`;
-  p += ` A ${r},${r} 0 0 1 ${w - r},${h}`;
-
-  // Bottom edge with V-notch concavities (right to left)
-  for (let i = MAX_BTW_SLOTS - 1; i >= 0; i--) {
-    if (i < slots) {
-      const cx = BLK_PAD + i * SLOT_W + SLOT_W / 2;
-      p += ` H ${cx + nhw}`;
-      p += ` L ${cx},${h - nd}`;
-      p += ` L ${cx - nhw},${h}`;
-    } else {
-      p += ` H ${w - r}`;
-      p += ` L ${w - r},${h}`;
-      p += ` L ${w - r},${h}`;
-    }
-  }
-
-  p += ` H ${r}`;
-  p += ` A ${r},${r} 0 0 1 0,${h - r}`;
-  p += ` V ${r}`;
-  p += ` A ${r},${r} 0 0 1 ${r},0`;
-  p += " Z";
-
-  return p;
+  const w = btwW(expr),
+    h = btwH(),
+    slots = btwSlots(expr);
+  let p = pRoundedTop(w, h);
+  for (let i = MAX_BTW_SLOTS - 1; i >= 0; i--)
+    p +=
+      i < slots
+        ? pVNotch(
+            BLK_PAD + i * SLOT_W + SLOT_W / 2,
+            BTW_NOTCH_HW,
+            BTW_NOTCH_D,
+            h,
+          )
+        : pVNotchCollapsed(w - R, h);
+  return p + pCloseRounded(h);
 }
 
 function floatingPathD(): string {
-  const w = FLT_W;
   const h = btwH();
-  const r = BLK_RX;
-  const nhw = BTW_NOTCH_HW;
-  const nd = BTW_NOTCH_D;
-  const cx = w / 2;
-
-  let p = `M ${r},0`;
-  p += ` H ${w - r}`;
-  p += ` A ${r},${r} 0 0 1 ${w},${r}`;
-  p += ` V ${h - r}`;
-  p += ` A ${r},${r} 0 0 1 ${w - r},${h}`;
-
-  // Single V-notch
-  p += ` H ${cx + nhw}`;
-  p += ` L ${cx},${h - nd}`;
-  p += ` L ${cx - nhw},${h}`;
-
-  p += ` H ${r}`;
-  p += ` A ${r},${r} 0 0 1 0,${h - r}`;
-  p += ` V ${r}`;
-  p += ` A ${r},${r} 0 0 1 ${r},0`;
-  p += " Z";
-
-  return p;
+  return (
+    pRoundedTop(FLT_W, h) +
+    pVNotch(FLT_W / 2, BTW_NOTCH_HW, BTW_NOTCH_D, h) +
+    pCloseRounded(h)
+  );
 }
 
 function wsrPathD(w: number, nhw: number): string {
   const h = wsrH();
-  const r = BLK_RX;
-  const nd = WSR_NOTCH_D;
-  const cx = w / 2;
-
-  let p = `M ${r},0`;
-  p += ` H ${w - r}`;
-  p += ` A ${r},${r} 0 0 1 ${w},${r}`;
-  p += ` V ${h - r}`;
-  p += ` A ${r},${r} 0 0 1 ${w - r},${h}`;
-
-  // Bottom edge with rounded-rect concavity (right to left)
-  p += ` H ${cx + nhw}`;
-  p += ` V ${h - nd + r}`;
-  p += ` A ${r},${r} 0 0 0 ${cx + nhw - r},${h - nd}`;
-  p += ` H ${cx - nhw + r}`;
-  p += ` A ${r},${r} 0 0 0 ${cx - nhw},${h - nd + r}`;
-  p += ` V ${h}`;
-
-  p += ` H ${r}`;
-  p += ` A ${r},${r} 0 0 1 0,${h - r}`;
-  p += ` V ${r}`;
-  p += ` A ${r},${r} 0 0 1 ${r},0`;
-  p += " Z";
-
-  return p;
+  return (
+    pRoundedTop(w, h) +
+    pRectNotch(w / 2, nhw, WSR_NOTCH_D, h) +
+    pCloseRounded(h)
+  );
 }
-
-const MAX_CLS_SLOTS = 6;
 
 function closestPathD(
   expr: ClosestExpr,
   nodes: Record<string, CanvasNode>,
 ): string {
-  const w = clsW(expr, nodes);
-  const h = btwH();
-  const r = BLK_RX;
-  const nd = WSR_NOTCH_D;
-  const slots = clsSlots(expr);
-
-  let p = `M ${r},0`;
-  p += ` H ${w - r}`;
-  p += ` A ${r},${r} 0 0 1 ${w},${r}`;
-  p += ` V ${h - r}`;
-  p += ` A ${r},${r} 0 0 1 ${w - r},${h}`;
-
-  // Bottom edge with rounded-rect notches (right to left)
-  for (let i = MAX_CLS_SLOTS - 1; i >= 0; i--) {
-    if (i < slots) {
-      const cx = clsSlotCenterX(expr, i, nodes);
-      const nhw = clsNHW(expr, i, nodes);
-      p += ` H ${cx + nhw}`;
-      p += ` V ${h - nd + r}`;
-      p += ` A ${r},${r} 0 0 0 ${cx + nhw - r},${h - nd}`;
-      p += ` H ${cx - nhw + r}`;
-      p += ` A ${r},${r} 0 0 0 ${cx - nhw},${h - nd + r}`;
-      p += ` V ${h}`;
-    } else {
-      // Collapsed notch — same 6 commands at right edge
-      p += ` H ${w - r}`;
-      p += ` V ${h}`;
-      p += ` A 0.01,0.01 0 0 0 ${w - r},${h}`;
-      p += ` H ${w - r}`;
-      p += ` A 0.01,0.01 0 0 0 ${w - r},${h}`;
-      p += ` V ${h}`;
-    }
-  }
-
-  p += ` H ${r}`;
-  p += ` A ${r},${r} 0 0 1 0,${h - r}`;
-  p += ` V ${r}`;
-  p += ` A ${r},${r} 0 0 1 ${r},0`;
-  p += " Z";
-
-  return p;
+  const w = clsW(expr, nodes),
+    h = btwH(),
+    slots = clsSlots(expr);
+  let p = pRoundedTop(w, h);
+  for (let i = MAX_CLS_SLOTS - 1; i >= 0; i--)
+    p +=
+      i < slots
+        ? pRectNotch(
+            clsSlotCenterX(expr, i, nodes),
+            clsNHW(expr, i, nodes),
+            WSR_NOTCH_D,
+            h,
+          )
+        : pRectNotchCollapsed(w - R, h);
+  return p + pCloseRounded(h);
 }
 
 function activeSpecPathD(state: State): string {
-  const w = asW(state);
-  const h = btwH();
-  const r = BLK_RX;
-  const nhw = asNotchHW(state);
-  const nd = WSR_NOTCH_D;
-  const cx = w / 2;
-
-  // Top corners are right angles (anchored to toolbar)
-  let p = `M 0,0`;
-  p += ` H ${w}`;
-  p += ` V ${h - r}`;
-  p += ` A ${r},${r} 0 0 1 ${w - r},${h}`;
-
-  // Rounded-rect notch
-  p += ` H ${cx + nhw}`;
-  p += ` V ${h - nd + r}`;
-  p += ` A ${r},${r} 0 0 0 ${cx + nhw - r},${h - nd}`;
-  p += ` H ${cx - nhw + r}`;
-  p += ` A ${r},${r} 0 0 0 ${cx - nhw},${h - nd + r}`;
-  p += ` V ${h}`;
-
-  p += ` H ${r}`;
-  p += ` A ${r},${r} 0 0 1 0,${h - r}`;
-  p += " Z";
-
-  return p;
+  const w = asW(state),
+    h = btwH();
+  return (
+    pSquareTop(w, h) +
+    pRectNotch(w / 2, asNotchHW(state), WSR_NOTCH_D, h) +
+    pCloseFlat(h)
+  );
 }
 
 // ─── State Helpers ───
@@ -506,10 +428,14 @@ function collectDescendants(
   const node = nodes[nid];
   if (!node) return result;
   const e = node.expr;
-  if (e.type === "between") for (const c of e.childIds) result.push(...collectDescendants(nodes, c));
-  if (e.type === "closest") for (const c of e.childIds) result.push(...collectDescendants(nodes, c));
-  if (e.type === "withSnapRadius" && e.childId) result.push(...collectDescendants(nodes, e.childId));
-  if (e.type === "floating" && e.childId) result.push(...collectDescendants(nodes, e.childId));
+  if (e.type === "between")
+    for (const c of e.childIds) result.push(...collectDescendants(nodes, c));
+  if (e.type === "closest")
+    for (const c of e.childIds) result.push(...collectDescendants(nodes, c));
+  if (e.type === "withSnapRadius" && e.childId)
+    result.push(...collectDescendants(nodes, e.childId));
+  if (e.type === "floating" && e.childId)
+    result.push(...collectDescendants(nodes, e.childId));
   return result;
 }
 
@@ -596,9 +522,7 @@ function nodeDrag(
       .closest([...d.floating(snaps), d.dropTarget(deleted, "trash-bin")])
       .withBackground(free, { radius: 40 });
   }
-  return d
-    .closest([d.dropTarget(deleted, "trash-bin")])
-    .withBackground(free);
+  return d.closest([d.dropTarget(deleted, "trash-bin")]).withBackground(free);
 }
 
 // ─── Initial State ───
