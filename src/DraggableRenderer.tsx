@@ -224,36 +224,42 @@ export function DraggableRenderer<T extends object>({
   // Animation loop: update dragging states and spring decay each frame
   useAnimationLoop(
     useCallback(() => {
-      const ds = dragStateRef.current;
-      if (ds.type === "dragging") {
-        const pointer = pointerRef.current;
-        if (!pointer) return;
-        const frame: DragFrame = { pointer, pointerStart: ds.pointerStart };
-        const result = ds.behavior(frame);
+      catchToRenderError(() => {
+        const ds = dragStateRef.current;
+        if (ds.type === "dragging") {
+          const pointer = pointerRef.current;
+          if (!pointer) return;
+          const frame: DragFrame = { pointer, pointerStart: ds.pointerStart };
+          const result = ds.behavior(frame);
 
-        let springingFrom = ds.springingFrom;
+          let springingFrom = ds.springingFrom;
 
-        // Handle chaining: restart drag from new state
-        // TODO: detection of "new state" probably isn't robust
-        if (result.chainNow && result.dropState !== ds.startState) {
-          const newState = result.dropState;
-          const newDraggedId = result.chainNow.draggedId ?? ds.draggedId;
-          // Render the new state and find the dragged element
-          const content = pipe(
-            draggable({
-              state: newState,
-              d: new DragSpecBuilder<T>(),
-              draggedId: newDraggedId,
-              ghostId: null,
-              setState: throwError,
-            }),
-            assignPaths,
-            accumulateTransforms,
-          );
-          const element = newDraggedId
-            ? findElement(content, (el) => el.props.id === newDraggedId)
-            : findByPath(ds.behaviorCtx.draggedPath, content);
-          if (element) {
+          // Handle chaining: restart drag from new state
+          // TODO: detection of "new state" probably isn't robust
+          if (result.chainNow && result.dropState !== ds.startState) {
+            const newState = result.dropState;
+            const newDraggedId = result.chainNow.draggedId ?? ds.draggedId;
+            // Render the new state and find the dragged element
+            const content = pipe(
+              draggable({
+                state: newState,
+                d: new DragSpecBuilder<T>(),
+                draggedId: newDraggedId,
+                ghostId: null,
+                setState: throwError,
+              }),
+              assignPaths,
+              accumulateTransforms,
+            );
+            const element = newDraggedId
+              ? findElement(content, (el) => el.props.id === newDraggedId)
+              : findByPath(ds.behaviorCtx.draggedPath, content);
+
+            assert(
+              !!element,
+              `Chained drag must have a valid dragged element; couldn't find element with id ${newDraggedId}`,
+            );
+
             const newDragSpec =
               result.chainNow.followSpec ??
               getDragSpecCallbackOnElement<T>(element)?.(ds.dragParams);
@@ -295,53 +301,53 @@ export function DraggableRenderer<T extends object>({
               return;
             }
           }
-        }
 
-        // Detect activePath change → start new spring from current display
-        if (result.activePath !== ds.result.activePath) {
-          springingFrom = makeSpringingFrom(result.activePathTransition, () =>
-            runSpring(springingFrom, ds.result.rendered),
-          );
-        }
+          // Detect activePath change → start new spring from current display
+          if (result.activePath !== ds.result.activePath) {
+            springingFrom = makeSpringingFrom(result.activePathTransition, () =>
+              runSpring(springingFrom, ds.result.rendered),
+            );
+          }
 
-        // Clear expired spring
-        if (
-          springingFrom &&
-          performance.now() - springingFrom.time >=
-            springingFrom.transition?.duration!
-        ) {
-          springingFrom = null;
-        }
+          // Clear expired spring
+          if (
+            springingFrom &&
+            performance.now() - springingFrom.time >=
+              springingFrom.transition?.duration!
+          ) {
+            springingFrom = null;
+          }
 
-        const newState: DragState<T> = {
-          ...ds,
-          result,
-          springingFrom: springingFrom,
-        };
-        setDragState(newState);
-        onDebugDragInfoRef.current?.({
-          type: "dragging",
-          spec: ds.spec,
-          behaviorCtx: ds.behaviorCtx,
-          activePath: result.activePath,
-          pointerStart: ds.pointerStart,
-          draggedId: ds.draggedId,
-          dropState: result.dropState,
-        });
-      } else if (ds.type === "idle" && ds.springingFrom) {
-        if (
-          performance.now() - ds.springingFrom.time >=
-          ds.springingFrom.transition.duration
-        ) {
-          const newState: DragState<T> = { ...ds, springingFrom: null };
+          const newState: DragState<T> = {
+            ...ds,
+            result,
+            springingFrom: springingFrom,
+          };
           setDragState(newState);
-        } else {
-          // Force re-render so spring progress advances
-          const newState: DragState<T> = { ...ds };
-          setDragState(newState);
+          onDebugDragInfoRef.current?.({
+            type: "dragging",
+            spec: ds.spec,
+            behaviorCtx: ds.behaviorCtx,
+            activePath: result.activePath,
+            pointerStart: ds.pointerStart,
+            draggedId: ds.draggedId,
+            dropState: result.dropState,
+          });
+        } else if (ds.type === "idle" && ds.springingFrom) {
+          if (
+            performance.now() - ds.springingFrom.time >=
+            ds.springingFrom.transition.duration
+          ) {
+            const newState: DragState<T> = { ...ds, springingFrom: null };
+            setDragState(newState);
+          } else {
+            // Force re-render so spring progress advances
+            const newState: DragState<T> = { ...ds };
+            setDragState(newState);
+          }
         }
-      }
-    }, [dragStateRef, draggable, setDragState]),
+      })(); // TODO: IIFE here is terrible
+    }, [catchToRenderError, dragStateRef, draggable, setDragState]),
   );
 
   // Cursor style
