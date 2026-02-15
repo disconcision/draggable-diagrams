@@ -256,27 +256,30 @@ function draggableFactory(config: Config): Draggable<State> {
   };
 }
 
-export default demo(() => {
-  const [config, setConfig] = useState(defaultConfig);
+export default demo(
+  () => {
+    const [config, setConfig] = useState(defaultConfig);
 
-  const draggable = useMemo(() => draggableFactory(config), [config]);
+    const draggable = useMemo(() => draggableFactory(config), [config]);
 
-  return (
-    <div className="flex flex-col md:flex-row gap-4 items-start">
-      <DemoDraggable
-        draggable={draggable}
-        initialState={initialState}
-        width={500}
-        height={500}
-      />
-      <ConfigPanel>
-        <ConfigCheckbox
-          value={config.levelEditable}
-          onChange={(v) => setConfig((c) => ({ ...c, levelEditable: v }))}
-        >
-          Make level editable
-        </ConfigCheckbox>
-      </ConfigPanel>
-    </div>
-  );
-});
+    return (
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <DemoDraggable
+          draggable={draggable}
+          initialState={initialState}
+          width={500}
+          height={500}
+        />
+        <ConfigPanel>
+          <ConfigCheckbox
+            value={config.levelEditable}
+            onChange={(v) => setConfig((c) => ({ ...c, levelEditable: v }))}
+          >
+            Make level editable
+          </ConfigCheckbox>
+        </ConfigPanel>
+      </div>
+    );
+  },
+  { tags: ["d.withSnapRadius w/chain", "d.between"] },
+);

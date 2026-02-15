@@ -115,14 +115,17 @@ const draggable: Draggable<State> = ({ state, d }) => {
   );
 };
 
-export default demo(() => (
-  <div>
-    <DemoNotes>Weird experiment: I made the blank draggable</DemoNotes>
-    <DemoDraggable
-      draggable={draggable}
-      initialState={initialState}
-      width={250}
-      height={250}
-    />
-  </div>
-));
+export default demo(
+  () => (
+    <div>
+      <DemoNotes>Weird experiment: I made the blank draggable</DemoNotes>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={initialState}
+        width={250}
+        height={250}
+      />
+    </div>
+  ),
+  { tags: ["d.withSnapRadius w/chain", "d.between"] },
+);

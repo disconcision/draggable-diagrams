@@ -241,26 +241,29 @@ function draggableFactory(config: Config): Draggable<State> {
   };
 }
 
-export default demo(() => {
-  const [config, setConfig] = useState(defaultConfig);
-  const draggable = useMemo(() => draggableFactory(config), [config]);
+export default demo(
+  () => {
+    const [config, setConfig] = useState(defaultConfig);
+    const draggable = useMemo(() => draggableFactory(config), [config]);
 
-  return (
-    <div className="flex flex-col md:flex-row gap-4 items-start">
-      <DemoDraggable
-        draggable={draggable}
-        initialState={initialState}
-        width={WIDTH}
-        height={HEIGHT}
-      />
-      <ConfigPanel>
-        <ConfigCheckbox
-          value={config.compact}
-          onChange={(v) => setConfig((c) => ({ ...c, compact: v }))}
-        >
-          Compact layout
-        </ConfigCheckbox>
-      </ConfigPanel>
-    </div>
-  );
-});
+    return (
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <DemoDraggable
+          draggable={draggable}
+          initialState={initialState}
+          width={WIDTH}
+          height={HEIGHT}
+        />
+        <ConfigPanel>
+          <ConfigCheckbox
+            value={config.compact}
+            onChange={(v) => setConfig((c) => ({ ...c, compact: v }))}
+          >
+            Compact layout
+          </ConfigCheckbox>
+        </ConfigPanel>
+      </div>
+    );
+  },
+  { tags: ["d.withSnapRadius w/chain", "d.between"] },
+);

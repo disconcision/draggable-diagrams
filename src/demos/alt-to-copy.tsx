@@ -78,5 +78,13 @@ export default demo(
       />
     </>
   ),
-  { tags: ["d.switchToStateAndFollow", "d.vary", "keyboard", "copying"] },
+  {
+    tags: [
+      "d.switchToStateAndFollow",
+      "d.vary",
+      "keyboard",
+      "copying",
+      "setState",
+    ],
+  },
 );

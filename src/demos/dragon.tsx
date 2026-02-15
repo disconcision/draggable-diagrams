@@ -67,24 +67,27 @@ const draggable: Draggable<State> = ({ state, d }) => {
   );
 };
 
-export default demo(() => (
-  <div>
-    <DemoNotes>
-      Adapted from{" "}
-      <a
-        href="https://omrelli.ug/g9/"
-        className="hover:text-gray-700 hover:underline"
-      >
-        g9's famous example
-      </a>
-      . Nice performance stress test (which we are failing; try larger
-      "Levels").
-    </DemoNotes>
-    <DemoDraggable
-      draggable={draggable}
-      initialState={initialState}
-      width={400}
-      height={280}
-    />
-  </div>
-));
+export default demo(
+  () => (
+    <div>
+      <DemoNotes>
+        Adapted from{" "}
+        <a
+          href="https://omrelli.ug/g9/"
+          className="hover:text-gray-700 hover:underline"
+        >
+          g9's famous example
+        </a>
+        . Nice performance stress test (which we are failing; try larger
+        "Levels").
+      </DemoNotes>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={initialState}
+        width={400}
+        height={280}
+      />
+    </div>
+  ),
+  { tags: ["math"] },
+);

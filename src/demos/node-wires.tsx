@@ -297,11 +297,14 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   );
 };
 
-export default demo(() => (
-  <DemoDraggable
-    draggable={draggable}
-    initialState={initialState}
-    width={500}
-    height={200}
-  />
-));
+export default demo(
+  () => (
+    <DemoDraggable
+      draggable={draggable}
+      initialState={initialState}
+      width={500}
+      height={200}
+    />
+  ),
+  { tags: ["d.switchToStateAndFollow", "spec.andThen"] },
+);

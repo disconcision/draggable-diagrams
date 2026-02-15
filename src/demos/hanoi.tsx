@@ -160,5 +160,5 @@ export default demo(
       />
     </div>
   ),
-  { tags: ["d.floating", "ghosts", "puzzle"] },
+  { tags: ["d.floating", "d.floating w/ghost", "puzzle"] },
 );

@@ -178,17 +178,20 @@ const draggable: Draggable<State> = ({ state, d }) => {
   );
 };
 
-export default demo(() => (
-  <div>
-    <DemoNotes>
-      This shows kinda-hacky ways to insert and remove items from a draggable
-      diagram. Much to consider.
-    </DemoNotes>
-    <DemoDraggable
-      draggable={draggable}
-      initialState={initialState}
-      width={400}
-      height={200}
-    />
-  </div>
-));
+export default demo(
+  () => (
+    <div>
+      <DemoNotes>
+        This shows kinda-hacky ways to insert and remove items from a draggable
+        diagram. Much to consider.
+      </DemoNotes>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={initialState}
+        width={400}
+        height={200}
+      />
+    </div>
+  ),
+  { tags: ["spec.andThen"] },
+);

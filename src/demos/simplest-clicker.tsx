@@ -27,11 +27,14 @@ const draggable: Draggable<State> = ({ state, setState }) => {
   );
 };
 
-export default demo(() => (
-  <DemoDraggable
-    draggable={draggable}
-    initialState={initialState}
-    width={300}
-    height={150}
-  />
-));
+export default demo(
+  () => (
+    <DemoDraggable
+      draggable={draggable}
+      initialState={initialState}
+      width={300}
+      height={150}
+    />
+  ),
+  { tags: ["setState"] },
+);

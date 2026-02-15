@@ -410,51 +410,54 @@ function RewriteRuleCheckboxes({
 
 // # Component
 
-export default demo(() => {
-  const [activeRewriteSets, setActiveRewriteSets] = useState(
-    defaultActiveRewriteSets,
-  );
-  const [enableEmergeAnimation, setEnableEmergeAnimation] = useState(true);
-  const [forceTransformScale, setForceTransformScale] = useState(false);
+export default demo(
+  () => {
+    const [activeRewriteSets, setActiveRewriteSets] = useState(
+      defaultActiveRewriteSets,
+    );
+    const [enableEmergeAnimation, setEnableEmergeAnimation] = useState(true);
+    const [forceTransformScale, setForceTransformScale] = useState(false);
 
-  const config: Config = useMemo(
-    () => ({ activeRewriteSets, enableEmergeAnimation, forceTransformScale }),
-    [activeRewriteSets, enableEmergeAnimation, forceTransformScale],
-  );
+    const config: Config = useMemo(
+      () => ({ activeRewriteSets, enableEmergeAnimation, forceTransformScale }),
+      [activeRewriteSets, enableEmergeAnimation, forceTransformScale],
+    );
 
-  const draggable = useMemo(() => draggableFactory(config), [config]);
+    const draggable = useMemo(() => draggableFactory(config), [config]);
 
-  return (
-    <div className="flex flex-col md:flex-row gap-4 items-start">
-      <DemoDraggable
-        draggable={draggable}
-        initialState={initialState}
-        width={300}
-        height={350}
-      />
-      <div className="flex flex-col gap-4">
-        <ConfigPanel title="Rewrite rules">
-          <RewriteRuleCheckboxes
-            activeRewriteSets={activeRewriteSets}
-            setActiveRewriteSets={setActiveRewriteSets}
-          />
-        </ConfigPanel>
-        <ConfigPanel title="Animation">
-          <ConfigCheckbox
-            value={enableEmergeAnimation}
-            onChange={setEnableEmergeAnimation}
-          >
-            Enable emerge animation for new nodes
-          </ConfigCheckbox>
-          <ConfigCheckbox
-            value={forceTransformScale}
-            onChange={setForceTransformScale}
-          >
-            Force <span className="font-mono">transform: scale()</span> for
-            emerge
-          </ConfigCheckbox>
-        </ConfigPanel>
+    return (
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <DemoDraggable
+          draggable={draggable}
+          initialState={initialState}
+          width={300}
+          height={350}
+        />
+        <div className="flex flex-col gap-4">
+          <ConfigPanel title="Rewrite rules">
+            <RewriteRuleCheckboxes
+              activeRewriteSets={activeRewriteSets}
+              setActiveRewriteSets={setActiveRewriteSets}
+            />
+          </ConfigPanel>
+          <ConfigPanel title="Animation">
+            <ConfigCheckbox
+              value={enableEmergeAnimation}
+              onChange={setEnableEmergeAnimation}
+            >
+              Enable emerge animation for new nodes
+            </ConfigCheckbox>
+            <ConfigCheckbox
+              value={forceTransformScale}
+              onChange={setForceTransformScale}
+            >
+              Force <span className="font-mono">transform: scale()</span> for
+              emerge
+            </ConfigCheckbox>
+          </ConfigPanel>
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+  { tags: ["d.between"] },
+);

@@ -193,40 +193,50 @@ function drawState(state: State) {
 
 // # Component
 
-export default demo(() => {
-  const [config, setConfig] = useState(defaultConfig);
+export default demo(
+  () => {
+    const [config, setConfig] = useState(defaultConfig);
 
-  const draggable = useMemo(() => draggableFactory(config), [config]);
+    const draggable = useMemo(() => draggableFactory(config), [config]);
 
-  return (
-    <div className="flex flex-col md:flex-row gap-4 items-start">
-      <div>
-        <div className="mt-2 mb-4 text-sm text-gray-600">
-          snappy+maze mode still isn't working?
+    return (
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <div>
+          <div className="mt-2 mb-4 text-sm text-gray-600">
+            snappy+maze mode still isn't working?
+          </div>
+          <DemoDraggable
+            draggable={draggable}
+            initialState={initialState}
+            width={370}
+            height={370}
+          />
         </div>
-        <DemoDraggable
-          draggable={draggable}
-          initialState={initialState}
-          width={370}
-          height={370}
-        />
+        <ConfigPanel>
+          <div className="flex flex-col gap-1">
+            <ConfigCheckbox
+              value={config.snappyMode}
+              onChange={(v) => setConfig((c) => ({ ...c, snappyMode: v }))}
+            >
+              Snappy mode
+            </ConfigCheckbox>
+            <ConfigCheckbox
+              value={config.mazeMode}
+              onChange={(v) => setConfig((c) => ({ ...c, mazeMode: v }))}
+            >
+              Maze mode
+            </ConfigCheckbox>
+          </div>
+        </ConfigPanel>
       </div>
-      <ConfigPanel>
-        <div className="flex flex-col gap-1">
-          <ConfigCheckbox
-            value={config.snappyMode}
-            onChange={(v) => setConfig((c) => ({ ...c, snappyMode: v }))}
-          >
-            Snappy mode
-          </ConfigCheckbox>
-          <ConfigCheckbox
-            value={config.mazeMode}
-            onChange={(v) => setConfig((c) => ({ ...c, mazeMode: v }))}
-          >
-            Maze mode
-          </ConfigCheckbox>
-        </div>
-      </ConfigPanel>
-    </div>
-  );
-});
+    );
+  },
+  {
+    tags: [
+      "d.withSnapRadius w/chain",
+      "math",
+      "d.floating w/ghost",
+      "d.between",
+    ],
+  },
+);

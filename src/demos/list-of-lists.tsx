@@ -165,16 +165,19 @@ const draggable: Draggable<State> = ({ state, d }) => {
   );
 };
 
-export default demo(() => (
-  <div>
-    <DemoNotes>
-      Uses <span className="font-mono">floating</span>.
-    </DemoNotes>
-    <DemoDraggable
-      draggable={draggable}
-      initialState={initialState}
-      width={600}
-      height={300}
-    />
-  </div>
-));
+export default demo(
+  () => (
+    <div>
+      <DemoNotes>
+        Uses <span className="font-mono">floating</span>.
+      </DemoNotes>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={initialState}
+        width={600}
+        height={300}
+      />
+    </div>
+  ),
+  { tags: ["spec.andThen"] },
+);

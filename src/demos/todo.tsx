@@ -176,29 +176,32 @@ function drawTodoItem({
 
 // # Component
 
-export default demo(() => {
-  const [config, setConfig] = useState(defaultConfig);
+export default demo(
+  () => {
+    const [config, setConfig] = useState(defaultConfig);
 
-  const draggable = useMemo(() => draggableFactory(config), [config]);
+    const draggable = useMemo(() => draggableFactory(config), [config]);
 
-  return (
-    <div className="flex flex-col md:flex-row gap-4 items-start">
-      <div>
-        <DemoDraggable
-          draggable={draggable}
-          initialState={initialState}
-          width={400}
-          height={450}
-        />
+    return (
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <div>
+          <DemoDraggable
+            draggable={draggable}
+            initialState={initialState}
+            width={400}
+            height={450}
+          />
+        </div>
+        <ConfigPanel>
+          <ConfigCheckbox
+            value={config.useFloating}
+            onChange={(v) => setConfig((c) => ({ ...c, useFloating: v }))}
+          >
+            Use <span className="font-mono">floating</span>
+          </ConfigCheckbox>
+        </ConfigPanel>
       </div>
-      <ConfigPanel>
-        <ConfigCheckbox
-          value={config.useFloating}
-          onChange={(v) => setConfig((c) => ({ ...c, useFloating: v }))}
-        >
-          Use <span className="font-mono">floating</span>
-        </ConfigCheckbox>
-      </ConfigPanel>
-    </div>
-  );
-});
+    );
+  },
+  { tags: ["setState", "d.between"] },
+);

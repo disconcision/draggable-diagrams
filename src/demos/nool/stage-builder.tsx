@@ -1254,11 +1254,14 @@ export const draggable: Draggable<State> = ({
   );
 };
 
-export default demo(() => (
-  <DemoDraggable
-    draggable={draggable}
-    initialState={state1}
-    width={600}
-    height={800}
-  />
-));
+export default demo(
+  () => (
+    <DemoDraggable
+      draggable={draggable}
+      initialState={state1}
+      width={600}
+      height={800}
+    />
+  ),
+  { tags: ["spec.andThen", "setState", "d.between"] },
+);

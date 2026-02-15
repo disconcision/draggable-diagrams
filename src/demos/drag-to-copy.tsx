@@ -56,14 +56,17 @@ const draggable: Draggable<State> = ({ state, d, setState }) => (
   </g>
 );
 
-export default demo(() => (
-  <>
-    <DemoNotes>Drag to duplicate. Double click to remove.</DemoNotes>
-    <DemoDraggable
-      draggable={draggable}
-      initialState={initialState}
-      width={400}
-      height={300}
-    />
-  </>
-));
+export default demo(
+  () => (
+    <>
+      <DemoNotes>Drag to duplicate. Double click to remove.</DemoNotes>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={initialState}
+        width={400}
+        height={300}
+      />
+    </>
+  ),
+  { tags: ["d.switchToStateAndFollow", "setState"] },
+);

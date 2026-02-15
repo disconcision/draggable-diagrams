@@ -100,26 +100,29 @@ const draggable: Draggable<State> = ({ state, d }) => {
   );
 };
 
-export default demo(() => (
-  <div>
-    <DemoNotes>
-      I'm trying to make dragging feel right here. Goal is for the tile to only
-      drag orthogonally, AND to not jump discontinuously. This seems to require
-      'Relative Pointer Motion' mode (or divergent approaches).
-    </DemoNotes>
-    <h3 className="text-md font-medium italic mt-6 mb-1">lonely</h3>
-    <DemoDraggable
-      draggable={draggable}
-      initialState={stateLonely}
-      width={300}
-      height={300}
-    />
-    <h3 className="text-md font-medium italic mt-6 mb-1">friendly</h3>
-    <DemoDraggable
-      draggable={draggable}
-      initialState={stateFriendly}
-      width={300}
-      height={300}
-    />
-  </div>
-));
+export default demo(
+  () => (
+    <div>
+      <DemoNotes>
+        I'm trying to make dragging feel right here. Goal is for the tile to
+        only drag orthogonally, AND to not jump discontinuously. This seems to
+        require 'Relative Pointer Motion' mode (or divergent approaches).
+      </DemoNotes>
+      <h3 className="text-md font-medium italic mt-6 mb-1">lonely</h3>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={stateLonely}
+        width={300}
+        height={300}
+      />
+      <h3 className="text-md font-medium italic mt-6 mb-1">friendly</h3>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={stateFriendly}
+        width={300}
+        height={300}
+      />
+    </div>
+  ),
+  { tags: ["d.withSnapRadius w/chain", "d.between"] },
+);

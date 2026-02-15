@@ -77,28 +77,31 @@ const betweenDraggable = draggableFactory("between");
 const floatingDraggable = draggableFactory("floating");
 const justDraggable = draggableFactory("just");
 
-export default demo(() => (
-  <div>
-    <h3 className="text-md font-medium italic mt-6 mb-1">between</h3>
-    <DemoDraggable
-      draggable={betweenDraggable}
-      initialState={initialState}
-      width={200}
-      height={150}
-    />
-    <h3 className="text-md font-medium italic mt-6 mb-1">floating</h3>
-    <DemoDraggable
-      draggable={floatingDraggable}
-      initialState={initialState}
-      width={200}
-      height={150}
-    />
-    <h3 className="text-md font-medium italic mt-6 mb-1">just</h3>
-    <DemoDraggable
-      draggable={justDraggable}
-      initialState={initialState}
-      width={200}
-      height={150}
-    />
-  </div>
-));
+export default demo(
+  () => (
+    <div>
+      <h3 className="text-md font-medium italic mt-6 mb-1">between</h3>
+      <DemoDraggable
+        draggable={betweenDraggable}
+        initialState={initialState}
+        width={200}
+        height={150}
+      />
+      <h3 className="text-md font-medium italic mt-6 mb-1">floating</h3>
+      <DemoDraggable
+        draggable={floatingDraggable}
+        initialState={initialState}
+        width={200}
+        height={150}
+      />
+      <h3 className="text-md font-medium italic mt-6 mb-1">just</h3>
+      <DemoDraggable
+        draggable={justDraggable}
+        initialState={initialState}
+        width={200}
+        height={150}
+      />
+    </div>
+  ),
+  { tags: ["d.between"] },
+);

@@ -144,17 +144,20 @@ const draggable: Draggable<State> = ({ state, d, setState }) => (
   </g>
 );
 
-export default demo(() => (
-  <div>
-    <DemoNotes>
-      Partially-AI-generated carousel with swipe navigation, interactive dots,
-      and arrow buttons. Ought to use clipPaths but those don't work yet.
-    </DemoNotes>
-    <DemoDraggable
-      draggable={draggable}
-      initialState={initialState}
-      width={450}
-      height={300}
-    />
-  </div>
-));
+export default demo(
+  () => (
+    <div>
+      <DemoNotes>
+        Partially-AI-generated carousel with swipe navigation, interactive dots,
+        and arrow buttons. Ought to use clipPaths but those don't work yet.
+      </DemoNotes>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={initialState}
+        width={450}
+        height={300}
+      />
+    </div>
+  ),
+  { tags: ["setState", "d.between"] },
+);

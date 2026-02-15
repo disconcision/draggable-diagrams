@@ -846,21 +846,24 @@ function patternToString(p: Pattern): string {
 
 // # Component export
 
-export default demo(() => {
-  const [config, setConfig] = useState<Config>(defaultConfig);
-  const draggable = useMemo(() => makeDraggable(config), [config]);
-  return (
-    <div className="flex flex-col md:flex-row gap-4 items-start">
-      <DemoDraggable
-        draggable={draggable}
-        initialState={state1}
-        width={400}
-        height={400}
-      />
-      <ConfigPanel>
-        <MacroLeftPanel config={config} setConfig={setConfig} />
-        <MacroConfigPanel config={config} setConfig={setConfig} />
-      </ConfigPanel>
-    </div>
-  );
-});
+export default demo(
+  () => {
+    const [config, setConfig] = useState<Config>(defaultConfig);
+    const draggable = useMemo(() => makeDraggable(config), [config]);
+    return (
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <DemoDraggable
+          draggable={draggable}
+          initialState={state1}
+          width={400}
+          height={400}
+        />
+        <ConfigPanel>
+          <MacroLeftPanel config={config} setConfig={setConfig} />
+          <MacroConfigPanel config={config} setConfig={setConfig} />
+        </ConfigPanel>
+      </div>
+    );
+  },
+  { tags: ["d.between"] },
+);

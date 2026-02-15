@@ -313,44 +313,47 @@ function draggableFactory(config: Config): Draggable<State> {
 
 // # Component
 
-export default demo(() => {
-  const [config, setConfig] = useState(defaultConfig);
+export default demo(
+  () => {
+    const [config, setConfig] = useState(defaultConfig);
 
-  const draggable = useMemo(() => draggableFactory(config), [config]);
+    const draggable = useMemo(() => draggableFactory(config), [config]);
 
-  return (
-    <div className="flex flex-col md:flex-row gap-4 items-start">
-      <div>
-        <h3 className="text-md font-medium italic mt-6 mb-1">simple</h3>
-        <DemoDraggable
-          draggable={draggable}
-          initialState={state1}
-          width={200}
-          height={100}
-        />
-        <h3 className="text-md font-medium italic mt-6 mb-1">nested</h3>
-        <DemoDraggable
-          draggable={draggable}
-          initialState={state2}
-          width={250}
-          height={200}
-        />
-        <h3 className="text-md font-medium italic mt-6 mb-1">tree of life</h3>
-        <DemoDraggable
-          draggable={draggable}
-          initialState={stateTreeOfLife}
-          width={350}
-          height={1100}
-        />
+    return (
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <div>
+          <h3 className="text-md font-medium italic mt-6 mb-1">simple</h3>
+          <DemoDraggable
+            draggable={draggable}
+            initialState={state1}
+            width={200}
+            height={100}
+          />
+          <h3 className="text-md font-medium italic mt-6 mb-1">nested</h3>
+          <DemoDraggable
+            draggable={draggable}
+            initialState={state2}
+            width={250}
+            height={200}
+          />
+          <h3 className="text-md font-medium italic mt-6 mb-1">tree of life</h3>
+          <DemoDraggable
+            draggable={draggable}
+            initialState={stateTreeOfLife}
+            width={350}
+            height={1100}
+          />
+        </div>
+        <ConfigPanel>
+          <ConfigCheckbox
+            value={config.useFloating}
+            onChange={(v) => setConfig((c) => ({ ...c, useFloating: v }))}
+          >
+            Use <span className="font-mono">floating</span>
+          </ConfigCheckbox>
+        </ConfigPanel>
       </div>
-      <ConfigPanel>
-        <ConfigCheckbox
-          value={config.useFloating}
-          onChange={(v) => setConfig((c) => ({ ...c, useFloating: v }))}
-        >
-          Use <span className="font-mono">floating</span>
-        </ConfigCheckbox>
-      </ConfigPanel>
-    </div>
-  );
-});
+    );
+  },
+  { tags: ["d.between"] },
+);

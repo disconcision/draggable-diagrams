@@ -1050,11 +1050,14 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
 
 // ─── Export ───
 
-export default demo(() => (
-  <DemoDraggable
-    draggable={draggable}
-    initialState={initialState}
-    width={CANVAS_W}
-    height={CANVAS_H}
-  />
-));
+export default demo(
+  () => (
+    <DemoDraggable
+      draggable={draggable}
+      initialState={initialState}
+      width={CANVAS_W}
+      height={CANVAS_H}
+    />
+  ),
+  { tags: ["d.switchToStateAndFollow", "d.between"] },
+);

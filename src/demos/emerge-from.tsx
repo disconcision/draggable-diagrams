@@ -38,26 +38,29 @@ function draggableFactory(config: Config): Draggable<State> {
   };
 }
 
-export default demo(() => {
-  const [config, setConfig] = useState(defaultConfig);
-  const draggable = useMemo(() => draggableFactory(config), [config]);
+export default demo(
+  () => {
+    const [config, setConfig] = useState(defaultConfig);
+    const draggable = useMemo(() => draggableFactory(config), [config]);
 
-  return (
-    <div className="flex flex-col md:flex-row gap-4 items-start">
-      <DemoDraggable
-        draggable={draggable}
-        initialState={initialState}
-        width={300}
-        height={200}
-      />
-      <ConfigPanel>
-        <ConfigCheckbox
-          value={config.snap}
-          onChange={(v) => setConfig((c) => ({ ...c, snap: v }))}
-        >
-          Snap (20px)
-        </ConfigCheckbox>
-      </ConfigPanel>
-    </div>
-  );
-});
+    return (
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <DemoDraggable
+          draggable={draggable}
+          initialState={initialState}
+          width={300}
+          height={200}
+        />
+        <ConfigPanel>
+          <ConfigCheckbox
+            value={config.snap}
+            onChange={(v) => setConfig((c) => ({ ...c, snap: v }))}
+          >
+            Snap (20px)
+          </ConfigCheckbox>
+        </ConfigPanel>
+      </div>
+    );
+  },
+  { tags: ["d.between"] },
+);

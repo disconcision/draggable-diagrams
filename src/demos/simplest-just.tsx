@@ -29,11 +29,14 @@ const draggable: Draggable<State> = ({ state, d }) => (
   />
 );
 
-export default demo(() => (
-  <DemoDraggable
-    draggable={draggable}
-    initialState={initialState}
-    width={500}
-    height={150}
-  />
-));
+export default demo(
+  () => (
+    <DemoDraggable
+      draggable={draggable}
+      initialState={initialState}
+      width={500}
+      height={150}
+    />
+  ),
+  { tags: ["d.floating w/ghost"] },
+);
