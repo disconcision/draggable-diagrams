@@ -5,12 +5,12 @@ import { demo } from "../demo";
 import { DemoDraggable, DemoNotes } from "../demo/ui";
 import { Draggable } from "../draggable";
 import { translate } from "../svgx/helpers";
+import { makeId } from "../utils";
 
 type Tile = { id: string; label: string };
 
 type State = {
   items: Tile[];
-  store: Tile[];
 };
 
 const initialState: State = {
@@ -19,12 +19,9 @@ const initialState: State = {
     { id: "B", label: "\u{1F34E}" },
     { id: "C", label: "\u{1F34C}" },
   ],
-  store: [
-    { id: "store-0", label: "\u{1F34E}" },
-    { id: "store-1", label: "\u{1F34C}" },
-    { id: "store-2", label: "\u{1F347}" },
-  ],
 };
+
+const STORE_ITEMS = ["\u{1F34E}", "\u{1F34C}", "\u{1F347}"];
 
 const draggable: Draggable<State> = ({ state, d }) => {
   const TILE_SIZE = 50;
@@ -64,8 +61,20 @@ const draggable: Draggable<State> = ({ state, d }) => {
     );
   };
 
-  const toolbarWidth = state.store.length * TILE_SIZE + 20;
+  const toolbarWidth = STORE_ITEMS.length * TILE_SIZE + 20;
   const toolbarHeight = TILE_SIZE + 10;
+
+  const dropIntoListAndTrash = (state: State, tile: Tile) => {
+    const rearrangeStates = produceAmb(state, (draft) => {
+      const insertIdx = amb(_.range(draft.items.length + 1));
+      draft.items.splice(insertIdx, 0, tile);
+    });
+
+    return d.closest([
+      ...d.floating(rearrangeStates),
+      d.dropTarget(state, "delete-bin"),
+    ]);
+  };
 
   return (
     <g>
@@ -84,25 +93,21 @@ const draggable: Draggable<State> = ({ state, d }) => {
       />
 
       {/* Store items */}
-      {state.store.map((tile, idx) =>
+      {STORE_ITEMS.map((label, idx) =>
         drawTile({
-          tile,
+          tile: { id: `store-${idx}`, label },
           transform: translate(5 + idx * TILE_SIZE, 0),
           onDrag: () => {
-            const storeItem = tile;
-
-            const stateWithout = produce(state, (draft) => {
-              draft.store[idx].id += "-1";
-            });
-
-            const statesWith = produceAmb(stateWithout, (draft) => {
-              const insertIdx = amb(_.range(state.items.length + 1));
-              draft.items.splice(insertIdx, 0, storeItem);
-            });
-
-            return d
-              .closest(d.floating(statesWith))
-              .withBackground(d.floating(stateWithout));
+            const newId = makeId();
+            return d.switchToStateAndFollow(
+              {
+                items: [...state.items, { id: newId, label }],
+              },
+              `tile-${newId}`,
+              dropIntoListAndTrash(state, { id: newId, label }).withBackground(
+                d.floating(state),
+              ),
+            );
           },
         }),
       )}
@@ -119,17 +124,10 @@ const draggable: Draggable<State> = ({ state, d }) => {
               draft.items.splice(idx, 1);
             });
 
-            const rearrangeStates = produceAmb(stateWithout, (draft) => {
-              const insertIdx = amb(_.range(draft.items.length + 1));
-              draft.items.splice(insertIdx, 0, draggedItem);
-            });
-
-            return d
-              .closest([
-                ...d.floating(rearrangeStates),
-                d.dropTarget(stateWithout, "delete-bin"),
-              ])
-              .withBackground(d.floating(state));
+            return dropIntoListAndTrash(
+              stateWithout,
+              draggedItem,
+            ).withBackground(d.floating(state));
           },
         }),
       )}
@@ -162,14 +160,20 @@ const draggable: Draggable<State> = ({ state, d }) => {
   );
 };
 
-export default demo(() => (
-  <div>
-    <DemoNotes>This one uses a new approach to trash cans.</DemoNotes>
-    <DemoDraggable
-      draggable={draggable}
-      initialState={initialState}
-      width={400}
-      height={200}
-    />
-  </div>
-));
+export default demo(
+  () => (
+    <div>
+      <DemoNotes>
+        This one uses a new approach to inserting and a new approach to
+        removing.
+      </DemoNotes>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={initialState}
+        width={400}
+        height={200}
+      />
+    </div>
+  ),
+  { tags: ["d.switchToStateAndFollow"] },
+);

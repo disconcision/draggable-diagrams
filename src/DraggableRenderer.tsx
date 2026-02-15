@@ -34,7 +34,7 @@ import {
 } from "./svgx/layers";
 import { lerpLayered } from "./svgx/lerp";
 import { assignPaths, findByPath, getPath } from "./svgx/path";
-import { globalToLocal, parseTransform } from "./svgx/transform";
+import { globalToLocal, localToGlobal, parseTransform } from "./svgx/transform";
 import { useAnimationLoop } from "./useAnimationLoop";
 import { CatchToRenderError, useCatchToRenderError } from "./useRenderError";
 import { useStateWithRef } from "./useStateWithRef";
@@ -232,75 +232,19 @@ export function DraggableRenderer<T extends object>({
           const frame: DragFrame = { pointer, pointerStart: ds.pointerStart };
           const result = ds.behavior(frame);
 
-          let springingFrom = ds.springingFrom;
-
           // Handle chaining: restart drag from new state
-          // TODO: detection of "new state" probably isn't robust
-          if (result.chainNow && result.dropState !== ds.startState) {
-            const newState = result.dropState;
-            const newDraggedId = result.chainNow.draggedId ?? ds.draggedId;
-            // Render the new state and find the dragged element
-            const content = pipe(
-              draggable({
-                state: newState,
-                d: new DragSpecBuilder<T>(),
-                draggedId: newDraggedId,
-                ghostId: null,
-                setState: throwError,
-              }),
-              assignPaths,
-              accumulateTransforms,
-            );
-            const element = newDraggedId
-              ? findElement(content, (el) => el.props.id === newDraggedId)
-              : findByPath(ds.behaviorCtx.draggedPath, content);
-
-            assert(
-              !!element,
-              `Chained drag must have a valid dragged element; couldn't find element with id ${newDraggedId}`,
-            );
-
-            const newDragSpec =
-              result.chainNow.followSpec ??
-              getDragSpecCallbackOnElement<T>(element)?.(ds.dragParams);
-            if (newDragSpec) {
-              // Start spring from current display
-              const newSpringingFrom = makeSpringingFrom(true, () =>
-                runSpring(springingFrom, result.rendered),
-              );
-
-              const newDraggedPath = getPath(element);
-              assert(!!newDraggedPath, "Chained element must have a path");
-
-              const pointerLocal = ds.behaviorCtx.pointerLocal;
-
-              const { floatLayered: _, ...behaviorCtxWithoutFloat } =
-                ds.behaviorCtx;
-              const { dragState: chainedState, debugInfo } = initDrag(
-                newDragSpec,
-                {
-                  ...behaviorCtxWithoutFloat,
-                  draggedPath: newDraggedPath,
-                  draggedId: newDraggedId,
-                  pointerLocal,
-                },
-                newState,
-                frame,
-                ds.pointerStart,
-                newSpringingFrom,
-                {
-                  dragParams: ds.dragParams,
-                  dragParamsCallback: ds.dragParamsCallback,
-                  originalStartState: ds.originalStartState,
-                  originalBehaviorCtxWithoutFloat:
-                    ds.originalBehaviorCtxWithoutFloat,
-                },
-              );
-              setDragState(chainedState);
-              onDebugDragInfoRef.current?.(debugInfo);
-              return;
-            }
+          const updatedDs: DragState<T> & { type: "dragging" } = {
+            ...ds,
+            result,
+          };
+          const chained = processChainNow(updatedDs, frame);
+          if (chained) {
+            setDragState(chained.dragState);
+            onDebugDragInfoRef.current?.(chained.debugInfo);
+            return;
           }
+
+          let springingFrom = ds.springingFrom;
 
           // Detect activePath change → start new spring from current display
           if (result.activePath !== ds.result.activePath) {
@@ -347,7 +291,7 @@ export function DraggableRenderer<T extends object>({
           }
         }
       })(); // TODO: IIFE here is terrible
-    }, [catchToRenderError, dragStateRef, draggable, setDragState]),
+    }, [catchToRenderError, dragStateRef, setDragState]),
   );
 
   // Cursor style
@@ -568,6 +512,98 @@ type DragParamsInfo<T extends object> = {
   >;
 };
 
+type InitDragResult<T extends object> = {
+  dragState: DragState<T> & { type: "dragging" };
+  debugInfo: DebugDragInfo<T>;
+};
+
+function debugInfoFromDragState<T extends object>(
+  ds: DragState<T> & { type: "dragging" },
+): DebugDragInfo<T> {
+  return {
+    type: "dragging",
+    spec: ds.spec,
+    behaviorCtx: ds.behaviorCtx,
+    activePath: ds.result.activePath,
+    pointerStart: ds.pointerStart,
+    draggedId: ds.draggedId,
+    dropState: ds.result.dropState,
+  };
+}
+
+/**
+ * If a drag result has chainNow set (e.g. from switchToStateAndFollow),
+ * process it immediately: find the new element, set up a new drag from it,
+ * and return the new drag state. Returns null if no chaining needed.
+ */
+function processChainNow<T extends object>(
+  ds: DragState<T> & { type: "dragging" },
+  frame: DragFrame,
+): InitDragResult<T> | null {
+  const result = ds.result;
+  if (!result.chainNow || result.dropState === ds.startState) return null;
+
+  const newState = result.dropState;
+  const newDraggedId = result.chainNow.draggedId ?? ds.draggedId;
+  const content = pipe(
+    ds.behaviorCtx.draggable({
+      state: newState,
+      d: new DragSpecBuilder<T>(),
+      draggedId: newDraggedId,
+      ghostId: null,
+      setState: throwError,
+    }),
+    assignPaths,
+    accumulateTransforms,
+  );
+  const element = newDraggedId
+    ? findElement(content, (el) => el.props.id === newDraggedId)
+    : findByPath(ds.behaviorCtx.draggedPath, content);
+
+  assert(
+    !!element,
+    `Chained drag must have a valid dragged element; couldn't find element with id ${newDraggedId}`,
+  );
+
+  const newDragSpec =
+    result.chainNow.followSpec ??
+    getDragSpecCallbackOnElement<T>(element)?.(ds.dragParams);
+  if (!newDragSpec) return null;
+
+  const newSpringingFrom = makeSpringingFrom(true, () =>
+    runSpring(ds.springingFrom, result.rendered),
+  );
+
+  const newDraggedPath = getPath(element);
+  assert(!!newDraggedPath, "Chained element must have a path");
+
+  const newAccTransform = getAccumulatedTransform(element);
+  const newTransforms = parseTransform(newAccTransform || "");
+  const pointerLocal = ds.behaviorCtx.pointerLocal;
+  const newPointerStart = localToGlobal(newTransforms, pointerLocal);
+
+  const { floatLayered: _, ...behaviorCtxWithoutFloat } = ds.behaviorCtx;
+  return initDrag(
+    newDragSpec,
+    {
+      ...behaviorCtxWithoutFloat,
+      draggedPath: newDraggedPath,
+      draggedId: newDraggedId,
+      pointerLocal,
+    },
+    newState,
+    frame,
+    newPointerStart,
+    newSpringingFrom,
+    {
+      dragParams: ds.dragParams,
+      dragParamsCallback: ds.dragParamsCallback,
+      originalStartState: ds.originalStartState,
+      originalBehaviorCtxWithoutFloat: ds.originalBehaviorCtxWithoutFloat,
+    },
+  );
+}
+
 function initDrag<T extends object>(
   spec: DragSpec<T>,
   behaviorCtxWithoutFloat: Omit<DragBehaviorInitContext<T>, "floatLayered">,
@@ -597,28 +633,29 @@ function initDrag<T extends object>(
   };
   const behavior = dragSpecToBehavior(spec, behaviorCtx);
   const result = behavior(frame);
+
+  const dragState: DragState<T> & { type: "dragging" } = {
+    type: "dragging",
+    startState: state,
+    behavior,
+    spec,
+    behaviorCtx,
+    pointerStart,
+    draggedId,
+    result,
+    springingFrom,
+    ...dragParamsInfo,
+  };
+
+  // If the result chains immediately (e.g. switchToStateAndFollow),
+  // process it now so the first rendered frame is the chained drag,
+  // avoiding a single-frame flash of the intermediate state.
+  const chained = processChainNow(dragState, frame);
+  if (chained) return chained;
+
   return {
-    dragState: {
-      type: "dragging",
-      startState: state,
-      behavior,
-      spec,
-      behaviorCtx,
-      pointerStart,
-      draggedId,
-      result,
-      springingFrom,
-      ...dragParamsInfo,
-    },
-    debugInfo: {
-      type: "dragging",
-      spec,
-      behaviorCtx,
-      activePath: result.activePath,
-      pointerStart,
-      draggedId,
-      dropState: result.dropState,
-    },
+    dragState,
+    debugInfo: debugInfoFromDragState(dragState),
   };
 }
 
