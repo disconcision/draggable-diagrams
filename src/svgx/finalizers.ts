@@ -1,7 +1,7 @@
 import { findElement, Svgx } from ".";
 import { Vec2, Vec2able } from "../math/vec2";
 import { assert, assertDefined } from "../utils";
-import { accumulateTransforms } from "./layers";
+import { accumulateTransforms, getAccumulatedTransform } from "./layers";
 import { localToGlobal, parseTransform } from "./transform";
 
 /**
@@ -45,13 +45,6 @@ export function pointRef(elementId: string, localPos: Vec2able): PointRef {
 }
 
 /**
- * Finds an element by ID in the SVG tree.
- */
-function findElementById(tree: Svgx, id: string): Svgx | null {
-  return findElement(tree, (el) => el.props.id === id);
-}
-
-/**
  * Resolves a point reference to global coordinates by:
  * 1. Finding the element with the given ID in the tree
  * 2. Reading its accumulated transform
@@ -61,7 +54,10 @@ export function resolvePointRef(ref: PointRef, tree: Svgx): Vec2 {
   assert(!!ref, "PointRef is undefined");
 
   const accumulated = accumulateTransforms(tree);
-  const element = findElementById(accumulated, ref.elementId);
+  const element = findElement(
+    accumulated,
+    (el) => el.props.id === ref.elementId,
+  );
 
   if (!element) {
     throw new Error(
@@ -69,8 +65,7 @@ export function resolvePointRef(ref: PointRef, tree: Svgx): Vec2 {
     );
   }
 
-  const transformStr =
-    (element.props as any)["data-accumulated-transform"] || "";
+  const transformStr = getAccumulatedTransform(element) || "";
   const transforms = parseTransform(transformStr);
   return localToGlobal(transforms, ref.localPos);
 }
