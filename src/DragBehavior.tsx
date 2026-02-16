@@ -1,6 +1,5 @@
 import _ from "lodash";
 import { Draggable } from "./draggable";
-import { Transition } from "./DraggableRenderer";
 import { DragSpec, DragSpecBuilder, DragSpecData } from "./DragSpec";
 import { Delaunay } from "./math/delaunay";
 import { minimize } from "./math/minimize";
@@ -25,6 +24,7 @@ import {
 import { lerpLayered, lerpLayered3 } from "./svgx/lerp";
 import { assignPaths, findByPath } from "./svgx/path";
 import { globalToLocal, localToGlobal, parseTransform } from "./svgx/transform";
+import { Transition } from "./transition";
 import { assert, assertNever, manyToArray, pipe, throwError } from "./utils";
 
 /**

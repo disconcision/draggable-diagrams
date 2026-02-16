@@ -1,10 +1,10 @@
 import { SVGProps } from "react";
+import { PathIn } from "./paths";
 import {
   Transition,
   TransitionLike,
   resolveTransitionLike,
-} from "./DraggableRenderer";
-import { PathIn } from "./paths";
+} from "./transition";
 import { Many, assert, manyToArray } from "./utils";
 
 // # DragSpecData

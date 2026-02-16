@@ -21,7 +21,7 @@ export type {
 } from "../DragSpec";
 export { lessThan } from "../DragSpec";
 
-export type { Transition, TransitionLike } from "../DraggableRenderer";
+export type { Transition, TransitionLike } from "../transition";
 
 export type { PathIn } from "../paths";
 

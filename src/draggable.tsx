@@ -1,7 +1,7 @@
 import { ReactElement, SetStateAction } from "react";
-import { TransitionLike } from "./DraggableRenderer";
 import { DragSpec, DragSpecBuilder } from "./DragSpec";
 import { Svgx } from "./svgx";
+import { TransitionLike } from "./transition";
 
 /**
  * A Draggable is a function that takes state and draggable helper, returns SVG JSX.
