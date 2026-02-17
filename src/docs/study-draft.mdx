@@ -57,18 +57,170 @@ We'll start by showing you the simplest thing you can make with our library – 
 
 Any questions?
 
-*TODO: smaller step from 1 to 2?*
+## Hands-on: Three-way switch
+
+Ok, now we're going to add dragging to an interface that doesn't have it yet. Here's the interface... It's supposed to be a switch, like before, but with three different states it can enter. Take a look over the code, and let me know if it makes sense.
+
+<LiveEditor
+  code={`
+    type State = { name: "r" | "g" | "b" };
+
+    const initialState: State = { name: "r" };
+
+    const name_to_pos = {
+      r: { x: 50, y: 20 },
+      g: { x: 16, y: 78 },
+      b: { x: 84, y: 78 },
+    };
+
+    const name_to_color = {
+      r: "#ef4444",
+      g: "#22c55e",
+      b: "#3b82f6",
+    };
+
+    const draggable: Draggable<State> = ({ state, d }) => (
+      <g transform={translate(60, 30)}>
+        {/* Target dots */}
+        {(["r", "g", "b"] as const).map((name) => (
+          <circle
+            transform={translate(name_to_pos[name].x, name_to_pos[name].y)}
+            r={16}
+            fill={name_to_color[name]}
+            opacity={0.25}
+          />
+        ))}
+
+        {/* Draggable knob */}
+        <circle
+          transform={translate(name_to_pos[state.name].x, name_to_pos[state.name].y)}
+          r={16}
+          fill={name_to_color[state.name]}
+          stroke="white" stroke-width={3}
+          style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))" }}
+        />
+      </g>
+    );
+`}
+/>
+
+Based on your experience with the switch, can you explain how you think this might be made draggable with our library?
+
+<LiveEditor
+  code={`
+    type State = { name: "r" | "g" | "b" };
+
+    const initialState: State = { name: "r" };
+
+    const name_to_pos = {
+      r: { x: 50, y: 20 },
+      g: { x: 16, y: 78 },
+      b: { x: 84, y: 78 },
+    };
+
+    const name_to_color = {
+      r: "#ef4444",
+      g: "#22c55e",
+      b: "#3b82f6",
+    };
+
+    const draggable: Draggable<State> = ({ state, d }) => (
+      <g transform={translate(60, 30)}>
+        {/* Target dots */}
+        {(["r", "g", "b"] as const).map((name) => (
+          <circle
+            transform={translate(name_to_pos[name].x, name_to_pos[name].y)}
+            r={16}
+            fill={name_to_color[name]}
+            opacity={0.25}
+          />
+        ))}
+
+        {/* Draggable knob */}
+        <circle
+          transform={translate(name_to_pos[state.name].x, name_to_pos[state.name].y)}
+          r={16}
+          fill={name_to_color[state.name]}
+          stroke="white" stroke-width={3}
+          style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))" }}
+          data-on-drag={() =>
+            d.between({ name: "r" }, { name: "g" }, { name: "b" })
+          }
+        />
+      </g>
+    );
+
+`}
+/>
+
+Ok, now we'd like to show you a twist. It's important to note that, when we're defining data-on-drag, we have access to the current state, so the drag behavior can depend on the current state.
+
+For instance, suppose we wanted to say that the dot can only be dragged to the next location clockwise. What do you think we would do here?
+
+<LiveEditor
+  code={`
+    type State = { name: "r" | "g" | "b" };
+
+    const initialState: State = { name: "r" };
+
+    const name_to_pos = {
+      r: { x: 50, y: 20 },
+      g: { x: 16, y: 78 },
+      b: { x: 84, y: 78 },
+    };
+
+    const name_to_color = {
+      r: "#ef4444",
+      g: "#22c55e",
+      b: "#3b82f6",
+    };
+
+    const draggable: Draggable<State> = ({ state, d }) => (
+      <g transform={translate(60, 30)}>
+        {/* Target dots */}
+        {(["r", "g", "b"] as const).map((name) => (
+          <circle
+            transform={translate(name_to_pos[name].x, name_to_pos[name].y)}
+            r={16}
+            fill={name_to_color[name]}
+            opacity={0.25}
+          />
+        ))}
+
+        {/* Draggable knob */}
+        <circle
+          transform={translate(name_to_pos[state.name].x, name_to_pos[state.name].y)}
+          r={16}
+          fill={name_to_color[state.name]}
+          stroke="white" stroke-width={3}
+          style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))" }}
+          data-on-drag={() =>
+            state.name === "r"
+            ? d.between({ name: "r" }, { name: "b" })
+            : state.name === "b"
+            ? d.between({ name: "b" }, { name: "g" })
+            : d.between({ name: "g" }, { name: "r" })
+          }
+        />
+      </g>
+    );
+
+`}
+/>
+
+
+{/* *TODO: smaller step from 1 to 2?*
 
 current gaps:
 - they're actually stuff at all
 - they're generating states dynamically (function of current state)
-- they have to add IDs (we may have to tell them)
+- they have to add IDs (we may have to tell them) */}
 
-## First task: Reorderable list
+## Fancier: Reorderable list
 
-The next fanciest thing you might want to drag, after a switch, is items in a reorderable list.
+Three-way switches are cool, but sort of contrived. Let's go to a larger, more realistic example – a reorderable list.
 
-We have some starter code for you which just renders a list:
+Here's some starter code which just renders a list:
 
 <LiveEditor
   code={`
@@ -99,7 +251,9 @@ First of all, we're curious – how would you go about making this drag-to-reord
 
 Ok, now the task – make it drag-to-reorder-able using our library!
 
-[TODO: how do we introduce IDs?]
+Do you want to try your hand first? It would be helpful for us to see your thinking process, even if you get stuck.
+
+[Expect we'll have to lend help, at least with IDs!]
 
 <LiveEditor
   code={`
@@ -175,9 +329,7 @@ We want to show you some other things you can do with this. For instance, right 
 `}
 />
 
-Ok, now here's a bigger change. You'll notice that, right now, the dragged element is constrained to a linear track. That's because that's the track that connects its rendered locations. (Debugger shows this well!) But often we want to be able to drag stuff around freely. We have a different way to do that...
-
-[TODO: do we show them directly? lead them through it?]
+Ok, now here's a bigger change. You'll notice that, right now, the dragged element is constrained to a linear track. That's because that's the track that connects its rendered locations. (Debugger shows this well!) But often we want to be able to drag stuff around freely. We have a different way to do that. We will show you!
 
 <LiveEditor
   code={`
@@ -214,7 +366,7 @@ Ok, now here's a bigger change. You'll notice that, right now, the dragged eleme
 
 Play with these a bit. Is one or the other the interaction you'd expect here? (Or neither?) Do you see advantages or disadvantages to them?
 
-One riff: ghosts!
+Another optional riff: ghosts!
 
 <LiveEditor
   code={`
@@ -249,13 +401,40 @@ One riff: ghosts!
 `}
 />
 
-[TODO: they're broken when snap is enabled]
-
-[TODO: backdrop?]
+Another possible riff: backdrop!
 
 ## Second task: Continuous dragging
 
-So far, the state has been discrete — a finite set of options. But sometimes you want continuous control, like a slider:
+So far, the state has been discrete — a finite set of options. But sometimes you want continuous control, like a slider. Here's a slider without drag behavior set.
+
+<LiveEditor
+  code={`
+    type State = { value: number };
+
+    const initialState: State = { value: 100 };
+
+    const W = 240, H = 6, R = 12;
+
+    const draggable: Draggable<State> = ({ state, d }) => (
+      <g transform={translate(30, 60)}>
+        {/* Track */}
+        <rect width={W} height={H} rx={H / 2} fill="#e5e7eb" y={-H / 2} />
+        {/* Filled portion */}
+        <rect width={state.value} height={H} rx={H / 2} fill="#3b82f6" y={-H / 2} />
+        {/* Thumb */}
+        <circle
+          id="thumb"
+          transform={translate(state.value, 0)}
+          r={R}
+          fill="white" stroke="#d1d5db" stroke-width={1.5}
+          style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.15))" }}
+        />
+      </g>
+    );
+`}
+/>
+
+How do you think our library might approach this?
 
 <LiveEditor
   code={`
@@ -279,6 +458,36 @@ So far, the state has been discrete — a finite set of options. But sometimes y
           fill="white" stroke="#d1d5db" stroke-width={1.5}
           style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.15))" }}
           data-on-drag={() => d.vary(state, ["value"])}
+        />
+      </g>
+    );
+`}
+/>
+
+And BTW we can do constraints:
+
+<LiveEditor
+  code={`
+    type State = { value: number };
+
+    const initialState: State = { value: 100 };
+
+    const W = 240, H = 6, R = 12;
+
+    const draggable: Draggable<State> = ({ state, d }) => (
+      <g transform={translate(30, 60)}>
+        {/* Track */}
+        <rect width={W} height={H} rx={H / 2} fill="#e5e7eb" y={-H / 2} />
+        {/* Filled portion */}
+        <rect width={state.value} height={H} rx={H / 2} fill="#3b82f6" y={-H / 2} />
+        {/* Thumb */}
+        <circle
+          id="thumb"
+          transform={translate(state.value, 0)}
+          r={R}
+          fill="white" stroke="#d1d5db" stroke-width={1.5}
+          style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.15))" }}
+          data-on-drag={() => d.vary(state, ["value"], constraint: [(s) => s.value])}
         />
       </g>
     );
