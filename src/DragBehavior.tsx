@@ -122,61 +122,7 @@ export function dragSpecToBehavior<T extends object>(
         ),
       };
     };
-  } else if (spec.type === "floating") {
-    const { draggedId, floatLayered } = ctx;
-    assert(
-      draggedId !== null,
-      "Floating drags require the dragged element to have an id",
-    );
-    assert(floatLayered !== null, "Floating drags require floatLayered");
-    const layered = renderStateReadOnly(ctx, spec.state);
-    const elementPos = getElementPosition(ctx, layered);
-    const hasElement = layered.byId.has(draggedId);
-    let backdrop: LayeredSvgx;
-    if (!hasElement) {
-      backdrop = layered;
-    } else if (spec.ghost !== undefined) {
-      const { remaining, extracted } = layeredExtract(layered, draggedId);
-      backdrop = layeredMerge(
-        remaining,
-        layeredSetAttributes(layeredPrefixIds(extracted, "ghost-"), spec.ghost),
-      );
-    } else {
-      backdrop = layeredExtract(layered, draggedId).remaining;
-    }
-
-    return (frame) => {
-      const floatPositioned = layeredTransform(
-        floatLayered,
-        translate(frame.pointer.sub(frame.pointerStart)),
-      );
-      const rendered = layeredMerge(
-        backdrop,
-        pipe(
-          floatPositioned,
-          (h) => layeredSetAttributes(h, { "data-transition": false }),
-          (h) => layeredShiftZIndices(h, 1000000),
-        ),
-      );
-      const distance = frame.pointer.dist(elementPos);
-      return {
-        rendered,
-        dropState: spec.state,
-        distance,
-        activePath: "floating",
-        debugOverlay: () => (
-          <g opacity={0.8}>
-            <circle cx={elementPos.x} cy={elementPos.y} r={5} fill="magenta" />
-            <DistanceLine
-              from={elementPos}
-              to={frame.pointer}
-              distance={distance}
-            />
-          </g>
-        ),
-      };
-    };
-  } else if (spec.type === "floating-dynamic") {
+  } else if (spec.type === "with-floating") {
     const { draggedId, floatLayered } = ctx;
     assert(
       draggedId !== null,
@@ -248,7 +194,7 @@ export function dragSpecToBehavior<T extends object>(
         rendered,
         dropState: innerResult.dropState,
         distance,
-        activePath: `floating-dynamic/${innerResult.activePath}`,
+        activePath: `with-floating/${innerResult.activePath}`,
         debugOverlay: () => (
           <g opacity={0.8}>
             <circle cx={elementPos.x} cy={elementPos.y} r={5} fill="magenta" />

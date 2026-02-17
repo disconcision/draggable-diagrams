@@ -47,23 +47,17 @@ function SpecNode<T>({
     const fullPath = path + "just";
     const active = activePath === fullPath;
     return <Box label="just" active={active} color={colorMap?.get(fullPath)} />;
-  } else if (spec.type === "floating") {
-    const fullPath = path + "floating";
-    const active = activePath === fullPath;
-    return (
-      <Box label="floating" active={active} color={colorMap?.get(fullPath)} />
-    );
-  } else if (spec.type === "floating-dynamic") {
-    const prefix = path + "floating-dynamic/";
+  } else if (spec.type === "with-floating") {
+    const prefix = path + "with-floating/";
     let childActivePath = activePath;
     if (activePath?.startsWith(prefix)) {
       childActivePath = activePath.slice(prefix.length);
     }
     return (
       <Box
-        label="floatingDynamic"
-        active={activePath?.startsWith(path + "floating-dynamic") ?? false}
-        color={colorMap?.get(path + "floating-dynamic")}
+        label="withFloating"
+        active={activePath?.startsWith(path + "with-floating") ?? false}
+        color={colorMap?.get(path + "with-floating")}
       >
         <SpecNode
           spec={spec.spec}

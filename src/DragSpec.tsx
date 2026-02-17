@@ -11,8 +11,7 @@ import { Many, assert, manyToArray } from "./utils";
 
 export type DragSpecData<T> =
   | DragSpecJust<T>
-  | DragSpecFloating<T>
-  | DragSpecFloatingDynamic<T>
+  | DragSpecWithFloating<T>
   | DragSpecClosest<T>
   | DragSpecWithBackground<T>
   | DragSpecAndThen<T>
@@ -30,14 +29,13 @@ export type DragSpecJust<T> = {
   state: T;
 };
 
-export type DragSpecFloating<T> = {
-  type: "floating";
-  state: T;
-  ghost: SVGProps<SVGElement> | undefined;
+export type FloatingOptions = {
+  ghost?: SVGProps<SVGElement> | true;
+  tether?: (dist: number) => number;
 };
 
-export type DragSpecFloatingDynamic<T> = {
-  type: "floating-dynamic";
+export type DragSpecWithFloating<T> = {
+  type: "with-floating";
   spec: DragSpecData<T>;
   ghost: SVGProps<SVGElement> | undefined;
   tether: ((dist: number) => number) | undefined;
@@ -188,10 +186,7 @@ export interface DragSpecMethods<T> {
    * function to limit how far the float deviates from the inner
    * behavior's element position.
    */
-  withFloating(opts?: {
-    ghost?: SVGProps<SVGElement> | true;
-    tether?: (dist: number) => number;
-  }): DragSpec<T>;
+  withFloating(opts?: FloatingOptions): DragSpec<T>;
 }
 
 const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
@@ -234,7 +229,7 @@ const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
   },
   withFloating({ ghost, tether } = {}) {
     return attachMethods({
-      type: "floating-dynamic",
+      type: "with-floating",
       spec: this,
       ghost: ghost === true ? { opacity: 0.5 } : ghost,
       tether,
@@ -266,26 +261,18 @@ export class DragSpecBuilder<T> {
    * original position and lets it be dragged freely. Optionally, a
    * "ghost" element can be rendered at the original position while
    * dragging. Often used with `closest`.
+   *
+   * Note: This is actually the same as d.just(state).withFloating()!
    */
-  floating(
-    states: T[],
-    opts?: { ghost?: SVGProps<SVGElement> | true },
-  ): DragSpec<T>[];
-  floating(
-    state: T,
-    opts?: { ghost?: SVGProps<SVGElement> | true },
-  ): DragSpec<T>;
+  floating(states: T[], opts?: FloatingOptions): DragSpec<T>[];
+  floating(state: T, opts?: FloatingOptions): DragSpec<T>;
   floating(
     stateOrStates: T | T[],
-    { ghost }: { ghost?: SVGProps<SVGElement> | true } = {},
+    opts?: FloatingOptions,
   ): DragSpec<T> | DragSpec<T>[] {
     if (Array.isArray(stateOrStates))
-      return stateOrStates.map((s) => this.floating(s, { ghost }));
-    return attachMethods({
-      type: "floating",
-      state: stateOrStates,
-      ghost: ghost === true ? { opacity: 0.5 } : ghost,
-    });
+      return stateOrStates.map((s) => this.floating(s, opts));
+    return this.just(stateOrStates).withFloating(opts);
   }
 
   /**
