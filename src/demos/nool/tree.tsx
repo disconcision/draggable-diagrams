@@ -303,7 +303,9 @@ function dragTargets(
 ) {
   const newTrees = allPossibleRewrites(state, activeRewrites, draggedKey);
   if (newTrees.length === 0) return d.between(state);
-  return d.closest(newTrees.map((newTree) => d.between(state, newTree)));
+  return d
+    .closest(newTrees.map((newTree) => d.between(state, newTree)))
+    .withSnapRadius(1, { chain: true });
 }
 
 // # Rewrite rule display
