@@ -1,6 +1,7 @@
 import _ from "lodash";
-import { Draggable } from "./draggable";
 import { DragSpec, DragSpecBuilder, DragSpecData } from "./DragSpec";
+import { renderDraggableReadOnly } from "./renderDraggable";
+import { Draggable } from "./draggable";
 import { Delaunay } from "./math/delaunay";
 import { minimize } from "./math/minimize";
 import { Vec2 } from "./math/vec2";
@@ -13,7 +14,6 @@ import {
   accumulateTransforms,
   findByPathInLayered,
   getAccumulatedTransform,
-  layerSvg,
   layeredExtract,
   layeredMerge,
   layeredPrefixIds,
@@ -667,18 +667,12 @@ function renderStateReadOnly<T extends object>(
   ctx: DragBehaviorInitContext<T>,
   state: T,
 ): LayeredSvgx {
-  return pipe(
-    ctx.draggable({
-      state,
-      d: new DragSpecBuilder<T>(),
-      draggedId: ctx.draggedId,
-      ghostId: null,
-      setState: throwError,
-    }),
-    assignPaths,
-    accumulateTransforms,
-    layerSvg,
-  );
+  return renderDraggableReadOnly(ctx.draggable, {
+    state,
+    d: new DragSpecBuilder<T>(),
+    draggedId: ctx.draggedId,
+    ghostId: null,
+  });
 }
 
 function getElementPosition<T extends object>(

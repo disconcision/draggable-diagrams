@@ -17,10 +17,10 @@ import { DragSpec, DragSpecBuilder } from "./DragSpec";
 import {
   DragParams,
   Draggable,
-  DraggableProps,
   getDragSpecCallbackOnElement,
 } from "./draggable";
 import { Vec2 } from "./math/vec2";
+import { renderDraggableReadOnly } from "./renderDraggable";
 import { Svgx, findElement, updatePropsDownTree } from "./svgx";
 import {
   LayeredSvgx,
@@ -386,21 +386,6 @@ function runSpring(
   return lerped;
 }
 
-function renderReadOnly<T extends object>(
-  draggable: Draggable<T>,
-  props: Omit<DraggableProps<T>, "setState">,
-): LayeredSvgx {
-  return pipe(
-    draggable({
-      ...props,
-      setState: throwError,
-    }),
-    assignPaths,
-    accumulateTransforms,
-    layerSvg,
-  );
-}
-
 type DragParamsInfo<T extends object> = {
   dragParams: DragParams;
   dragParamsCallback: (params: DragParams) => DragSpec<T>;
@@ -573,7 +558,7 @@ function initDrag<T extends object>(
   const { draggable, draggedId } = behaviorCtxWithoutFloat;
   let floatLayered: LayeredSvgx | null = null;
   if (draggedId) {
-    const startLayered = renderReadOnly(draggable, {
+    const startLayered = renderDraggableReadOnly(draggable, {
       state,
       d: new DragSpecBuilder<T>(),
       draggedId,
@@ -744,7 +729,7 @@ const DrawIdleMode = memoGeneric(
             type: "idle",
             state: resolved,
             springingFrom: makeSpringingFrom(transition, () =>
-              renderReadOnly(ctx.draggable, {
+              renderDraggableReadOnly(ctx.draggable, {
                 state: dragState.state,
                 d: new DragSpecBuilder<T>(),
                 draggedId: null,
