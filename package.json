@@ -5,11 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run peggy && vite build",
+    "build": "vite build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit --project tsconfig.node.json",
-    "peggy": "npx peggy --format es --plugin ts-pegjs --extra-options-file src/peggy/pattern.options.json -o src/peggy/pattern.ts src/peggy/pattern.peggy",
-    "peggy:watch": "ls src/peggy/pattern.peggy src/peggy/pattern.options.json | entr -c npm run peggy",
     "prettier": "prettier --write src"
   },
   "devDependencies": {

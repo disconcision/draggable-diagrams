@@ -23,8 +23,6 @@ dist-ssr
 
 .playwright-mcp
 
-# Peggy output
-/src/peggy/pattern.ts
 
 # Claude, for now
 /.claude
