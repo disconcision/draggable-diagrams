@@ -490,7 +490,6 @@ function processChainNow<T extends object>(
       state: newState,
       d: new DragSpecBuilder<T>(),
       draggedId: newDraggedId,
-      ghostId: null,
       setState: throwError,
     }),
     assignPaths,
@@ -563,7 +562,6 @@ function initDrag<T extends object>(
       state,
       d: new DragSpecBuilder<T>(),
       draggedId,
-      ghostId: null,
     });
     floatLayered = layeredExtract(startLayered, draggedId).extracted;
   }
@@ -714,7 +712,6 @@ const DrawIdleMode = memoGeneric(
       state: dragState.state,
       d: new DragSpecBuilder<T>(),
       draggedId: null,
-      ghostId: null,
       setState: ctx.catchToRenderError(
         (
           newState: SetStateAction<T>,
@@ -732,7 +729,6 @@ const DrawIdleMode = memoGeneric(
                 state: dragState.state,
                 d: new DragSpecBuilder<T>(),
                 draggedId: null,
-                ghostId: null,
               }),
             ),
           });

@@ -12,7 +12,6 @@ export type DraggableProps<T extends object> = {
   state: T;
   d: DragSpecBuilder<T>;
   draggedId: string | null;
-  ghostId: string | null;
   setState: SetState<T>;
 };
 

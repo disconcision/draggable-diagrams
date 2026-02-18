@@ -347,7 +347,6 @@ function varyBehavior<T extends object>(
         state: candidateState,
         d: new DragSpecBuilder<T>(),
         draggedId: ctx.draggedId,
-        ghostId: null,
         setState: throwError,
       }),
       assignPaths,
@@ -669,7 +668,6 @@ function renderStateReadOnly<T extends object>(
     state,
     d: new DragSpecBuilder<T>(),
     draggedId: ctx.draggedId,
-    ghostId: null,
   });
 }
 
