@@ -1,9 +1,9 @@
 import { Align, createName, Group, Rect, Ref, StackH, Text } from "bluefish-js";
 import { produce } from "immer";
-import { bluefishWithAttach } from "../bluefish";
-import { demo } from "../demo";
-import { DemoDraggable } from "../demo/ui";
-import { Draggable } from "../draggable";
+import { demo } from "../../demo";
+import { DemoDraggable, DemoNotes } from "../../demo/ui";
+import { Draggable } from "../../draggable";
+import { bluefishWithAttach } from "./bluefish";
 
 type State = {
   perm: string[];
@@ -71,12 +71,15 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) =>
 
 export default demo(
   () => (
-    <DemoDraggable
-      draggable={draggable}
-      initialState={initialState}
-      width={300}
-      height={120}
-    />
+    <>
+      <DemoNotes>This one is interactive!</DemoNotes>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={initialState}
+        width={300}
+        height={120}
+      />
+    </>
   ),
   { tags: ["d.between"] },
 );

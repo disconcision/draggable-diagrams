@@ -1,7 +1,53 @@
 import { Child, render } from "bluefish-js";
+import parse from "html-react-parser";
 import React, { ReactNode, SVGAttributes } from "react";
-import { extractSvgContentsAsJsxWithParser } from "./dom-to-jsx-parser";
-import { Svgx } from "./svgx";
+import { Svgx } from "../../svgx";
+import { assert } from "../../utils";
+
+function parseViewBox(viewBox: string | null): {
+  minX: number;
+  minY: number;
+  width: number;
+  height: number;
+} | null {
+  if (!viewBox) return null;
+  const parts = viewBox.trim().split(/\s+/);
+  if (parts.length !== 4) return null;
+  return {
+    minX: parseFloat(parts[0]),
+    minY: parseFloat(parts[1]),
+    width: parseFloat(parts[2]),
+    height: parseFloat(parts[3]),
+  };
+}
+
+function calculateViewBoxTransform(svg: SVGSVGElement): string {
+  const width = parseFloat(svg.getAttribute("width") || "0");
+  const height = parseFloat(svg.getAttribute("height") || "0");
+  const viewBox = parseViewBox(svg.getAttribute("viewBox"));
+
+  if (!viewBox || !width || !height) {
+    return "";
+  }
+
+  const scaleX = width / viewBox.width;
+  const scaleY = height / viewBox.height;
+  const translateX = -viewBox.minX;
+  const translateY = -viewBox.minY;
+
+  return `translate(${translateX}, ${translateY}) scale(${scaleX}, ${scaleY})`;
+}
+
+function extractSvgContentsAsJsx(container: HTMLElement): Svgx {
+  const svg = container.querySelector("svg");
+  assert(!!svg, "No SVG element found in container");
+
+  const transform = calculateViewBoxTransform(svg);
+  const svgContent = svg.innerHTML;
+  const parsed = parse(svgContent);
+
+  return React.createElement("g", transform ? { transform } : {}, parsed);
+}
 
 function applyAttributesById(
   element: ReactNode,
@@ -45,7 +91,7 @@ export function bluefish(
 ): Svgx {
   const container = document.createElement("div");
   render(() => spec, container);
-  let jsx = extractSvgContentsAsJsxWithParser(container);
+  let jsx = extractSvgContentsAsJsx(container);
 
   if (attribsById) {
     const foundIds = new Set<string>();
