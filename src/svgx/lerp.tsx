@@ -147,7 +147,6 @@ function lerpValue(key: string, valA: any, valB: any, t: number): any {
       return colorInterp(t);
     }
 
-    // Interpolate colors using HCL color space
     const colorInterp = interpolateCubehelix(valA, valB);
     return colorInterp(t);
   } else if (typeof valA === "string" && typeof valB === "string") {
