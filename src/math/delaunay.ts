@@ -1,6 +1,6 @@
 import { Delaunay as D3Delaunay } from "d3-delaunay";
 import _ from "lodash";
-import { assert, assertWarning } from "../utils";
+import { assert, assertWarning, clamp } from "../utils";
 import { Vec2, Vec2able } from "./vec2";
 
 // We use our own Delaunay class so 1. we can be careful about the
@@ -191,7 +191,7 @@ export class Delaunay {
       const t = pt.sub(p0).dot(edge) / edgeLen2;
 
       // Clamp to [0, 1] to stay on the line segment
-      const tClamped = Math.max(0, Math.min(1, t));
+      const tClamped = clamp(0, t, 1);
 
       // Closest point on the edge
       const closestPt = p0.lerp(p1, tClamped);
