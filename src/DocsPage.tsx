@@ -2,7 +2,7 @@ import { ComponentType } from "react";
 import { DemoSettingsBar, DemoSettingsProvider } from "./demo/ui";
 import * as Components from "./docs/components";
 import { LiveEditor } from "./docs/LiveEditor";
-import { MDXPage } from "./MDXPage";
+import { MDXPage } from "./docs/MDXPage";
 
 // Import all .mdx files from docs directory
 const mdxFiles = import.meta.glob<{ default: ComponentType }>("./docs/*.mdx", {
