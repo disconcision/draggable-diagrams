@@ -16,9 +16,7 @@ const modules = import.meta.glob<{ default: unknown }>("../demos/**/*.tsx", {
   eager: true,
 });
 
-function pathToId(path: string): string {
-  return path.replace("../demos/", "").replace(".tsx", "").replace(/\//g, "-");
-}
+import { pathToId } from "./pathToId";
 
 function markedToDemo(
   id: string,

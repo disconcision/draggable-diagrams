@@ -1,21 +1,21 @@
 import { curveCardinal, line } from "d3-shape";
 import _ from "lodash";
 import { useMemo, useState } from "react";
-import { arrowhead } from "../arrows";
-import { demo } from "../demo";
+import { arrowhead } from "../../arrows";
+import { demo } from "../../demo";
 import {
   ConfigCheckbox,
   ConfigPanel,
   DemoDraggable,
   DemoNotes,
-} from "../demo/ui";
-import { Draggable } from "../draggable";
-import { type DragSpecBuilder } from "../DragSpec";
-import { overlapIntervals } from "../layout";
-import { Vec2 } from "../math/vec2";
-import { Svgx } from "../svgx";
-import { Finalizers, pointRef, PointRef } from "../svgx/finalizers";
-import { path, translate } from "../svgx/helpers";
+} from "../../demo/ui";
+import { Draggable } from "../../draggable";
+import { type DragSpecBuilder } from "../../DragSpec";
+import { Vec2 } from "../../math/vec2";
+import { Svgx } from "../../svgx";
+import { Finalizers, pointRef, PointRef } from "../../svgx/finalizers";
+import { path, translate } from "../../svgx/helpers";
+import { overlapIntervals } from "./layout";
 import {
   getAllMorphs,
   getNodeById,
@@ -23,7 +23,7 @@ import {
   tree7,
   TreeMorph,
   TreeNode,
-} from "../trees";
+} from "./trees";
 
 // returns the path from `node` to another node `n` such that `pred(n)==true`.
 function traverseUntilPred<T>(
