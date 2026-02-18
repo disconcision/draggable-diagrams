@@ -20,7 +20,10 @@ import {
   getDragSpecCallbackOnElement,
 } from "./draggable";
 import { Vec2 } from "./math/vec2";
-import { renderDraggableReadOnly } from "./renderDraggable";
+import {
+  renderDraggableInert,
+  renderDraggableInertUnlayered,
+} from "./renderDraggable";
 import { Svgx, findElement, updatePropsDownTree } from "./svgx";
 import {
   LayeredSvgx,
@@ -43,7 +46,7 @@ import {
 import { useAnimationLoop } from "./useAnimationLoop";
 import { CatchToRenderError, useCatchToRenderError } from "./useRenderError";
 import { useStateWithRef } from "./useStateWithRef";
-import { assert, assertNever, memoGeneric, pipe, throwError } from "./utils";
+import { assert, assertNever, memoGeneric, pipe } from "./utils";
 
 function dragParamsFromEvent(e: {
   altKey: boolean;
@@ -485,15 +488,10 @@ function processChainNow<T extends object>(
 
   const newState = result.dropState;
   const newDraggedId = result.chainNow.draggedId ?? ds.draggedId;
-  const content = pipe(
-    ds.behaviorCtx.draggable({
-      state: newState,
-      d: new DragSpecBuilder<T>(),
-      draggedId: newDraggedId,
-      setState: throwError,
-    }),
-    assignPaths,
-    accumulateTransforms,
+  const content = renderDraggableInertUnlayered(
+    ds.behaviorCtx.draggable,
+    newState,
+    newDraggedId,
   );
   const element = newDraggedId
     ? findElement(content, (el) => el.props.id === newDraggedId)
@@ -558,7 +556,7 @@ function initDrag<T extends object>(
   const { draggable, draggedId } = behaviorCtxWithoutFloat;
   let floatLayered: LayeredSvgx | null = null;
   if (draggedId) {
-    const startLayered = renderDraggableReadOnly(draggable, state, draggedId);
+    const startLayered = renderDraggableInert(draggable, state, draggedId);
     floatLayered = layeredExtract(startLayered, draggedId).extracted;
   }
   const behaviorCtx: DragBehaviorInitContext<T> = {
@@ -721,7 +719,7 @@ const DrawIdleMode = memoGeneric(
             type: "idle",
             state: resolved,
             springingFrom: makeSpringingFrom(transition, () =>
-              renderDraggableReadOnly(ctx.draggable, dragState.state, null),
+              renderDraggableInert(ctx.draggable, dragState.state, null),
             ),
           });
           ctx.onDebugDragInfoRef.current?.({ type: "idle", state: resolved });

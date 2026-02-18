@@ -1,11 +1,14 @@
 import _ from "lodash";
 import { Draggable } from "./draggable";
-import { DragSpec, DragSpecBuilder, DragSpecData } from "./DragSpec";
+import { DragSpec, DragSpecData } from "./DragSpec";
 import { Delaunay } from "./math/delaunay";
 import { minimize } from "./math/minimize";
 import { Vec2 } from "./math/vec2";
 import { getAtPath, setAtPath } from "./paths";
-import { renderDraggableReadOnly } from "./renderDraggable";
+import {
+  renderDraggableInert,
+  renderDraggableInertUnlayered,
+} from "./renderDraggable";
 import { Svgx } from "./svgx";
 import { getLocalBounds, pointInBounds } from "./svgx/bounds";
 import { path as svgPath, translate } from "./svgx/helpers";
@@ -22,10 +25,10 @@ import {
   layeredTransform,
 } from "./svgx/layers";
 import { lerpLayered, lerpLayered3 } from "./svgx/lerp";
-import { assignPaths, findByPath } from "./svgx/path";
+import { findByPath } from "./svgx/path";
 import { globalToLocal, localToGlobal, parseTransform } from "./svgx/transform";
 import { Transition } from "./transition";
-import { assert, assertNever, manyToArray, pipe, throwError } from "./utils";
+import { assert, assertNever, manyToArray, pipe } from "./utils";
 
 /**
  * A "drag behavior" defines the ongoing behavior of a drag – what is
@@ -339,15 +342,10 @@ function varyBehavior<T extends object>(
   // Compute the element position for a given set of params
   const getElementPos = (params: number[]): Vec2 => {
     const candidateState = stateFromParams(params);
-    const content = pipe(
-      ctx.draggable({
-        state: candidateState,
-        d: new DragSpecBuilder<T>(),
-        draggedId: ctx.draggedId,
-        setState: throwError,
-      }),
-      assignPaths,
-      accumulateTransforms,
+    const content = renderDraggableInertUnlayered(
+      ctx.draggable,
+      candidateState,
+      ctx.draggedId,
     );
     const element = findByPath(ctx.draggedPath, content);
     if (!element) return Vec2(Infinity, Infinity);
@@ -661,7 +659,7 @@ function renderStateReadOnly<T extends object>(
   ctx: DragBehaviorInitContext<T>,
   state: T,
 ): LayeredSvgx {
-  return renderDraggableReadOnly(ctx.draggable, state, ctx.draggedId);
+  return renderDraggableInert(ctx.draggable, state, ctx.draggedId);
 }
 
 function getElementPosition<T extends object>(
