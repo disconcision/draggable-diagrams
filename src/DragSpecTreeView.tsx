@@ -1,4 +1,6 @@
+import { AnnotatedSpec, SpecDebugInfo } from "./DragBehavior";
 import { DragSpec, DragSpecData } from "./DragSpec";
+import { drawLayered } from "./svgx/layers";
 import { Transition } from "./transition";
 import { assertNever } from "./utils";
 
@@ -6,10 +8,16 @@ export function DragSpecTreeView<T>({
   spec,
   activePath,
   colorMap,
+  annotatedSpec,
+  svgWidth,
+  svgHeight,
 }: {
   spec: DragSpec<T>;
   activePath: string | null;
   colorMap?: Map<string, string>;
+  annotatedSpec?: AnnotatedSpec<T>;
+  svgWidth?: number;
+  svgHeight?: number;
 }) {
   return (
     <div className="text-xs font-mono">
@@ -18,6 +26,9 @@ export function DragSpecTreeView<T>({
         activePath={activePath}
         path=""
         colorMap={colorMap ?? null}
+        annotated={annotatedSpec ?? null}
+        svgWidth={svgWidth ?? 0}
+        svgHeight={svgHeight ?? 0}
       />
     </div>
   );
@@ -28,26 +39,42 @@ const ACTIVE_BORDER = "rgb(250, 204, 21)";
 const INACTIVE_BG = "rgba(148, 163, 184, 0.08)";
 const INACTIVE_BORDER = "rgb(203, 213, 225)";
 
+type NodeProps<T> = {
+  spec: DragSpecData<T>;
+  activePath: string | null;
+  path: string;
+  colorMap: Map<string, string> | null;
+  annotated: AnnotatedSpec<T> | null;
+  svgWidth: number;
+  svgHeight: number;
+};
+
 /**
  * `activePath` is the full, unmodified active path from the root.
  * `path` is the accumulated path of the current node, built top-down.
  * Each node checks whether `activePath` matches or extends its own `path`.
  */
-function SpecNode<T>({
-  spec,
-  activePath,
-  path,
-  colorMap,
-}: {
-  spec: DragSpecData<T>;
-  activePath: string | null;
-  path: string;
-  colorMap: Map<string, string> | null;
-}) {
+function SpecNode<T>(props: NodeProps<T>) {
+  const { spec, activePath, path, colorMap, annotated, svgWidth, svgHeight } =
+    props;
+  const debug = annotated?.debug ?? null;
+
+  /** Helper: get annotated child by index */
+  const child = (i: number): AnnotatedSpec<T> | null =>
+    annotated?.children[i] ?? null;
+
   if (spec.type === "just") {
     const fullPath = path + "just";
     const active = activePath === fullPath;
-    return <Box label="just" active={active} color={colorMap?.get(fullPath)} />;
+    return (
+      <Box label="just" active={active} color={colorMap?.get(fullPath)}>
+        <StateThumbnails
+          debug={debug}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
+        />
+      </Box>
+    );
   } else if (spec.type === "with-floating") {
     const prefix = path + "with-floating/";
     let childActivePath = activePath;
@@ -65,6 +92,9 @@ function SpecNode<T>({
           activePath={childActivePath}
           path={prefix}
           colorMap={colorMap}
+          annotated={child(0)}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
         />
       </Box>
     );
@@ -99,6 +129,11 @@ function SpecNode<T>({
             constraint: {constraintSrc}
           </div>
         )}
+        <StateThumbnails
+          debug={debug}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
+        />
       </Box>
     );
   } else if (spec.type === "closest") {
@@ -112,7 +147,7 @@ function SpecNode<T>({
             flexWrap: "wrap",
           }}
         >
-          {spec.specs.map((child, i) => (
+          {spec.specs.map((childSpec, i) => (
             <div
               key={i}
               style={{ display: "flex", flexDirection: "column", gap: 1 }}
@@ -127,10 +162,13 @@ function SpecNode<T>({
                 {i}
               </div>
               <SpecNode
-                spec={child}
+                spec={childSpec}
                 activePath={activePath}
                 path={path + `closest/${i}/`}
                 colorMap={colorMap}
+                annotated={child(i)}
+                svgWidth={svgWidth}
+                svgHeight={svgHeight}
               />
             </div>
           ))}
@@ -147,6 +185,9 @@ function SpecNode<T>({
               activePath={activePath}
               path={path + "fg/"}
               colorMap={colorMap}
+              annotated={child(0)}
+              svgWidth={svgWidth}
+              svgHeight={svgHeight}
             />
           </Slot>
           <Slot label="bg">
@@ -155,6 +196,9 @@ function SpecNode<T>({
               activePath={activePath}
               path={path + "bg/"}
               colorMap={colorMap}
+              annotated={child(1)}
+              svgWidth={svgWidth}
+              svgHeight={svgHeight}
             />
           </Slot>
         </div>
@@ -168,6 +212,9 @@ function SpecNode<T>({
           activePath={activePath}
           path={path}
           colorMap={colorMap}
+          annotated={child(0)}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
         />
       </Box>
     );
@@ -179,6 +226,9 @@ function SpecNode<T>({
           activePath={activePath}
           path={path}
           colorMap={colorMap}
+          annotated={child(0)}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
         />
       </Box>
     );
@@ -205,6 +255,9 @@ function SpecNode<T>({
           activePath={childActivePath}
           path={path}
           colorMap={colorMap}
+          annotated={child(0)}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
         />
       </Box>
     );
@@ -216,7 +269,13 @@ function SpecNode<T>({
         label={`between [${spec.states.length}]`}
         active={active}
         color={colorMap?.get(fullPath)}
-      />
+      >
+        <StateThumbnails
+          debug={debug}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
+        />
+      </Box>
     );
   } else if (spec.type === "with-drop-transition") {
     return (
@@ -231,6 +290,9 @@ function SpecNode<T>({
           )}
           path={path}
           colorMap={colorMap}
+          annotated={child(0)}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
         />
       </Box>
     );
@@ -242,7 +304,13 @@ function SpecNode<T>({
         label={`switchToStateAndFollow → ${spec.draggedId}`}
         active={active}
         color={colorMap?.get(fullPath)}
-      />
+      >
+        <StateThumbnails
+          debug={debug}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
+        />
+      </Box>
     );
   } else if (spec.type === "with-branch-transition") {
     return (
@@ -257,6 +325,9 @@ function SpecNode<T>({
           )}
           path={path}
           colorMap={colorMap}
+          annotated={child(0)}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
         />
       </Box>
     );
@@ -268,12 +339,67 @@ function SpecNode<T>({
         label={`dropTarget → ${spec.targetId}`}
         active={active}
         color={colorMap?.get(fullPath)}
-      />
+      >
+        <StateThumbnails
+          debug={debug}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
+        />
+      </Box>
     );
   } else {
     assertNever(spec);
   }
 }
+
+// # Thumbnail rendering
+
+const THUMB_HEIGHT = 40;
+
+function StateThumbnails<T>({
+  debug,
+  svgWidth,
+  svgHeight,
+}: {
+  debug: SpecDebugInfo<T> | null;
+  svgWidth: number;
+  svgHeight: number;
+}) {
+  if (!debug?.renderedStates || svgWidth === 0 || svgHeight === 0) return null;
+  const thumbW = Math.round(THUMB_HEIGHT * (svgWidth / svgHeight));
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        gap: 3,
+        flexWrap: "wrap",
+        marginTop: 2,
+      }}
+    >
+      {debug.renderedStates.map((rs, i) => (
+        <svg
+          key={i}
+          width={thumbW}
+          height={THUMB_HEIGHT}
+          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+          style={{
+            border: "1px solid rgb(203, 213, 225)",
+            borderRadius: 3,
+            background: "white",
+            ...(debug.closestIndex === i
+              ? { outline: `2px solid ${ACTIVE_BORDER}`, outlineOffset: -1 }
+              : {}),
+          }}
+        >
+          {drawLayered(rs.layered)}
+        </svg>
+      ))}
+    </div>
+  );
+}
+
+// # Shared UI components
 
 function Box({
   label,
@@ -292,18 +418,19 @@ function Box({
       ? ACTIVE_BG
       : INACTIVE_BG;
   const border = color ? color : active ? ACTIVE_BORDER : INACTIVE_BORDER;
-  const borderWidth = active && !color ? 2 : 1;
 
   return (
     <div
       style={{
         background: bg,
-        border: `${borderWidth}px solid ${border}`,
+        border: `1px solid ${border}`,
         borderRadius: 6,
         padding: "4px 6px",
         transition: "background 150ms, border-color 150ms",
-        ...(active && color
-          ? { outline: `2px solid black`, outlineOffset: 1 }
+        ...(active
+          ? color
+            ? { outline: `2px solid black`, outlineOffset: 1 }
+            : { outline: `2px solid ${ACTIVE_BORDER}`, outlineOffset: -1 }
           : {}),
       }}
     >

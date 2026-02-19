@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import {
+  AnnotatedSpec,
   DragBehavior,
   DragBehaviorInitContext,
   DragFrame,
@@ -121,6 +122,7 @@ export type DebugDragInfo<T extends object> =
       pointerStart: Vec2;
       draggedId: string | null;
       dropState: T;
+      annotatedSpec?: AnnotatedSpec<T>;
     };
 
 // # Component
@@ -405,6 +407,7 @@ function debugInfoFromDragState<T extends object>(
     pointerStart: ds.pointerStart,
     draggedId: ds.draggedId,
     dropState: ds.result.dropState,
+    annotatedSpec: ds.result.annotatedSpec,
   };
 }
 

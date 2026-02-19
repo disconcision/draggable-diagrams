@@ -250,6 +250,9 @@ export function DemoDraggable<T extends object>({
                         spec={draggingDebugInfo.spec}
                         activePath={draggingDebugInfo.activePath}
                         colorMap={overlayData?.colorMap}
+                        annotatedSpec={draggingDebugInfo.annotatedSpec}
+                        svgWidth={width}
+                        svgHeight={height}
                       />
                     </div>
                   ) : (
