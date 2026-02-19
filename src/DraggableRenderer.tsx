@@ -512,7 +512,7 @@ function processChainNow<T extends object>(
   const newPointerStart = localToGlobal(newTransforms, pointerLocal);
 
   const { floatLayered: _, ...behaviorCtxWithoutFloat } = ds.behaviorCtx;
-  return initDrag(
+  const chainedResult = initDrag(
     newDragSpec,
     {
       ...behaviorCtxWithoutFloat,
@@ -526,6 +526,14 @@ function processChainNow<T extends object>(
     newSpringingFrom,
     ds.dragParamsInfo,
   );
+  // TODO: this is a hack
+  // Don't chain if the new state isn't strictly closer than what we had.
+  if (chainedResult.dragState.result.distance >= result.distance) {
+    return null;
+  }
+  // Try to chain further from the new state.
+  const furtherChained = processChainNow(chainedResult.dragState, frame);
+  return furtherChained ?? chainedResult;
 }
 
 function initDrag<T extends object>(

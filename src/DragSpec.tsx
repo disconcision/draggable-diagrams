@@ -22,7 +22,8 @@ export type DragSpecData<T> =
   | DragSpecBetween<T>
   | DragSpecSwitchToStateAndFollow<T>
   | DragSpecDropTarget<T>
-  | DragSpecWithBranchTransition<T>;
+  | DragSpecWithBranchTransition<T>
+  | DragSpecWithChaining<T>;
 
 export type DragSpecJust<T> = {
   type: "just";
@@ -111,6 +112,26 @@ export type DragSpecDropTarget<T> = {
   targetId: string;
 };
 
+export type DragSpecWithChaining<T> = {
+  type: "with-chaining";
+  spec: DragSpecData<T>;
+  chaining: Chaining<T>;
+};
+
+/**
+ * This is a drag behavior's way of saying "immediately switch to
+ * dropState and continue the drag".
+ * - `draggedId` is the id of the element to continue dragging; if
+ *   omitted, the current dragged element is used
+ * - `followSpec` is a DragSpec to follow after switching states; if
+ *   omitted, the data-on-drag behavior of the newly rendered state
+ *   is consulted as usual
+ */
+export type Chaining<T> = {
+  draggedId?: string;
+  followSpec?: DragSpec<T>;
+};
+
 // # DragSpec
 
 // Full API, including methods and a brand.
@@ -187,6 +208,14 @@ export interface DragSpecMethods<T> {
    * behavior's element position.
    */
   withFloating(opts?: FloatingOptions): DragSpec<T>;
+
+  /**
+   * When the drop state changes, immediately chain into a new drag
+   * from that state (re-evaluating data-on-drag on the dragged
+   * element). Options can optionally be provided to fine-tune the
+   * behavior of the chaining.
+   */
+  withChaining(chaining?: Chaining<T>): DragSpec<T>;
 }
 
 const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
@@ -234,6 +263,9 @@ const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
       ghost: ghost === true ? { opacity: 0.5 } : ghost,
       tether,
     });
+  },
+  withChaining(chaining = {}) {
+    return attachMethods({ type: "with-chaining", spec: this, chaining });
   },
 };
 

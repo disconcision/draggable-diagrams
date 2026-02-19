@@ -54,15 +54,17 @@ function draggableFactory(config: Config): Draggable<State> {
         data-on-drag={() => {
           if (config.mazeMode) {
             const singleRotations = singleRotationStates(state);
-            return (
-              config.snappyMode
-                ? d.closest(
-                    d.floating([...singleRotations, state], {
+            return config.snappyMode
+              ? d
+                  .closest(
+                    d.floating([state, ...singleRotations], {
                       ghost: { opacity: 0.2 },
                     }),
                   )
-                : d.closest(singleRotations.map((s) => d.between([state, s])))
-            ).withSnapRadius(1, { chain: true });
+                  .withChaining()
+              : d
+                  .closest(singleRotations.map((s) => d.between([state, s])))
+                  .withSnapRadius(1, { chain: true });
           } else {
             return config.snappyMode
               ? d.closest(
@@ -237,6 +239,7 @@ export default demo(
       "math",
       "d.floating w/ghost",
       "d.between",
+      "spec.withChaining",
     ],
   },
 );

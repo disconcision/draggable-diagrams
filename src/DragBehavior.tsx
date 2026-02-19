@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { Draggable } from "./draggable";
-import { DragSpec, DragSpecData } from "./DragSpec";
+import { Chaining, DragSpecData } from "./DragSpec";
 import { Delaunay } from "./math/delaunay";
 import { minimize } from "./math/minimize";
 import { Vec2 } from "./math/vec2";
@@ -56,19 +56,7 @@ export type DragResult<T> = {
   activePathTransition?: Transition | false;
   distance: number;
   activePath: string;
-  /**
-   * This is a drag behavior's way of saying "immediately switch to
-   * dropState and continue the drag".
-   * - `draggedId` is the id of the element to continue dragging; if
-   *   omitted, the current dragged element is used
-   * - `followSpec` is a DragSpec to follow after switching states;
-   *   if omitted, the data-on-drag behavior of the newly rendered
-   *   state is consulted as usual
-   */
-  chainNow?: {
-    draggedId?: string;
-    followSpec?: DragSpec<T>;
-  };
+  chainNow?: Chaining<T>;
   /**
    * An optional debug overlay to render on top of the drag result.
    */
@@ -160,6 +148,8 @@ export function dragSpecToBehavior<T extends object>(
       return switchToStateAndFollowBehavior(spec, ctx);
     case "drop-target":
       return dropTargetBehavior(spec, ctx);
+    case "with-chaining":
+      return withChainingBehavior(spec, ctx);
     default:
       assertNever(spec);
   }
@@ -786,6 +776,26 @@ function dropTargetBehavior<T extends object>(
           />
         </g>
       ),
+    };
+  };
+}
+
+function withChainingBehavior<T extends object>(
+  spec: DragSpecData<T> & { type: "with-chaining" },
+  ctx: DragBehaviorInitContext<T>,
+): DragBehavior<T> {
+  const subBehavior = dragSpecToBehavior(spec.spec, ctx);
+  return (frame) => {
+    const result = subBehavior(frame);
+    return {
+      ...result,
+      chainNow: result.chainNow ?? spec.chaining,
+      activePath: `with-chaining/${result.activePath}`,
+      annotatedSpec: {
+        spec,
+        debug: {},
+        children: result.annotatedSpec ? [result.annotatedSpec] : [],
+      },
     };
   };
 }

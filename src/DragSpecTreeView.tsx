@@ -347,6 +347,20 @@ function SpecNode<T>(props: NodeProps<T>) {
         />
       </Box>
     );
+  } else if (spec.type === "with-chaining") {
+    return (
+      <Box label="withChaining">
+        <SpecNode
+          spec={spec.spec}
+          activePath={activePath}
+          path={path + "with-chaining/"}
+          colorMap={colorMap}
+          annotated={child(0)}
+          svgWidth={svgWidth}
+          svgHeight={svgHeight}
+        />
+      </Box>
+    );
   } else {
     assertNever(spec);
   }
