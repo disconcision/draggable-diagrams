@@ -77,19 +77,15 @@ function SpecNode<T>(props: NodeProps<T>) {
     );
   } else if (spec.type === "with-floating") {
     const prefix = path + "with-floating/";
-    let childActivePath = activePath;
-    if (activePath?.startsWith(prefix)) {
-      childActivePath = activePath.slice(prefix.length);
-    }
     return (
       <Box
         label="withFloating"
-        active={activePath?.startsWith(path + "with-floating") ?? false}
+        active={activePath?.startsWith(prefix) ?? false}
         color={colorMap?.get(path + "with-floating")}
       >
         <SpecNode
           spec={spec.spec}
-          activePath={childActivePath}
+          activePath={activePath}
           path={prefix}
           colorMap={colorMap}
           annotated={child(0)}
@@ -233,11 +229,10 @@ function SpecNode<T>(props: NodeProps<T>) {
       </Box>
     );
   } else if (spec.type === "with-snap-radius") {
-    const snappedPrefix = "with-snap-radius[snapped]/";
-    const normalPrefix = "with-snap-radius/";
+    const snappedPrefix = path + "with-snap-radius[snapped]/";
+    const normalPrefix = path + "with-snap-radius/";
     const snapped = activePath?.startsWith(snappedPrefix);
-    const activePrefix = snapped ? snappedPrefix : normalPrefix;
-    const childActivePath = stripActivePathPrefix(activePath, activePrefix);
+    const childPrefix = snapped ? snappedPrefix : normalPrefix;
     const options = [
       spec.transition && "transition",
       spec.chain && "chain",
@@ -252,8 +247,8 @@ function SpecNode<T>(props: NodeProps<T>) {
       <Box label={label}>
         <SpecNode
           spec={spec.spec}
-          activePath={childActivePath}
-          path={path + activePrefix}
+          activePath={activePath}
+          path={childPrefix}
           colorMap={colorMap}
           annotated={child(0)}
           svgWidth={svgWidth}
@@ -278,17 +273,15 @@ function SpecNode<T>(props: NodeProps<T>) {
       </Box>
     );
   } else if (spec.type === "with-drop-transition") {
+    const prefix = path + "with-drop-transition/";
     return (
       <Box
         label={`withDropTransition (${describeTransition(spec.transition)})`}
       >
         <SpecNode
           spec={spec.spec}
-          activePath={stripActivePathPrefix(
-            activePath,
-            "with-drop-transition/",
-          )}
-          path={path + "with-drop-transition/"}
+          activePath={activePath}
+          path={prefix}
           colorMap={colorMap}
           annotated={child(0)}
           svgWidth={svgWidth}
@@ -313,17 +306,15 @@ function SpecNode<T>(props: NodeProps<T>) {
       </Box>
     );
   } else if (spec.type === "with-branch-transition") {
+    const prefix = path + "with-branch-transition/";
     return (
       <Box
         label={`withBranchTransition (${describeTransition(spec.transition)})`}
       >
         <SpecNode
           spec={spec.spec}
-          activePath={stripActivePathPrefix(
-            activePath,
-            "with-branch-transition/",
-          )}
-          path={path + "with-branch-transition/"}
+          activePath={activePath}
+          path={prefix}
           colorMap={colorMap}
           annotated={child(0)}
           svgWidth={svgWidth}
@@ -348,12 +339,13 @@ function SpecNode<T>(props: NodeProps<T>) {
       </Box>
     );
   } else if (spec.type === "with-chaining") {
+    const prefix = path + "with-chaining/";
     return (
       <Box label="withChaining">
         <SpecNode
           spec={spec.spec}
-          activePath={stripActivePathPrefix(activePath, "with-chaining/")}
-          path={path + "with-chaining/"}
+          activePath={activePath}
+          path={prefix}
           colorMap={colorMap}
           annotated={child(0)}
           svgWidth={svgWidth}
@@ -478,17 +470,6 @@ function Slot({
       {children}
     </div>
   );
-}
-
-/** Strip a prefix from activePath if present, for passing down to child nodes. */
-function stripActivePathPrefix(
-  activePath: string | null,
-  prefix: string,
-): string | null {
-  if (activePath?.startsWith(prefix)) {
-    return activePath.slice(prefix.length);
-  }
-  return activePath;
 }
 
 /** Format a Transition for display. */
