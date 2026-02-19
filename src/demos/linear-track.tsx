@@ -48,5 +48,5 @@ export default demo(
       height={80}
     />
   ),
-  { tags: ["d.between", "d.withSnapRadius", "d.withDropTransition"] },
+  { tags: ["d.between", "spec.withSnapRadius", "spec.withDropTransition"] },
 );

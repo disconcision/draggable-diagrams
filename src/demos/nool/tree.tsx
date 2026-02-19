@@ -461,5 +461,5 @@ export default demo(
       </div>
     );
   },
-  { tags: ["d.between", "d.withSnapRadius w/chain"] },
+  { tags: ["d.between", "spec.withSnapRadius w/chain"] },
 );

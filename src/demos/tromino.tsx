@@ -235,7 +235,7 @@ export default demo(
   },
   {
     tags: [
-      "d.withSnapRadius w/chain",
+      "spec.withSnapRadius w/chain",
       "math",
       "d.floating w/ghost",
       "d.between",
