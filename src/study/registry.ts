@@ -4,6 +4,7 @@ export type Study = {
   id: string;
   number: number;
   name: string;
+  relativePath: string;
   Component: React.ComponentType;
 };
 
@@ -24,7 +25,8 @@ for (const [path, mod] of Object.entries(modules)) {
   const number = parseInt(match[1], 10);
   const name = match[2];
   const id = String(number);
-  studies.push({ id, number, name, Component: marked.Component });
+  const relativePath = `src/study/${match[0].slice(2)}`;
+  studies.push({ id, number, name, relativePath, Component: marked.Component });
 }
 
 studies.sort((a, b) => a.number - b.number);

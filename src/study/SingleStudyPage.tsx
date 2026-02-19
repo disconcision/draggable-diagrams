@@ -49,6 +49,16 @@ export function SingleStudyPage({ id }: { id: string }) {
               {String(study.number).padStart(2, "0")}
             </span>
             {study.name}
+            {import.meta.env.DEV && (
+              <button
+                onClick={() =>
+                  fetch(`/__open-in-editor?file=${study.relativePath}`)
+                }
+                className="ml-3 text-sm font-normal text-gray-400 hover:text-blue-500 cursor-pointer"
+              >
+                Open in editor
+              </button>
+            )}
           </h2>
           <div className="bg-white rounded-lg p-5 shadow-sm">
             <Component />
