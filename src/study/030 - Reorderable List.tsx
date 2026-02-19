@@ -9,7 +9,7 @@ const initialState: State = { items: ["Apples", "Bananas", "Cherries", "Dates"] 
 
 const W = 160, H = 40, GAP = 8;
 
-const draggable: Draggable<State> = ({ state, d }) => (
+const draggable: Draggable<State> = ({ state }) => (
   <g transform={translate(20, 20)}>
     {state.items.map((item, i) => (
       <g

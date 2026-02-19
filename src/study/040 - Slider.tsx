@@ -9,7 +9,7 @@ const initialState: State = { value: 100 };
 
 const W = 240, H = 6, R = 12;
 
-const draggable: Draggable<State> = ({ state, d }) => (
+const draggable: Draggable<State> = ({ state }) => (
   <g transform={translate(30, 60)}>
     {/* Track */}
     <rect width={W} height={H} rx={H / 2} fill="#e5e7eb" y={-H / 2} />

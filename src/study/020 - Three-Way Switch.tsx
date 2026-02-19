@@ -19,7 +19,7 @@ const name_to_color = {
   b: "#3b82f6",
 };
 
-const draggable: Draggable<State> = ({ state, d }) => (
+const draggable: Draggable<State> = ({ state }) => (
   <g transform={translate(60, 30)}>
     {/* Target dots */}
     {(["r", "g", "b"] as const).map((name) => (

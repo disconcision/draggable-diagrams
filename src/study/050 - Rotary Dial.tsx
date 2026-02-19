@@ -11,7 +11,7 @@ const initialState: State = { angle: 0 };
 const CX = 200, CY = 120, R = 60;
 const TICKS = 12;
 
-const draggable: Draggable<State> = ({ state, d }) => (
+const draggable: Draggable<State> = ({ state }) => (
   <g>
     {/* Dial */}
     <g
