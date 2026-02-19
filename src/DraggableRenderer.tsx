@@ -1,3 +1,4 @@
+import _ from "lodash";
 import React, {
   SetStateAction,
   useCallback,
@@ -476,7 +477,7 @@ function processChainNow<T extends object>(
   frame: DragFrame,
 ): InitDragResult<T> | null {
   const result = ds.result;
-  if (!result.chainNow || result.dropState === ds.startState) return null;
+  if (!result.chainNow || _.isEqual(result.dropState, ds.startState)) return null;
 
   const newState = result.dropState;
   const newDraggedId = result.chainNow.draggedId ?? ds.draggedId;
@@ -511,7 +512,7 @@ function processChainNow<T extends object>(
   const pointerLocal = ds.behaviorCtx.pointerLocal;
   const newPointerStart = localToGlobal(newTransforms, pointerLocal);
 
-  const { floatLayered: _, ...behaviorCtxWithoutFloat } = ds.behaviorCtx;
+  const { floatLayered: _fl, ...behaviorCtxWithoutFloat } = ds.behaviorCtx;
   const chainedResult = initDrag(
     newDragSpec,
     {
