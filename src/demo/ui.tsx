@@ -15,6 +15,7 @@ import {
 import { DragSpecTreeView } from "../DragSpecTreeView";
 import { DebugDragInfo, DraggableRenderer } from "../DraggableRenderer";
 import { ErrorBoundary } from "../ErrorBoundary";
+import { OpenInEditor } from "../OpenInEditor";
 import { Draggable } from "../draggable";
 import { assert } from "../utils";
 import type { Demo } from "./registry";
@@ -354,14 +355,22 @@ export function DemoCard({
             demo.id
           )}
         </h2>
-        <a
-          href={sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-gray-500 hover:text-gray-700 no-underline hover:underline"
-        >
-          source
-        </a>
+        <div className="flex gap-3">
+          <OpenInEditor
+            relativePath={`src/demos/${demo.sourcePath}`}
+            className="text-sm text-gray-500 hover:text-gray-700 hover:underline cursor-pointer"
+          >
+            open in editor
+          </OpenInEditor>
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-gray-500 hover:text-gray-700 no-underline hover:underline"
+          >
+            github
+          </a>
+        </div>
       </div>
       {demo.tags && demo.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">

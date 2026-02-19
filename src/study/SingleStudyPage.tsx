@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { DemoSettingsBar, DemoSettingsProvider } from "../demo/ui";
+import { OpenInEditor } from "../OpenInEditor";
 import { studiesById } from "./registry";
 
 export function SingleStudyPage({ id }: { id: string }) {
@@ -49,16 +50,12 @@ export function SingleStudyPage({ id }: { id: string }) {
               {String(study.number).padStart(2, "0")}
             </span>
             {study.name}
-            {import.meta.env.DEV && (
-              <button
-                onClick={() =>
-                  fetch(`/__open-in-editor?file=${study.relativePath}`)
-                }
-                className="ml-3 text-sm font-normal text-gray-400 hover:text-blue-500 cursor-pointer"
-              >
-                Open in editor
-              </button>
-            )}
+            <OpenInEditor
+              relativePath={study.relativePath}
+              className="ml-3 text-sm font-normal text-gray-400 hover:text-blue-500 cursor-pointer"
+            >
+              open in editor
+            </OpenInEditor>
           </h2>
           <div className="bg-white rounded-lg p-5 shadow-sm">
             <Component />
