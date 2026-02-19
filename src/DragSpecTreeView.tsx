@@ -80,7 +80,6 @@ function SpecNode<T>(props: NodeProps<T>) {
     return (
       <Box
         label="withFloating"
-        active={activePath?.startsWith(prefix) ?? false}
         color={colorMap?.get(path + "with-floating")}
       >
         <SpecNode
