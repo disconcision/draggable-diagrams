@@ -82,6 +82,7 @@ function SpecNode<T>(props: NodeProps<T>) {
         label="withFloating"
         color={colorMap?.get(path + "with-floating")}
       >
+        <OutputThumbnail debug={debug} svgWidth={svgWidth} svgHeight={svgHeight} />
         <SpecNode
           spec={spec.spec}
           activePath={activePath}
@@ -216,6 +217,7 @@ function SpecNode<T>(props: NodeProps<T>) {
   } else if (spec.type === "during") {
     return (
       <Box label="during">
+        <OutputThumbnail debug={debug} svgWidth={svgWidth} svgHeight={svgHeight} />
         <SpecNode
           spec={spec.spec}
           activePath={activePath}
@@ -258,6 +260,7 @@ function SpecNode<T>(props: NodeProps<T>) {
     }
     return (
       <Box label={label}>
+        <OutputThumbnail debug={debug} svgWidth={svgWidth} svgHeight={svgHeight} />
         <SpecNode
           spec={spec.spec}
           activePath={activePath}
@@ -278,11 +281,14 @@ function SpecNode<T>(props: NodeProps<T>) {
         active={active}
         color={colorMap?.get(fullPath)}
       >
-        <StateThumbnails
-          debug={debug}
-          svgWidth={svgWidth}
-          svgHeight={svgHeight}
-        />
+        <OutputThumbnail debug={debug} svgWidth={svgWidth} svgHeight={svgHeight} />
+        <Slot label="states">
+          <StateThumbnails
+            debug={debug}
+            svgWidth={svgWidth}
+            svgHeight={svgHeight}
+          />
+        </Slot>
       </Box>
     );
   } else if (spec.type === "with-drop-transition") {
@@ -414,6 +420,35 @@ function StateThumbnails<T>({
           {drawLayered(rs.layered)}
         </svg>
       ))}
+    </div>
+  );
+}
+
+function OutputThumbnail({
+  debug,
+  svgWidth,
+  svgHeight,
+}: {
+  debug: SpecDebugInfo<unknown> | null;
+  svgWidth: number;
+  svgHeight: number;
+}) {
+  if (!debug?.outputRendered || svgWidth === 0 || svgHeight === 0) return null;
+  const thumbW = Math.round(THUMB_HEIGHT * (svgWidth / svgHeight));
+  return (
+    <div style={{ marginTop: 2, marginBottom: 4 }}>
+      <svg
+        width={thumbW}
+        height={THUMB_HEIGHT}
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        style={{
+          border: "1px solid rgb(203, 213, 225)",
+          borderRadius: 3,
+          background: "white",
+        }}
+      >
+        {drawLayered(debug.outputRendered)}
+      </svg>
     </div>
   );
 }

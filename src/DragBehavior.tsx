@@ -85,6 +85,8 @@ export type AnnotatedSpec<T> = {
 export type SpecDebugInfo<T> = {
   /** Pre-rendered states (between, just, vary, switchToStateAndFollow, dropTarget) */
   renderedStates?: { layered: LayeredSvgx; position: Vec2 }[];
+  /** The rendered output of this node, when it differs from its child's render */
+  outputRendered?: LayeredSvgx;
   /** Index of the closest/chosen state (between) */
   closestIndex?: number;
   /** Index of the best child (closest) */
@@ -274,7 +276,7 @@ function withFloatingBehavior<T extends object>(
       activePath: `with-floating/${innerResult.activePath}`,
       annotatedSpec: {
         spec,
-        debug: {},
+        debug: { outputRendered: rendered },
         children: innerResult.annotatedSpec ? [innerResult.annotatedSpec] : [],
       },
       debugOverlay: () => (
@@ -419,7 +421,7 @@ function duringBehavior<T extends object>(
       distance: frame.pointer.dist(elementPos),
       annotatedSpec: {
         spec,
-        debug: {},
+        debug: { outputRendered: rendered },
         children: result.annotatedSpec ? [result.annotatedSpec] : [],
       },
     };
@@ -589,7 +591,7 @@ function withSnapRadiusBehavior<T extends object>(
       chainNow: spec.chain && snapped ? {} : undefined,
       annotatedSpec: {
         spec,
-        debug: { snapped },
+        debug: { snapped, outputRendered: rendered },
         children: result.annotatedSpec ? [result.annotatedSpec] : [],
       },
     };
@@ -686,6 +688,7 @@ function betweenBehavior<T extends object>(
             position: rs.position,
           })),
           closestIndex,
+          outputRendered: rendered,
         },
         children: [],
       },
