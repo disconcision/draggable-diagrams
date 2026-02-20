@@ -15,7 +15,7 @@ export const StudyPage = () => {
           <Link
             key={study.id}
             to={`/study/${study.id}`}
-            className="block px-4 py-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm no-underline transition-all"
+            className="block px-4 py-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm no-underline"
           >
             <span className="text-gray-400 font-mono text-sm mr-3">
               {String(study.number).padStart(2, "0")}
