@@ -26,17 +26,12 @@ export function SingleDemoPage({ id }: { id: string }) {
   return (
     <DemoSettingsProvider>
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="text-center py-10 px-5 max-w-3xl mx-auto">
-          <Link to="/" className="text-gray-500 text-sm no-underline">
-            <h1 className="text-3xl font-normal text-gray-800">Draggables</h1>
-          </Link>
-        </div>
-        <div className="text-center py-2.5 px-5 max-w-3xl mx-auto">
+        <div className="py-10 px-5 max-w-3xl mx-auto w-full">
           <Link
             to="/demos"
-            className="text-blue-600 text-sm hover:text-blue-700 no-underline"
+            className="inline-block mb-4 text-sm text-gray-600 hover:text-gray-800 no-underline"
           >
-            &larr; Back to all demos
+            ← Back to all demos
           </Link>
         </div>
         <div className="flex flex-col gap-5 px-5 pb-5 max-w-3xl mx-auto flex-1 w-full">

@@ -66,10 +66,10 @@ export function MDXPage({ children: Content, components = {} }: MDXPageProps) {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-6 py-12">
         <Link
-          to="/"
-          className="inline-block mb-8 text-sm text-gray-600 hover:text-gray-800"
+          to="/docs"
+          className="inline-block mb-4 text-sm text-gray-600 hover:text-gray-800 no-underline"
         >
-          ← Back to home
+          ← Back to docs
         </Link>
         <div className="bg-white rounded-lg shadow-sm p-8">
           <MDXProvider components={allComponents}>

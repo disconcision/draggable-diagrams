@@ -25,10 +25,14 @@ export function DemoPage() {
   return (
     <DemoSettingsProvider>
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="text-center py-10 px-5 max-w-3xl mx-auto">
-          <Link to="/" className="text-gray-500 text-sm no-underline">
-            <h1 className="text-3xl font-normal text-gray-800">Draggables</h1>
+        <div className="py-10 px-5 max-w-3xl mx-auto w-full">
+          <Link
+            to="/"
+            className="inline-block mb-4 text-sm text-gray-600 hover:text-gray-800 no-underline"
+          >
+            ← Back to home
           </Link>
+          <h1 className="text-3xl font-normal text-gray-800">Demos</h1>
         </div>
         {tagFilter && (
           <div className="flex items-center gap-2 px-5 pb-3 max-w-3xl mx-auto w-full">

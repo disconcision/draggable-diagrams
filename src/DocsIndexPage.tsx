@@ -18,14 +18,14 @@ export function DocsIndexPage() {
       <div className="max-w-4xl mx-auto px-6 py-12">
         <Link
           to="/"
-          className="inline-block mb-8 text-sm text-gray-600 hover:text-gray-800"
+          className="inline-block mb-4 text-sm text-gray-600 hover:text-gray-800 no-underline"
         >
           ← Back to home
         </Link>
+        <h1 className="text-3xl font-normal text-gray-800 mb-6">
+          Documentation
+        </h1>
         <div className="bg-white rounded-lg shadow-sm p-8">
-          <h1 className="text-4xl font-bold mb-6 text-gray-900">
-            Documentation
-          </h1>
           <ul className="space-y-3">
             {slugs.map((slug) => (
               <li key={slug}>

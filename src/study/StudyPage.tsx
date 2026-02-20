@@ -4,11 +4,14 @@ import { studies } from "./registry";
 export const StudyPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="text-center py-10 px-5 max-w-3xl mx-auto">
-        <Link to="/" className="text-gray-500 text-sm no-underline">
-          <h1 className="text-3xl font-normal text-gray-800">Draggables</h1>
+      <div className="py-10 px-5 max-w-3xl mx-auto w-full">
+        <Link
+          to="/"
+          className="inline-block mb-4 text-sm text-gray-600 hover:text-gray-800 no-underline"
+        >
+          ← Back to home
         </Link>
-        <p className="text-gray-500 mt-2">Study Examples</p>
+        <h1 className="text-3xl font-normal text-gray-800">Study</h1>
       </div>
       <div className="flex flex-col gap-3 px-5 pb-5 max-w-3xl mx-auto flex-1 w-full">
         {studies.map((study) => (
