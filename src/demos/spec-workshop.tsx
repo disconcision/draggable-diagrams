@@ -524,7 +524,7 @@ function renderDiamond(label: string) {
 
 function blockHeader(pathD: string, w: number, label: string, s: BlockStyle) {
   return (
-    <>
+    <g>
       <path
         d={pathD}
         fill={s.bg}
@@ -544,7 +544,7 @@ function blockHeader(pathD: string, w: number, label: string, s: BlockStyle) {
       >
         {label}
       </text>
-    </>
+    </g>
   );
 }
 

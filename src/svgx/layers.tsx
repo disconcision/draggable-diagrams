@@ -178,6 +178,11 @@ export function drawLayered(layered: LayeredSvgx): Svgx {
         .map(([key, element]) => (
           <Fragment key={key}>
             {updatePropsDownTree(element, (el) => {
+              assert(
+                el.type !== Fragment,
+                "Please use <g> rather than <Fragment> / <> in draggables.",
+              );
+
               // Strip non-serializable data- props (e.g. data-on-drag functions)
               const newProps: React.SVGProps<SVGElement> = {};
               for (const [propName, propValue] of objectEntries(el.props)) {
