@@ -218,12 +218,7 @@ function withFloatingBehavior<T extends object>(
     // On a layer, the transform prop IS the accumulated transform.
     const draggedElement = layered.byId.get(draggedId);
     const elementPos = draggedElement
-      ? localToGlobal(
-          parseTransform(
-            ((draggedElement.props as any).transform as string) || "",
-          ),
-          ctx.pointerLocal,
-        )
+      ? localToGlobal(draggedElement.props.transform, ctx.pointerLocal)
       : Vec2(Infinity, Infinity);
     const hasElement = layered.byId.has(draggedId);
 
@@ -448,8 +443,7 @@ function varyBehavior<T extends object>(
     );
     const found = findByPath(ctx.draggedPath, content);
     if (!found) return Vec2(Infinity, Infinity);
-    const transforms = parseTransform(found.accumulatedTransform);
-    return localToGlobal(transforms, ctx.pointerLocal);
+    return localToGlobal(found.accumulatedTransform, ctx.pointerLocal);
   };
 
   return (frame) => {
@@ -766,9 +760,7 @@ function dropTargetBehavior<T extends object>(
     targetElement !== undefined,
     `dropTarget: element with id "${spec.targetId}" not found in rendered state`,
   );
-  const targetTransform = (targetElement.props as Record<string, unknown>)
-    .transform as string | undefined;
-  const transforms = parseTransform(targetTransform || "");
+  const transforms = parseTransform(targetElement.props.transform);
   const localBounds = getLocalBounds(targetElement);
   assert(
     localBounds !== null,
@@ -849,8 +841,7 @@ function getElementPosition<T extends object>(
 ): Vec2 {
   const found = findByPathInLayered(ctx.draggedPath, layered);
   if (!found) return Vec2(Infinity, Infinity);
-  const transforms = parseTransform(found.accumulatedTransform);
-  return localToGlobal(transforms, ctx.pointerLocal);
+  return localToGlobal(found.accumulatedTransform, ctx.pointerLocal);
 }
 
 function DistanceLine({

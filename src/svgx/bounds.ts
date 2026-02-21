@@ -1,5 +1,5 @@
 import React from "react";
-import { Svgx } from ".";
+import { shouldRecurseIntoChildren, Svgx } from ".";
 import { Vec2 } from "../math/vec2";
 import { localToGlobal, parseTransform } from "./transform";
 
@@ -54,7 +54,7 @@ function transformBounds(bounds: Bounds, transformStr: string): Bounds {
  * bounds can be determined.
  */
 export function getLocalBounds(element: Svgx): Bounds | null {
-  const props = element.props as Record<string, unknown>;
+  const props = element.props;
   const type = element.type;
 
   if (type === "rect") {
@@ -94,18 +94,18 @@ export function getLocalBounds(element: Svgx): Bounds | null {
   }
 
   // For containers, recurse into children
+  if (!shouldRecurseIntoChildren(element)) return null;
   const children = props.children as React.ReactNode;
   if (children == null) return null;
 
   let bounds: Bounds | null = null;
-  for (const child of React.Children.toArray(children)) {
+  for (const child of React.Children.toArray(children) as Svgx[]) {
     if (!React.isValidElement(child)) continue;
-    const childBounds = getLocalBounds(child as Svgx);
+    const childBounds = getLocalBounds(child);
     if (!childBounds) continue;
 
     // Apply child's own transform if it has one
-    const childTransform = (child.props as Record<string, unknown>)
-      .transform as string | undefined;
+    const childTransform = child.props.transform;
     const transformed = childTransform
       ? transformBounds(childBounds, childTransform)
       : childBounds;

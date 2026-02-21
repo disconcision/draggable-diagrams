@@ -13,7 +13,7 @@ export type Transform =
 /**
  * Parses an SVG transform string into an array of transform objects.
  */
-export function parseTransform(str: string): Transform[] {
+export function parseTransform(str: string | null | undefined): Transform[] {
   if (!str || str.trim() === "") return [];
 
   const transforms: Transform[] = [];
@@ -55,7 +55,16 @@ export function parseTransform(str: string): Transform[] {
   return transforms;
 }
 
-export function localToGlobal(transforms: Transform[], able: Vec2able): Vec2 {
+export type TransformsLike = Transform[] | string | null | undefined;
+
+export const parseTransformsLike = (t: TransformsLike) =>
+  Array.isArray(t) ? t : parseTransform(t);
+
+export function localToGlobal(
+  transformsLike: TransformsLike,
+  able: Vec2able,
+): Vec2 {
+  const transforms = parseTransformsLike(transformsLike);
   let point = Vec2(able);
   // Apply transforms in reverse order (SVG transforms are right-to-left)
   for (const t of transforms.slice().reverse()) {
@@ -77,7 +86,11 @@ export function localToGlobal(transforms: Transform[], able: Vec2able): Vec2 {
   return point;
 }
 
-export function globalToLocal(transforms: Transform[], able: Vec2able): Vec2 {
+export function globalToLocal(
+  transformsLike: TransformsLike,
+  able: Vec2able,
+): Vec2 {
+  const transforms = parseTransformsLike(transformsLike);
   let point = Vec2(able);
   // Apply inverse transforms in forward order (opposite of localToGlobal)
   for (const t of transforms) {

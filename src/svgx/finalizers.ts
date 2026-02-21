@@ -1,7 +1,7 @@
 import { findElement, Svgx } from ".";
 import { Vec2, Vec2able } from "../math/vec2";
 import { assert, assertDefined } from "../utils";
-import { localToGlobal, parseTransform } from "./transform";
+import { localToGlobal } from "./transform";
 
 /**
  * A reference to a point in an element's local coordinate system.
@@ -60,6 +60,5 @@ export function resolvePointRef(ref: PointRef, tree: Svgx): Vec2 {
     );
   }
 
-  const transforms = parseTransform(found.accumulatedTransform);
-  return localToGlobal(transforms, ref.localPos);
+  return localToGlobal(found.accumulatedTransform, ref.localPos);
 }

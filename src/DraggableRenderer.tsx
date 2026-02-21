@@ -36,7 +36,7 @@ import {
 } from "./svgx/layers";
 import { lerpLayered } from "./svgx/lerp";
 import { assignPaths, findByPath, getPath } from "./svgx/path";
-import { globalToLocal, localToGlobal, parseTransform } from "./svgx/transform";
+import { globalToLocal, localToGlobal } from "./svgx/transform";
 import {
   Transition,
   TransitionLike,
@@ -508,9 +508,11 @@ function processChainNow<T extends object>(
   const newDraggedPath = getPath(found.element);
   assert(!!newDraggedPath, "Chained element must have a path");
 
-  const newTransforms = parseTransform(found.accumulatedTransform);
   const pointerLocal = ds.behaviorCtx.pointerLocal;
-  const newPointerStart = localToGlobal(newTransforms, pointerLocal);
+  const newPointerStart = localToGlobal(
+    found.accumulatedTransform,
+    pointerLocal,
+  );
 
   const { floatLayered: _fl, ...behaviorCtxWithoutFloat } = ds.behaviorCtx;
   const chainedResult = initDrag(
@@ -645,7 +647,7 @@ function postProcessForInteraction<T extends object>(
             const found = findByPath(draggedPath, withPaths);
             assert(!!found, "Dragged element must be findable by path");
             const pointerLocal = globalToLocal(
-              parseTransform(found.accumulatedTransform),
+              found.accumulatedTransform,
               pointer,
             );
 
