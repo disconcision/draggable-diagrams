@@ -13,6 +13,14 @@ export type DraggableProps<T extends object> = {
   d: DragSpecBuilder<T>;
   draggedId: string | null;
   setState: SetState<T>;
+  /**
+   * Sometimes a draggable's render function is called just to figure
+   * out where draggedId will end up and everything else is ignored.
+   * This is called "tracking mode". This prop reports that the
+   * draggable is in tracking mode, so that it can avoid rendering
+   * extra stuff as an optimization.
+   */
+  isTracking: boolean;
 };
 
 // # setState

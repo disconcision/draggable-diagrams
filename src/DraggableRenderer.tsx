@@ -484,6 +484,7 @@ function processChainNow<T extends object>(
     ds.behaviorCtx.draggable,
     newState,
     newDraggedId,
+    true,
   );
   const found = newDraggedId
     ? findElement(content, (el) => el.props.id === newDraggedId)
@@ -559,7 +560,12 @@ function initDrag<T extends object>(
   const { draggable, draggedId } = behaviorCtxWithoutFloat;
   let floatLayered: LayeredSvgx | null = null;
   if (draggedId) {
-    const startLayered = renderDraggableInert(draggable, state, draggedId);
+    const startLayered = renderDraggableInert(
+      draggable,
+      state,
+      draggedId,
+      false,
+    );
     floatLayered = layeredExtract(startLayered, draggedId).extracted;
   }
   const behaviorCtx: DragBehaviorInitContext<T> = {
@@ -728,12 +734,13 @@ const DrawIdleMode = memoGeneric(
             type: "idle",
             state: resolved,
             springingFrom: makeSpringingFrom(transition, () =>
-              renderDraggableInert(ctx.draggable, dragState.state, null),
+              renderDraggableInert(ctx.draggable, dragState.state, null, false),
             ),
           });
           ctx.onDebugDragInfoRef.current?.({ type: "idle", state: resolved });
         },
       ),
+      isTracking: false,
     });
 
     const layered = postProcessForInteraction(content, dragState.state, ctx);

@@ -26,11 +26,21 @@ const initialState: State = {
 };
 
 function makeDraggable(levels: number): Draggable<State> {
-  return ({ state, d }) => {
-    function dragon(p1: Vec2, p2: Vec2, dir: number, level: number): Svgx[] {
+  return ({ state, d, draggedId, isTracking }) => {
+    function dragon(
+      p1: Vec2,
+      p2: Vec2,
+      dir: number,
+      level: number,
+      id: string,
+    ): Svgx[] {
+      if (isTracking && !draggedId?.startsWith(id)) {
+        return [];
+      }
       if (level == 0) {
         return [
           <line
+            id={id}
             transform={translate(p1)}
             {...p2.sub(p1).xy2()}
             stroke="black"
@@ -47,16 +57,17 @@ function makeDraggable(levels: number): Draggable<State> {
             .rotateDeg(90 + state.tilt),
         );
         return [
-          ...dragon(p1, mid, -1, level - 1),
-          ...dragon(mid, p2, 1, level - 1),
+          ...dragon(p1, mid, -1, level - 1, `${id}-0`),
+          ...dragon(mid, p2, 1, level - 1, `${id}-1`),
         ];
       }
     }
 
     return (
       <g>
-        {dragon(Vec2(state.from), Vec2(state.to), -1, levels)}
+        {dragon(Vec2(state.from), Vec2(state.to), -1, levels, "line")}
         <circle
+          id="from"
           transform={translate(state.from)}
           r={8}
           fill="red"
@@ -68,6 +79,7 @@ function makeDraggable(levels: number): Draggable<State> {
           }
         />
         <circle
+          id="to"
           transform={translate(state.to)}
           r={8}
           fill="blue"
@@ -120,5 +132,5 @@ export default demo(
       </div>
     );
   },
-  { tags: ["math"] },
+  { tags: ["math", "isTracking"] },
 );

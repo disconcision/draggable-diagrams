@@ -10,6 +10,7 @@ export function renderDraggableInertUnlayered<T extends object>(
   draggable: Draggable<T>,
   state: T,
   draggedId: string | null,
+  isTracking: boolean,
 ): Svgx {
   return pipe(
     draggable({
@@ -17,6 +18,7 @@ export function renderDraggableInertUnlayered<T extends object>(
       d: new DragSpecBuilder<T>(),
       draggedId,
       setState: throwError,
+      isTracking,
     }),
     assignPaths,
   );
@@ -26,6 +28,9 @@ export function renderDraggableInert<T extends object>(
   draggable: Draggable<T>,
   state: T,
   draggedId: string | null,
+  isTracking: boolean,
 ): LayeredSvgx {
-  return layerSvg(renderDraggableInertUnlayered(draggable, state, draggedId));
+  return layerSvg(
+    renderDraggableInertUnlayered(draggable, state, draggedId, isTracking),
+  );
 }

@@ -440,6 +440,7 @@ function varyBehavior<T extends object>(
       ctx.draggable,
       candidateState,
       ctx.draggedId,
+      true,
     );
     const found = findByPath(ctx.draggedPath, content);
     if (!found) return Vec2(Infinity, Infinity);
@@ -832,7 +833,9 @@ function renderStateReadOnly<T extends object>(
   ctx: DragBehaviorInitContext<T>,
   state: T,
 ): LayeredSvgx {
-  return renderDraggableInert(ctx.draggable, state, ctx.draggedId);
+  // TODO: be more discriminating about whether isTracking should be
+  // false here
+  return renderDraggableInert(ctx.draggable, state, ctx.draggedId, false);
 }
 
 function getElementPosition<T extends object>(
