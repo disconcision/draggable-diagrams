@@ -60,7 +60,6 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => (
                         lessThan(0, s.blocks[i].pos),
                         lessThan(s.blocks[i].pos, TRACK_W - BLOCK_W),
                       ],
-
                     },
                   ),
                 ),

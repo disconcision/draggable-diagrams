@@ -113,7 +113,6 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                 const c = s.circles[targetCircleIdx];
                 return lessThan(p.dx ** 2 + p.dy ** 2, (c.radius - 10) ** 2);
               },
-
             },
           );
         });
