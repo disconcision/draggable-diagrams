@@ -22,7 +22,7 @@ npm run typecheck # Type check
 
 | File | Purpose |
 |---|---|
-| `src/draggable.tsx` | `Draggable<T>` type, `Drag`, `SetState`, `OnDragPropValue` |
+| `src/draggable.tsx` | `Draggable<T>` type, `Drag`, `SetState`, `DragologyPropValue` |
 | `src/DraggableRenderer.tsx` | Low-level component that runs a `Draggable` with drag handling, spring animation |
 | `src/DragSpec.tsx` | `DragSpec<T>` union type + constructors (`between`, `fixed`, `floating`, `closest`, `vary`, `andThen`, `withSnapRadius`, etc.) |
 | `src/demo/ui.tsx` | `DemoDraggable` (wraps `DraggableRenderer` with debug UI), `DemoSettingsProvider`, `DemoSettingsBar`, `ConfigPanel`, `ConfigCheckbox`, `ConfigSelect`, `DemoNotes` |
@@ -79,7 +79,7 @@ const draggable: Draggable<State> = ({ state, d }) => (
   <g>
     <rect
       id="my-element"
-      data-on-drag={() => d.between([{ value: true }, { value: false }])}
+      dragology={() => d.between([{ value: true }, { value: false }])}
     />
   </g>
 );
@@ -114,7 +114,7 @@ export default demo(() => (
 `vary` uses **numerical optimization**: it varies the specified params to minimize distance between the dragged element's rendered position and the pointer. Key implications:
 
 - **Deep paths work**: `d.vary(state, ["nodes", key, "x"], ["nodes", key, "y"])` for `Record`-based state (see `src/demos/graph.tsx`)
-- **The library tracks all SVG transforms**, including `rotate`. An element inside a `rotateDeg(angle)` group *does* change rendered position when `angle` changes — the library resolves the full transform chain. So you can put `data-on-drag` with `d.vary` directly on elements inside rotated groups; no extra handle elements are needed.
+- **The library tracks all SVG transforms**, including `rotate`. An element inside a `rotateDeg(angle)` group *does* change rendered position when `angle` changes — the library resolves the full transform chain. So you can put `dragology` with `d.vary` directly on elements inside rotated groups; no extra handle elements are needed.
 - **Only params that affect the dragged element's rendered position will have an optimization effect.** If varying a param doesn't change where the dragged element renders, the optimizer ignores it. This means you can't naively vary N items' positions to move them as a group — only the extreme items (affecting the bounding box) would move.
 - **For group movement**, vary a shared position (e.g. a pile's x/y) that all members offset from, rather than varying each member independently (see `src/demos/card-piles.tsx`)
 - The `state` arg to `vary` is the starting state for optimization (not necessarily the current rendered state). The initial param values are used as the optimizer's starting point.
@@ -139,8 +139,8 @@ export default demo(() => (
 - **No slashes in IDs**: Use hyphens — `id="node-1-2"` not `id="node/1/2"`
 - **Positioning**: Always use `transform={translate(x, y)}`, never `x`/`y` attributes directly
 - **Layering**: Use `data-z-index={isDragged ? 2 : 1}` to control draw order
-- **Conditional drag**: `data-on-drag={condition && drag(...)}` to make things conditionally draggable
-- **drag() wrapper**: Every `data-on-drag` value must be wrapped in `drag(...)` — the framework throws if you don't
+- **Conditional drag**: `dragology={condition && drag(...)}` to make things conditionally draggable
+- **drag() wrapper**: Every `dragology` value must be wrapped in `drag(...)` — the framework throws if you don't
 - **`data-transition={false}`**: Elements with this skip spring animation and track the cursor directly
 
 ### Registration

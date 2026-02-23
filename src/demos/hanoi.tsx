@@ -88,7 +88,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
             <g
               id={diskId.toString()}
               transform={translate(x, y)}
-              data-on-drag={
+              dragology={
                 isTopDisk &&
                 (() => {
                   const stateWithout = produce(state, (draft) => {

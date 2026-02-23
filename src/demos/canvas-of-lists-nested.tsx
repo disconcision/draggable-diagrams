@@ -117,7 +117,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   ) {
     const isDragged = draggedId === item.id;
 
-    const onDrag = () => {
+    const dragology = () => {
       // Remove item from current location
       const stateWithout = produce(state, (draft) => {
         const items = getAtPath<State, (Tile | Row)[]>(draft, itemsPath);
@@ -168,7 +168,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         <g
           id={item.id}
           data-z-index={effectiveZIndex}
-          data-on-drag={onDrag}
+          dragology={dragology}
           {...attrs}
         >
           <rect
@@ -202,7 +202,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         <g
           id={item.id}
           data-z-index={effectiveZIndex}
-          data-on-drag={onDrag}
+          dragology={dragology}
           {...attrs}
         >
           <rect

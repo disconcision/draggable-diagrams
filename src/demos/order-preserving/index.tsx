@@ -461,7 +461,7 @@ function drawFgSubtreeInBgNode(
           cy={0}
           r={FG_NODE_SIZE / 2}
           fill="black"
-          data-on-drag={() => dragSpec(fgNode.id, ctx)}
+          dragology={() => dragSpec(fgNode.id, ctx)}
         />
         {childrenContainer}
       </g>
@@ -513,7 +513,7 @@ function drawTradRep(ctx: Ctx): Svgx[] {
             direction: to.sub(mid),
             headLength: 15,
             fill: "#4287f5",
-            "data-on-drag": () => dragSpec(domElem, ctx),
+            dragology: () => dragSpec(domElem, ctx),
           })}
         </g>
       );

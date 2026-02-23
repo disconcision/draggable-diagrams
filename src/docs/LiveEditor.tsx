@@ -120,7 +120,7 @@ function configureMonaco(monaco: Monaco) {
     }
     declare namespace React {
       interface SVGAttributes<T> {
-        "data-on-drag"?: ((params: DragParams) => DragSpec<any>) | false | null | undefined | 0 | "";
+        "dragology"?: ((params: DragParams) => DragSpec<any>) | false | null | undefined | 0 | "";
         "data-z-index"?: number;
         "data-transition"?: boolean;
       }

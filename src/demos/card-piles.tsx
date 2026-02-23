@@ -149,7 +149,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               fill="#d1d5db"
               opacity={isDragged ? 0.7 : 0.4}
               data-z-index={0}
-              data-on-drag={() =>
+              dragology={() =>
                 d
                   .vary(state, [
                     ["piles", pileId, "x"],
@@ -177,7 +177,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               stroke="#9ca3af"
               strokeWidth={1.5}
               data-z-index={isDragged ? 2 : 1}
-              data-on-drag={() =>
+              dragology={() =>
                 d
                   .vary(state, [
                     ["piles", pileId, "cards", cardId, "dx"],

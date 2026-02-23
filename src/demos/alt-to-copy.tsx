@@ -34,7 +34,7 @@ const draggable: Draggable<State> = ({ state, d, setState }) => (
           const { [id]: _, ...rest } = state.dots;
           setState({ dots: rest });
         }}
-        data-on-drag={(dp) => {
+        dragology={(dp) => {
           const moveDot = (s: State, dotId: string) =>
             d.vary(s, [
               ["dots", dotId, "x"],

@@ -9,12 +9,12 @@ declare module "react" {
      * Set to a function returning a DragSpec.
      *
      * @example
-     * <circle data-on-drag={() => d.vary(state, [["x"], ["y"]])} />
+     * <circle dragology={() => d.vary(state, [["x"], ["y"]])} />
      *
      * @example
-     * <rect data-on-drag={() => d.between([state1, state2])} />
+     * <rect dragology={() => d.between([state1, state2])} />
      */
-    "data-on-drag"?:
+    dragology?:
       | ((params: DragParams) => DragSpecBrand)
       | false
       | null

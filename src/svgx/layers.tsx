@@ -1,5 +1,6 @@
 import React, { cloneElement, Fragment } from "react";
 import { FindElementResult, Svgx, updateElement, updatePropsDownTree } from ".";
+import { DRAGOLOGY_PROP_NAME } from "../draggable";
 import { assert, objectEntries } from "../utils";
 import { findByPath } from "./path";
 import { combineTransforms } from "./transform";
@@ -135,11 +136,12 @@ export function drawLayered(layered: LayeredSvgx): Svgx {
                 "Please use <g> rather than <Fragment> / <> in draggables.",
               );
 
-              // Strip non-serializable data- props (e.g. data-on-drag functions)
+              // Strip non-serializable data- props (e.g. dragology functions)
               const newProps: React.SVGProps<SVGElement> = {};
               for (const [propName, propValue] of objectEntries(el.props)) {
                 if (
-                  propName.startsWith("data-") &&
+                  (propName.startsWith("data-") ||
+                    propName === DRAGOLOGY_PROP_NAME) &&
                   typeof propValue !== "string" &&
                   typeof propValue !== "number"
                 ) {

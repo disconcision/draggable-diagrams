@@ -15,7 +15,7 @@ import { produce } from "immer";
 import _ from "lodash";
 import { demo } from "../../demo";
 import { DemoDraggable } from "../../demo/ui";
-import { Draggable, OnDragPropValue } from "../../draggable";
+import { Draggable, DragologyPropValue } from "../../draggable";
 import { DragSpecBuilder } from "../../DragSpec";
 import { Svgx } from "../../svgx";
 import { translate } from "../../svgx/helpers";
@@ -222,7 +222,7 @@ function makePickupDrag(
   d: DragSpecBuilder<State>,
   fullState: State,
   treeIdx: number,
-): OnDragPropValue<State> | undefined {
+): DragologyPropValue<State> | undefined {
   const isHole = tree.label === "◯";
   if (isHole) return undefined;
 
@@ -380,7 +380,7 @@ function makeBrushDrag(
   brushIdx: number,
   allHoles: { treeIdx: number; holeId: string }[],
   allInsertPts: { treeIdx: number; parentId: string; index: number }[],
-): OnDragPropValue<State> {
+): DragologyPropValue<State> {
   return () => {
     const stateWithout = produce(state, (draft) => {
       draft.brushes[brushIdx].key += "-r";
@@ -431,7 +431,7 @@ function makePaletteDrag(
   d: DragSpecBuilder<State>,
   block: Tree,
   idx: number,
-): OnDragPropValue<State> {
+): DragologyPropValue<State> {
   return ({ altKey }) => {
     if (altKey) {
       const stateWithClone = produce(state, (draft) => {
@@ -526,7 +526,7 @@ function makePaletteDrag(
 function makeVoidDrag(
   state: State,
   d: DragSpecBuilder<State>,
-): OnDragPropValue<State> | undefined {
+): DragologyPropValue<State> | undefined {
   if (state.voidStack.length === 0) return undefined;
   const tree = state.voidStack[0];
   const stateWithout: State = {
@@ -584,7 +584,7 @@ function renderTree(
       treeIdx: number;
     };
     pointerEventsNone?: boolean;
-    rootOnDrag?: OnDragPropValue<State>;
+    rootDragology?: DragologyPropValue<State>;
     rootTransform?: string;
     depth?: number;
     opacity?: number;
@@ -602,7 +602,7 @@ function renderTree(
   const baseChildOpts = opts
     ? {
         ...opts,
-        rootOnDrag: undefined,
+        rootDragology: undefined,
         rootTransform: undefined,
         depth: depth + 1,
         insideArrow: opts.insideArrow || isArrow,
@@ -681,7 +681,7 @@ function renderTree(
     <g
       id={tree.id}
       transform={opts?.rootTransform}
-      data-on-drag={opts?.rootOnDrag || pickUpDrag}
+      dragology={opts?.rootDragology || pickUpDrag}
       data-z-index={zIndex}
       opacity={opts?.opacity}
     >
@@ -1055,7 +1055,7 @@ export const draggable: Draggable<State> = ({
         <g
           id={id}
           transform={translate(layout.x.menu + LANE_PADDING, y)}
-          data-on-drag={() => {
+          dragology={() => {
             const others = state.bucketOrder.filter((s) => s !== bucket);
             const targets = _.range(others.length + 1).map((pos) => ({
               ...state,
@@ -1146,7 +1146,7 @@ export const draggable: Draggable<State> = ({
             {
               renderTree(displayTree, {
                 pointerEventsNone: true,
-                rootOnDrag: makeBrushDrag(
+                rootDragology: makeBrushDrag(
                   state,
                   d,
                   block,
@@ -1171,7 +1171,7 @@ export const draggable: Draggable<State> = ({
               ),
               pointerEventsNone: true,
               flatZIndex: true,
-              rootOnDrag: makePaletteDrag(state, d, block, idx),
+              rootDragology: makePaletteDrag(state, d, block, idx),
             }).element,
         )}
 
@@ -1246,7 +1246,7 @@ export const draggable: Draggable<State> = ({
         state.voidStack.length > 0 &&
         renderTree(state.voidStack[0], {
           rootTransform: translate(layout.x.void, 0),
-          rootOnDrag: makeVoidDrag(state, d),
+          rootDragology: makeVoidDrag(state, d),
           opacity: draggedId === state.voidStack[0].id ? 1 : 0,
           flatZIndex: true,
         }).element}

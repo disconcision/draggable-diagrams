@@ -22,7 +22,7 @@ function draggableFactory(config: Config): Draggable<State> {
         <g
           id="dot"
           transform={translate(state.right ? 200 : 100, 20)}
-          data-on-drag={() => spec}
+          dragology={() => spec}
         >
           <circle r={14} fill="#7cb3f0" stroke="#4a90d9" strokeWidth={2} />
         </g>

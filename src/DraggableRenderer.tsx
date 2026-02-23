@@ -633,7 +633,7 @@ function postProcessForInteraction<T extends object>(
         if (!dragSpecCallback) return;
         assert(
           !el.props.onPointerDown,
-          "Elements with data-on-drag cannot have onPointerDown (it is overwritten)",
+          "Elements with dragology cannot have onPointerDown (it is overwritten)",
         );
         return {
           // put cursor first, so it's overriden by author-defined cursor

@@ -85,7 +85,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
         transform={translate(Vec2(knobX, trackY))}
         r={12}
         fill="black"
-        data-on-drag={() =>
+        dragology={() =>
           d.vary(state, [["value"]], {
             constraint: (s) => [lessThan(20, s.value), lessThan(s.value, 80)],
           })

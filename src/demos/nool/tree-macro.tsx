@@ -6,7 +6,7 @@ import _ from "lodash";
 import { useMemo, useState } from "react";
 import { demo } from "../../demo";
 import { ConfigCheckbox, ConfigPanel, DemoDraggable } from "../../demo/ui";
-import { Draggable, OnDragPropValue } from "../../draggable";
+import { Draggable, DragologyPropValue } from "../../draggable";
 import { DragSpecBuilder } from "../../DragSpec";
 import { Svgx } from "../../svgx";
 import { translate } from "../../svgx/helpers";
@@ -252,7 +252,7 @@ function renderNormalMode(
 ): Svgx {
   const activeRewrites = config.userRules;
 
-  function dragTargets(draggedKey: string): OnDragPropValue<State> {
+  function dragTargets(draggedKey: string): DragologyPropValue<State> {
     const newTrees = allPossibleRewrites(
       state.tree,
       activeRewrites,
@@ -271,7 +271,7 @@ function renderNormalMode(
 function renderNormalTree(
   tree: Tree,
   d: DragSpecBuilder<State>,
-  dragTargets: (id: string) => OnDragPropValue<State>,
+  dragTargets: (id: string) => DragologyPropValue<State>,
   config: Config,
   depth: number,
 ): { element: Svgx; w: number; h: number } {
@@ -306,7 +306,7 @@ function renderNormalTree(
   const element = (
     <g
       id={tree.id}
-      data-on-drag={dragTargets(tree.id)}
+      dragology={dragTargets(tree.id)}
       data-z-index={depth}
       data-emerge-from={
         config.enableEmergeAnimation ? tree.emergeFrom : undefined
@@ -352,7 +352,7 @@ function renderMacroTree(
   fullState: State,
   depth: number,
   opts?: {
-    rootOnDrag?: OnDragPropValue<State>;
+    rootDragology?: DragologyPropValue<State>;
     rootTransform?: string;
     pointerEventsNone?: boolean;
     opacity?: number;
@@ -394,7 +394,7 @@ function renderMacroTree(
     : T_LABEL_MIN_HEIGHT;
 
   // Pick-up drag for freeform rearrangement
-  const pickUpDrag: OnDragPropValue<State> = () => {
+  const pickUpDrag: DragologyPropValue<State> = () => {
     const nodeId = tree.id;
     const parentInfo = findParentAndIndex(fullState.tree, nodeId);
 
@@ -466,7 +466,7 @@ function renderMacroTree(
     <g
       id={tree.id}
       transform={opts?.rootTransform}
-      data-on-drag={opts?.rootOnDrag || pickUpDrag}
+      dragology={opts?.rootDragology || pickUpDrag}
       data-z-index={zIndex}
       opacity={opts?.opacity}
     >
@@ -596,7 +596,7 @@ function renderMacroMode(
               pointerEventsNone: true,
               flatZIndex: true,
               opacity: insertionPoints.length > 0 ? undefined : 0.35,
-              rootOnDrag:
+              rootDragology:
                 insertionPoints.length > 0
                   ? () => {
                       // Clone-and-refresh: new node gets original key,
@@ -661,7 +661,7 @@ function renderMacroMode(
               gutterPositions[idx],
             ),
             flatZIndex: true,
-            rootOnDrag: () => {
+            rootDragology: () => {
               const stateWithout = produce(state, (draft) => {
                 draft.gutter.splice(idx, 1);
               });

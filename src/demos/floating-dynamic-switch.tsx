@@ -23,7 +23,7 @@ const draggable: Draggable<State> = ({ state, d }) => (
       stroke="#e5e7eb"
       strokeWidth={1}
       style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.15))" }}
-      data-on-drag={() =>
+      dragology={() =>
         d.between({ status: "off" }, { status: "on" }).withFloating({
           tether: (dist) => Math.sqrt(dist) / 4,
         })

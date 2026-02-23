@@ -42,7 +42,7 @@ function makeDraggable(
             id={item}
             transform={translate(0, i * (H + GAP))}
             data-z-index={isDragged ? 1 : 0}
-            data-on-drag={() => {
+            dragology={() => {
               const reinsertions = getAllReinsertions(state.items, i).map(
                 (items) => ({ items }),
               );

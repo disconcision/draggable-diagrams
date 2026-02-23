@@ -28,7 +28,7 @@ const draggable: Draggable<State> = ({ state, d }) => (
       stroke="#d1d5db"
       strokeWidth={1.5}
       style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.15))" }}
-      data-on-drag={() =>
+      dragology={() =>
         d.vary(state, [["value"]], {
           constraint: (s) => [lessThan(0, s.value), lessThan(s.value, W)],
         })

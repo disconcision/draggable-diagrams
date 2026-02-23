@@ -16,5 +16,4 @@
   - background "radius" -> "threshold"?
   - withBackground -> withDefault?
   - "drawer" -> "engine"?
-  - "data-on-drag" -> "dragTargets"? "targetStates"?
   - eliminate other "data-"s?

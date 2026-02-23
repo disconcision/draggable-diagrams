@@ -39,7 +39,7 @@ const draggable: Draggable<State> = ({ state, d, setState }) => (
           colorIdx: (state.colorIdx + 1) % colors.length,
         });
       }}
-      data-on-drag={() =>
+      dragology={() =>
         d
           .between([
             { ...state, value: true },

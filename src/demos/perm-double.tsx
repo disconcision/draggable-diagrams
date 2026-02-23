@@ -40,7 +40,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                     : 0
               }
               transform={translate(idx * TILE_SIZE + ROW_PADDING, ROW_PADDING)}
-              data-on-drag={() => {
+              dragology={() => {
                 const draggedRowIdx = state.rows.findIndex((r) =>
                   r.includes(p),
                 );

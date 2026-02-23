@@ -235,7 +235,7 @@ function renderTree(
       <g
         id={tree.id}
         data-z-index={tree.id === draggedId ? 1 : 0}
-        data-on-drag={
+        dragology={
           isRoot
             ? undefined
             : () => {

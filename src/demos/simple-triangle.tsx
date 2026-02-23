@@ -44,7 +44,7 @@ function draggableFactory(
         width={SQUARE_SIZE}
         height={SQUARE_SIZE}
         rx={4}
-        data-on-drag={() => {
+        dragology={() => {
           const states: State[] = _.range(POSITIONS.length).map((i) => ({
             posIndex: i,
           }));

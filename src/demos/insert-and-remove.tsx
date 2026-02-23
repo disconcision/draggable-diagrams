@@ -33,15 +33,15 @@ const draggable: Draggable<State> = ({ state, d }) => {
   const drawTile = ({
     tile,
     transform,
-    onDrag,
+    dragology,
   }: {
     tile: Tile;
     transform: string;
-    onDrag?: () => ReturnType<typeof d.closest>;
+    dragology?: () => ReturnType<typeof d.closest>;
   }) => {
     const id = `tile-${tile.key}`;
     return (
-      <g id={id} transform={transform} data-on-drag={onDrag}>
+      <g id={id} transform={transform} dragology={dragology}>
         <rect
           x={0}
           y={0}
@@ -89,7 +89,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
         drawTile({
           tile,
           transform: translate(5 + idx * TILE_SIZE, 0),
-          onDrag: () => {
+          dragology: () => {
             const storeItem = tile;
 
             const stateWithout = produce(state, (draft) => {
@@ -113,7 +113,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
         drawTile({
           tile,
           transform: translate(idx * TILE_SIZE, toolbarHeight + 10),
-          onDrag: () => {
+          dragology: () => {
             const draggedItem = tile;
 
             const stateWithout = produce(state, (draft) => {

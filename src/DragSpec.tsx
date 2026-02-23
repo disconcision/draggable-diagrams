@@ -131,7 +131,7 @@ export type DragSpecDuring<T> = {
  * - `draggedId` is the id of the element to continue dragging; if
  *   omitted, the current dragged element is used
  * - `followSpec` is a DragSpec to follow after switching states; if
- *   omitted, the data-on-drag behavior of the newly rendered state
+ *   omitted, the dragology behavior of the newly rendered state
  *   is consulted as usual
  */
 export type Chaining<T> = {
@@ -219,7 +219,7 @@ export interface DragSpecMethods<T> {
 
   /**
    * When the drop state changes, immediately chain into a new drag
-   * from that state (re-evaluating data-on-drag on the dragged
+   * from that state (re-evaluating dragology on the dragged
    * element). Options can optionally be provided to fine-tune the
    * behavior of the chaining.
    */
@@ -377,7 +377,7 @@ export class DragSpecBuilder<T> {
    * then continues the drag from a different element in that state,
    * identified by ID. If followSpec is provided, it will be used to
    * continue the drag; otherwise, the spec attached to the new
-   * element (via data-on-drag) will be used.
+   * element (via dragology) will be used.
    */
   switchToStateAndFollow(
     state: T,

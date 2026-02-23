@@ -51,7 +51,7 @@ But this draggable doesn't actually do anything. Let's fix that. For a diagram t
         transform={translate(state.status === "off" ? [100, 100] : [200, 100])}
         r={50}
         fill="blue"
-        data-on-drag={() => d.between([{status: "off"}, {status: "on"}])}
+        dragology={() => d.between([{status: "off"}, {status: "on"}])}
       />
     );
 
@@ -70,11 +70,11 @@ There are a lot of new bits here. First a speed-run through some smaller bits:
 
 - Here, we use a `transform` that depends on state – `"off"` will be to the left and `"on"` will be to the right. State is provided as an argument to the draggable.
 
-Now we're ready for the biggest bit: dragging! Dragging is what lets us move into these exciting new states we have. When you attach `data-on-drag` to an SVG element, you are telling DD you want to be able to move between states by dragging the element. You provide a "drag spec" which lists various states that should be accessible by dragging. When you start dragging the element, DD will invisibly render the diagrams of those accessible states, and see where the dragged element ends up. It will use that to synthesize a drag interaction, interpolating between accessible states as you go.
+Now we're ready for the biggest bit: dragging! Dragging is what lets us move into these exciting new states we have. When you attach `dragology` to an SVG element, you are telling DD you want to be able to move between states by dragging the element. You provide a "drag spec" which lists various states that should be accessible by dragging. When you start dragging the element, DD will invisibly render the diagrams of those accessible states, and see where the dragged element ends up. It will use that to synthesize a drag interaction, interpolating between accessible states as you go.
 
 Pieces of this puzzle:
 
-- `data-on-drag` takes a callback that returns a drag spec. The drag spec constructors come from `d`, which is provided as an argument to the draggable.
+- `dragology` takes a callback that returns a drag spec. The drag spec constructors come from `d`, which is provided as an argument to the draggable.
 
 - Here we use `d.between`, which means "I want to be able to drag back and forth between all the states in this list". There are many alternatives, most prominently `d.floating`, which means the dragged element entirely detaches from the diagram.
 
@@ -106,7 +106,7 @@ With this knowledge we can take on a more involved example: reordering objects.
               id={p}
               transform={translate(idx * TILE_SIZE, isDragged ? -10 : 0)}
               data-z-index={isDragged ? 1 : 0}
-              data-on-drag={() =>
+              dragology={() =>
                 d.between(
                   _.range(state.perm.length).map((newIdx) => {
                     const draft = structuredClone(state);
@@ -155,7 +155,7 @@ Some important aspects, top to bottom:
 
 - SVG doesn't have z-index. But because elements with `id`s end up "ripped out" of the SVG structure, we can put z-indices on them (with `data-z-index`) to determine their ultimate ordering. Here, we use that to make sure the dragged tile is on top of the others.
 
-- Now the important part: the drag spec attached to `data-on-drag`! Dragging an element of the array should be able to bring you to every possible version of the array where the dragged element is removed and then inserted in a different location. We compute all these possible arrays in the drag spec callback. Specifically, for each possible insertion index, we make a copy of the starting state (with `structuredClone`) before mutating and returning it. Alternatively, you could use [Immer](https://immerjs.github.io/immer/)'s `produce` function, or painstakingly use a bunch of `{ ...oldState, newKey: ...}`-type expressions. (Or you could even use `produceAmb` -- search the codebase for examples of that.)
+- Now the important part: the drag spec attached to `dragology`! Dragging an element of the array should be able to bring you to every possible version of the array where the dragged element is removed and then inserted in a different location. We compute all these possible arrays in the drag spec callback. Specifically, for each possible insertion index, we make a copy of the starting state (with `structuredClone`) before mutating and returning it. Alternatively, you could use [Immer](https://immerjs.github.io/immer/)'s `produce` function, or painstakingly use a bunch of `{ ...oldState, newKey: ...}`-type expressions. (Or you could even use `produceAmb` -- search the codebase for examples of that.)
 
 I think those are the basics. Hope they make sense.
 
@@ -187,7 +187,7 @@ The most novel part of Draggable Diagrams is the "drag between discrete states" 
             transform={translate(100, 0)}
             r={20}
             fill="black"
-            data-on-drag={() => d.vary(state, [["angle"]])}
+            dragology={() => d.vary(state, [["angle"]])}
           />
         </g>
       </g>

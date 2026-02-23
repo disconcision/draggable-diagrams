@@ -29,7 +29,7 @@ const draggable: Draggable<State> = ({ state, d }) => (
       width={SQUARE_SIZE}
       height={SQUARE_SIZE}
       rx={4}
-      data-on-drag={() =>
+      dragology={() =>
         d
           .between([{ value: true }, { value: false }])
           .withSnapRadius(10)

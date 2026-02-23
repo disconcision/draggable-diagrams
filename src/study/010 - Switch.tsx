@@ -25,7 +25,7 @@ const draggable: Draggable<State> = ({ state, d }) => (
       stroke="#e5e7eb"
       strokeWidth={1}
       style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.15))" }}
-      data-on-drag={() => d.between({ status: "off" }, { status: "on" })}
+      dragology={() => d.between({ status: "off" }, { status: "on" })}
     />
   </g>
 );

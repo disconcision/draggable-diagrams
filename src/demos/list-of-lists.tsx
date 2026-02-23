@@ -64,7 +64,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
               0,
               rowIdx * (TILE_SIZE + ROW_PADDING * 2 + ROW_GAP),
             )}
-            data-on-drag={() => {
+            dragology={() => {
               const stateWithout = produce(state, (draft) => {
                 draft.rows.splice(rowIdx, 1);
               });
@@ -116,7 +116,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
                     ROW_PADDING,
                   ROW_PADDING,
                 )}
-                data-on-drag={() => {
+                dragology={() => {
                   const stateWithout = produce(state, (draft) => {
                     draft.rows[rowIdx].items.splice(idx, 1);
                   });

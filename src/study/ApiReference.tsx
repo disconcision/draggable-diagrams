@@ -21,7 +21,7 @@ function Code({ children }: { children: string }) {
 
 const ref020 = (
   <>
-    <Entry name="data-on-drag">
+    <Entry name="dragology">
       SVG attribute. Takes <Code>{"() => DragSpec<State>"}</Code>.
     </Entry>
     <Entry name="d">
@@ -36,7 +36,7 @@ const ref020 = (
 
 const ref030 = (
   <>
-    <Entry name="data-on-drag">
+    <Entry name="dragology">
       SVG attribute. Takes <Code>{"() => DragSpec<State>"}</Code>.
     </Entry>
     <Entry name="d.between(...states)">
@@ -53,7 +53,7 @@ const ref030 = (
 
 const ref040 = (
   <>
-    <Entry name="data-on-drag">
+    <Entry name="dragology">
       SVG attribute. Takes <Code>{"() => DragSpec<State>"}</Code>.
     </Entry>
     <Entry name="d.between(...states)">
@@ -73,7 +73,7 @@ const ref040 = (
 
 const ref050 = (
   <>
-    <Entry name="data-on-drag">
+    <Entry name="dragology">
       SVG attribute. Takes <Code>{"() => DragSpec<State>"}</Code>.
     </Entry>
     <Entry name="d.between(...states)">
@@ -92,7 +92,7 @@ const ref050 = (
 
 const ref060 = (
   <>
-    <Entry name="data-on-drag">
+    <Entry name="dragology">
       SVG attribute. Takes <Code>{"() => DragSpec<State>"}</Code>.
     </Entry>
     <Entry name="d.between(...states)">

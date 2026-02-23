@@ -164,7 +164,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                   : undefined
               }
               data-z-index={3}
-              data-on-drag={() => endDragSpec(wid, "from")}
+              dragology={() => endDragSpec(wid, "from")}
             />
             <circle
               id={`wire-${wid}-to`}
@@ -177,7 +177,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                 wire.to.type === "on-port" ? { cursor: "crosshair" } : undefined
               }
               data-z-index={3}
-              data-on-drag={() => endDragSpec(wid, "to")}
+              dragology={() => endDragSpec(wid, "to")}
             />
           </g>
         );
@@ -193,7 +193,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             id={`node-${nid}`}
             transform={translate(node.x, node.y)}
             data-z-index={draggedId === `node-${nid}` ? 5 : 1}
-            data-on-drag={() =>
+            dragology={() =>
               d.vary(state, [
                 ["nodes", nid, "x"],
                 ["nodes", nid, "y"],
@@ -247,7 +247,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                     id={`${side === "in" ? "port" : "oport"}-${nid}-${port}`}
                     transform={translate(lx, ly)}
                     style={{ cursor: "crosshair" }}
-                    data-on-drag={
+                    dragology={
                       !connected &&
                       (() => {
                         const [px, py] = portPos(state.nodes, nid, port);

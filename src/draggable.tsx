@@ -41,10 +41,12 @@ export type DragParams = {
   shiftKey: boolean;
 };
 
-export type OnDragPropValue<T> = (params: DragParams) => DragSpec<T>;
+export type DragologyPropValue<T> = (params: DragParams) => DragSpec<T>;
+
+export const DRAGOLOGY_PROP_NAME = "dragology";
 
 export function getDragSpecCallbackOnElement<T>(
   element: ReactElement,
 ): ((params: DragParams) => DragSpec<T>) | undefined {
-  return (element.props as any)["data-on-drag"] || undefined;
+  return (element.props as any)[DRAGOLOGY_PROP_NAME] || undefined;
 }

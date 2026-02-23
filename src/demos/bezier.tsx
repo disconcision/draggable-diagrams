@@ -90,7 +90,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             cy={0}
             r={isDragged ? 8 : 12}
             fill={isDragged ? "rgba(37, 99, 235, 0.3)" : "transparent"}
-            data-on-drag={() =>
+            dragology={() =>
               d.vary(state, [
                 ["p1", "x"],
                 ["p1", "y"],
@@ -111,7 +111,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         fill={draggedId === "control-p1" ? "#f59e0b" : "#fbbf24"}
         stroke="#92400e"
         strokeWidth={2}
-        data-on-drag={() =>
+        dragology={() =>
           d.vary(state, [
             ["p1", "x"],
             ["p1", "y"],
@@ -128,7 +128,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         fill={draggedId === "control-p2" ? "#f59e0b" : "#fbbf24"}
         stroke="#92400e"
         strokeWidth={2}
-        data-on-drag={() =>
+        dragology={() =>
           d.vary(state, [
             ["p2", "x"],
             ["p2", "y"],
@@ -145,7 +145,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         fill={draggedId === "endpoint-p0" ? "#dc2626" : "#ef4444"}
         stroke="#7f1d1d"
         strokeWidth={2}
-        data-on-drag={() =>
+        dragology={() =>
           d.vary(state, [
             ["p0", "x"],
             ["p0", "y"],
@@ -162,7 +162,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         fill={draggedId === "endpoint-p3" ? "#dc2626" : "#ef4444"}
         stroke="#7f1d1d"
         strokeWidth={2}
-        data-on-drag={() =>
+        dragology={() =>
           d.vary(state, [
             ["p3", "x"],
             ["p3", "y"],

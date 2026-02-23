@@ -46,7 +46,7 @@ function makeDraggable(levels: number): Draggable<State> {
             stroke="black"
             strokeWidth={4}
             strokeLinecap="round"
-            data-on-drag={() => d.vary(state, [["squareness"]])}
+            dragology={() => d.vary(state, [["squareness"]])}
           />,
         ];
       } else {
@@ -71,7 +71,7 @@ function makeDraggable(levels: number): Draggable<State> {
           transform={translate(state.from)}
           r={8}
           fill="red"
-          data-on-drag={() =>
+          dragology={() =>
             d.vary(state, [
               ["from", "x"],
               ["from", "y"],
@@ -83,7 +83,7 @@ function makeDraggable(levels: number): Draggable<State> {
           transform={translate(state.to)}
           r={8}
           fill="blue"
-          data-on-drag={() =>
+          dragology={() =>
             d.vary(state, [
               ["to", "x"],
               ["to", "y"],

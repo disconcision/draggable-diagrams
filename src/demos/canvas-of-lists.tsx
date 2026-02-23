@@ -80,7 +80,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             id={rowId}
             transform={translate(row.x, row.y)}
             data-z-index={isDragged ? 10 : 0}
-            data-on-drag={() =>
+            dragology={() =>
               d.vary(state, [
                 ["rows", rowId, "x"],
                 ["rows", rowId, "y"],
@@ -125,7 +125,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                   ROW_PADDING,
                 )}
                 data-z-index={isDragged ? 11 : 1}
-                data-on-drag={() => {
+                dragology={() => {
                   const stateWithout = produce(state, (draft) => {
                     draft.rows[rowId].items.splice(idx, 1);
                     if (draft.rows[rowId].items.length === 0) {

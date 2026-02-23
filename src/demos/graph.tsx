@@ -88,7 +88,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
               headLength: arrowHeadLength,
               id: `head-${key}`,
               fill: "black",
-              "data-on-drag": () =>
+              dragology: () =>
                 d.between(
                   produceAmb(state, (draft) => {
                     draft.edges[key].to = amb(Object.keys(state.nodes));
@@ -102,7 +102,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
               transform={translate(tailPos)}
               r={5}
               fill="black"
-              data-on-drag={() =>
+              dragology={() =>
                 d.between(
                   produceAmb(state, (draft) => {
                     draft.edges[key].from = amb(Object.keys(state.nodes));
@@ -123,7 +123,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
           transform={translate(node.x, node.y)}
           r={NODE_R}
           fill="black"
-          data-on-drag={() =>
+          dragology={() =>
             d.vary(state, [
               ["nodes", key, "x"],
               ["nodes", key, "y"],

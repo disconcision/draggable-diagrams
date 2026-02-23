@@ -209,7 +209,7 @@ function draggableFactory(config: Config): Draggable<State> {
             transform={translate(pos.x, pos.y)}
             data-z-index={draggedId === node.id ? 3 : 1}
             data-emerge-from={node.emergeFrom}
-            data-on-drag={
+            dragology={
               leaf &&
               (() => {
                 return d

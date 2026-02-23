@@ -116,7 +116,7 @@ function draggableFactory(config: Config): Draggable<State> {
               object.pos.y * TILE_SIZE,
             )}
             data-z-index={object.type === "goal" ? 1 : 0}
-            data-on-drag={
+            dragology={
               config.levelEditable
                 ? () =>
                     d
@@ -187,7 +187,7 @@ function draggableFactory(config: Config): Draggable<State> {
             state.player.y * TILE_SIZE,
           )}
           data-z-index={2}
-          data-on-drag={() =>
+          dragology={() =>
             d
               .closest(
                 (

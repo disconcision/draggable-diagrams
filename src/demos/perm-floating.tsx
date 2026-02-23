@@ -25,7 +25,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
           <g
             id={p}
             transform={translate(idx * TILE_SIZE, 0)}
-            data-on-drag={() => {
+            dragology={() => {
               const draggedIdx = state.perm.indexOf(p);
               const stateWithout = produce(state, (draft) => {
                 draft.perm.splice(draggedIdx, 1);
