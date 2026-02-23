@@ -645,7 +645,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   }[] = [
     ...(["A", "B", "C"] as const).map((l, i) => ({
       label: l,
-      makeExpr: (): Expr => ({ type: "state" as const, label: l }),
+      makeExpr: (): Expr => ({ type: "state", label: l }),
       preview: (
         <g>
           <polygon
@@ -806,17 +806,11 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           style={{ cursor: "ew-resize" }}
           data-z-index={parentDragged ? 11 : 2}
           data-on-drag={() =>
-            d.vary(state, [["nodes", parentId, "expr", "radius"] as never], {
-              constraint: (s: State) => [
-                lessThan(
-                  0,
-                  (s.nodes[parentId].expr as WithSnapRadiusExpr).radius,
-                ),
-                lessThan(
-                  (s.nodes[parentId].expr as WithSnapRadiusExpr).radius,
-                  30,
-                ),
-              ],
+            d.vary(state, [["nodes", parentId, "expr", "radius"]], {
+              constraint: (s: State) => {
+                const expr = s.nodes[parentId].expr as WithSnapRadiusExpr;
+                return [lessThan(0, expr.radius), lessThan(expr.radius, 30)];
+              },
             })
           }
         />
