@@ -243,7 +243,10 @@ const MultiCirclePointsVanilla = () => {
     <div>
       <DemoNotes>
         From-scratch React reimplementation of multi-circle-points,{" "}
-        <b>without using the draggable library</b>.
+        <span className="text-red-400">
+          without using the draggable library
+        </span>
+        .
       </DemoNotes>
       <svg
         ref={svgRef}
@@ -307,4 +310,7 @@ const MultiCirclePointsVanilla = () => {
   );
 };
 
-export default demo(MultiCirclePointsVanilla, { tags: ["vanilla"] });
+export default demo(MultiCirclePointsVanilla, {
+  tags: ["vanilla"],
+  cardClassName: "ring-2 ring-red-300",
+});
