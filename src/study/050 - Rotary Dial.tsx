@@ -20,7 +20,7 @@ const draggable: Draggable<State> = ({ state }) => (
         fill="#f9fafb"
         stroke="#d1d5db"
         strokeWidth={2}
-        style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))" }}
+        style={{ filter: "drop-shadow(0 0 4px rgba(0,0,0,0.15))" }}
       />
       <line
         x1={0}
