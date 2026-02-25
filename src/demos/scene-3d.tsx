@@ -90,8 +90,8 @@ function makeDraggable(
 
     const azR = (az * Math.PI) / 180;
     const elR = (el * Math.PI) / 180;
-    const camX = Math.cos(elR) * Math.sin(azR);
-    const camZ = Math.cos(elR) * Math.cos(azR);
+    const camWX = camDist * Math.cos(elR) * Math.sin(azR);
+    const camWZ = camDist * Math.cos(elR) * Math.cos(azR);
 
     const gridRange = Array.from({ length: 2 * G + 1 }, (_, i) => i - G);
     const groundCorners = [
@@ -146,6 +146,10 @@ function makeDraggable(
           const P = (dx: number, dy: number, dz: number): Pt =>
             proj(x + dx, dy, z + dz);
 
+          // Per-box direction from box to camera
+          const dx = camWX - x;
+          const dz = camWZ - z;
+
           type Face = { pts: Pt[]; fill: string };
 
           const faces: Face[] = [
@@ -153,7 +157,7 @@ function makeDraggable(
               pts: [P(-s, h, -s), P(s, h, -s), P(s, h, s), P(-s, h, s)],
               fill: tint(color, 1.3),
             },
-            camX > 0
+            dx > 0
               ? {
                   pts: [P(s, 0, -s), P(s, 0, s), P(s, h, s), P(s, h, -s)],
                   fill: tint(color, 0.65),
@@ -162,7 +166,7 @@ function makeDraggable(
                   pts: [P(-s, 0, -s), P(-s, 0, s), P(-s, h, s), P(-s, h, -s)],
                   fill: tint(color, 0.65),
                 },
-            camZ > 0
+            dz > 0
               ? {
                   pts: [P(-s, 0, s), P(s, 0, s), P(s, h, s), P(-s, h, s)],
                   fill: tint(color, 0.85),
