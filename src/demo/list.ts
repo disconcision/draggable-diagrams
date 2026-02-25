@@ -42,6 +42,7 @@ export const demoList = [
   "stretchy-rot",
   "clock",
   "dragon",
+  "scene-3d",
   "orbiting-planet",
   "orbiting-planet-with-background",
   "constrained-slider",
