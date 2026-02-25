@@ -2,3 +2,4 @@
 *.mdx
 
 /src/demos/nool/peggy
+/src/math/cobyla.ts
