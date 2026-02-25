@@ -39,7 +39,7 @@ function makeProjection(az: number, el: number, fov: number, camDist: number) {
   // FOCAL (pixels) is set by FOV alone: how wide the lens aperture is.
   // camDist is independent: how far the camera sits from the scene.
   // Together they control both zoom (FOCAL/camDist) and perspective distortion.
-  const FOCAL = CX / Math.tan(((fov * Math.PI) / 180) / 2);
+  const FOCAL = CX / Math.tan((fov * Math.PI) / 180 / 2);
 
   return (wx: number, wy: number, wz: number): Pt => {
     const rx = wx * cosAz - wz * sinAz;
@@ -79,7 +79,12 @@ function tint(hex: string, factor: number): string {
   return `#${c(r)}${c(g)}${c(b)}`;
 }
 
-function makeDraggable(az: number, el: number, fov: number, camDist: number): Draggable<State> {
+function makeDraggable(
+  az: number,
+  el: number,
+  fov: number,
+  camDist: number,
+): Draggable<State> {
   return ({ state, d }) => {
     const proj = makeProjection(az, el, fov, camDist);
 
@@ -105,10 +110,7 @@ function makeDraggable(az: number, el: number, fov: number, camDist: number): Dr
       <g>
         <rect width={W} height={H} fill="#1a1a2e" />
 
-        <polygon
-          points={pStr(groundCorners)}
-          fill="rgba(255,255,255,0.03)"
-        />
+        <polygon points={pStr(groundCorners)} fill="rgba(255,255,255,0.03)" />
 
         {gridRange.map((i) => (
           <g>
@@ -157,12 +159,7 @@ function makeDraggable(az: number, el: number, fov: number, camDist: number): Dr
                   fill: tint(color, 0.65),
                 }
               : {
-                  pts: [
-                    P(-s, 0, -s),
-                    P(-s, 0, s),
-                    P(-s, h, s),
-                    P(-s, h, -s),
-                  ],
+                  pts: [P(-s, 0, -s), P(-s, 0, s), P(-s, h, s), P(-s, h, -s)],
                   fill: tint(color, 0.65),
                 },
             camZ > 0
@@ -171,12 +168,7 @@ function makeDraggable(az: number, el: number, fov: number, camDist: number): Dr
                   fill: tint(color, 0.85),
                 }
               : {
-                  pts: [
-                    P(-s, 0, -s),
-                    P(s, 0, -s),
-                    P(s, h, -s),
-                    P(-s, h, -s),
-                  ],
+                  pts: [P(-s, 0, -s), P(s, 0, -s), P(s, h, -s), P(-s, h, -s)],
                   fill: tint(color, 0.85),
                 },
           ].sort((a, b) => avgDepth(a.pts) - avgDepth(b.pts));
@@ -223,7 +215,10 @@ const Scene3D = () => {
   const [el, setEl] = useState(28);
   const [fov, setFov] = useState(60);
   const [camDist, setCamDist] = useState(10);
-  const draggable = useMemo(() => makeDraggable(az, el, fov, camDist), [az, el, fov, camDist]);
+  const draggable = useMemo(
+    () => makeDraggable(az, el, fov, camDist),
+    [az, el, fov, camDist],
+  );
 
   return (
     <div className="flex flex-col md:flex-row gap-4 items-start">
