@@ -466,7 +466,13 @@ function varyBehavior<T extends object>(
       (x as number[])[0] = 1e-4;
     }
 
-    const xBefore = x.slice();
+    const rhoend = 1e-3;
+    // Shrink the feasible region by a margin so COBYLA's ~rhoend
+    // constraint inaccuracy lands safely inside the actual boundary.
+    // This eliminates the need for post-hoc correction (bisect or
+    // projection), which caused either directional distortion or
+    // oscillation feedback loops.
+    const constraintMargin = 10 * rhoend;
     FindMinimum(
       (_n, _m, xArr, con) => {
         // xArr is a Float64Array — copy into a plain number[]
@@ -478,11 +484,12 @@ function varyBehavior<T extends object>(
         const obj = pos.dist2(frame.pointer);
 
         // Constraints: spec.constraint returns values where > 0 means
-        // violated. COBYLA wants con[k] >= 0 to mean satisfied. So negate.
+        // violated. COBYLA wants con[k] >= 0 to mean satisfied. So negate,
+        // and subtract margin so COBYLA targets gs[k] <= -margin.
         if (spec.constraint) {
           const gs = manyToArray(spec.constraint(stateFromParams(params)));
           for (let k = 0; k < gs.length; k++) {
-            con[k] = -gs[k];
+            con[k] = -gs[k] - constraintMargin;
           }
         }
 
@@ -492,42 +499,13 @@ function varyBehavior<T extends object>(
       numConstraints,
       x,
       1, // rhobeg: initial simplex size (small since we warm-start)
-      1e-3, // rhoend: convergence tolerance
+      rhoend, // rhoend: convergence tolerance
       0, // iprint: silent
       200, // maxfun: max evaluations
     );
 
     // x has been modified in-place by FindMinimum
     const resultParams = x;
-
-    // COBYLA's constraint accuracy is only ~rhoend, so it may return
-    // slightly infeasible results. Bisect between the previous feasible
-    // point and COBYLA's result to find the boundary.
-    if (spec.constraint) {
-      const isFeasible = (p: number[]) =>
-        Math.max(...manyToArray(spec.constraint!(stateFromParams(p)))) <= 0;
-
-      if (!isFeasible(resultParams)) {
-        // Binary search: xBefore is feasible, resultParams is not
-        let lo = 0,
-          hi = 1;
-        for (let iter = 0; iter < 16; iter++) {
-          const mid = (lo + hi) / 2;
-          const midParams = xBefore.map(
-            (v, i) => v + mid * (resultParams[i] - v),
-          );
-          if (isFeasible(midParams)) {
-            lo = mid;
-          } else {
-            hi = mid;
-          }
-        }
-        // Use the last known feasible point
-        for (let i = 0; i < resultParams.length; i++) {
-          resultParams[i] = xBefore[i] + lo * (resultParams[i] - xBefore[i]);
-        }
-      }
-    }
 
     curParams = resultParams;
     const newState = stateFromParams(resultParams);
