@@ -86,7 +86,6 @@ export type DragSpecVary<T> = {
   state: T;
   paramPaths: PathIn<T, number>[];
   constraint?(state: T): Many<number>;
-  constrainByRender?: boolean;
 };
 
 export type DragSpecWithDistance<T> = {
@@ -400,15 +399,6 @@ export type VaryOptions<T> = {
    * to express a < b constraints.
    */
   constraint?: (state: T) => Many<number>;
-  /**
-   * For use alongside `constraint`. By default, the constraint
-   * pullback uses parameter-space distance, which is fast and works
-   * well when the varied parameters are cartesian coordinates. Set
-   * this to `true` to use screen-space (render) distance instead,
-   * which is more accurate when the varied parameters are angles or
-   * other non-cartesian values.
-   */
-  constrainByRender?: boolean;
 };
 
 /** Constraint helper: returns a - b, so a < b when result ≤ 0 */
