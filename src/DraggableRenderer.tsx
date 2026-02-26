@@ -15,6 +15,7 @@ import {
   dragSpecToBehavior,
 } from "./DragBehavior";
 import { DragSpec, DragSpecBuilder, DragSpecData } from "./DragSpec";
+import { debugOverlay } from "./DragSpecTraceInfo";
 import { ErrorBoundary } from "./ErrorBoundary";
 import {
   DragParams,
@@ -341,6 +342,7 @@ export function DraggableRenderer<T extends object>({
         <DrawDraggingMode
           dragState={dragState}
           showDebugOverlay={showDebugOverlay}
+          pointer={pointerRef.current}
         />
       ) : (
         assertNever(dragState)
@@ -751,9 +753,11 @@ const DrawDraggingMode = memoGeneric(
   <T extends object>({
     dragState,
     showDebugOverlay,
+    pointer,
   }: {
     dragState: DragState<T> & { type: "dragging" };
     showDebugOverlay?: boolean;
+    pointer?: Vec2;
   }) => {
     const rendered = runSpring(
       dragState.springingFrom,
@@ -762,24 +766,12 @@ const DrawDraggingMode = memoGeneric(
     return (
       <>
         {drawLayered(rendered)}
-        {showDebugOverlay && (
+        {showDebugOverlay && pointer && (
           <ErrorBoundary>
-            <DrawDebugOverlay dragState={dragState} />
+            {debugOverlay(dragState.result.tracedSpec, pointer)}
           </ErrorBoundary>
         )}
       </>
     );
-  },
-);
-
-const DrawDebugOverlay = memoGeneric(
-  <T extends object>({
-    dragState,
-  }: {
-    dragState: DragState<T> & { type: "dragging" };
-  }) => {
-    return dragState.result.debugOverlay
-      ? dragState.result.debugOverlay()
-      : null;
   },
 );

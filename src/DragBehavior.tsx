@@ -12,9 +12,8 @@ import {
   renderDraggableInert,
   renderDraggableInertUnlayered,
 } from "./renderDraggable";
-import { Svgx } from "./svgx";
 import { getLocalBounds, pointInBounds } from "./svgx/bounds";
-import { path as svgPath, translate } from "./svgx/helpers";
+import { translate } from "./svgx/helpers";
 import {
   LayeredSvgx,
   findByPathInLayered,
@@ -59,10 +58,6 @@ export type DragResult<T> = {
   distance: number;
   activePath: string;
   chainNow?: Chaining<T>;
-  /**
-   * An optional debug overlay to render on top of the drag result.
-   */
-  debugOverlay?: () => Svgx;
   /**
    * The spec tree with runtime trace info attached via `traceInfo` fields.
    */
@@ -144,23 +139,6 @@ function fixedBehavior<T extends object>(
       distance,
       activePath: "fixed",
       tracedSpec,
-      debugOverlay: () => (
-        <g opacity={0.8}>
-          <circle
-            cx={elementPos.x}
-            cy={elementPos.y}
-            r={4}
-            fill="none"
-            stroke="magenta"
-            strokeWidth={1.5}
-          />
-          <DistanceLine
-            from={elementPos}
-            to={frame.pointer}
-            distance={distance}
-          />
-        </g>
-      ),
     };
   };
 }
@@ -232,17 +210,7 @@ function withFloatingBehavior<T extends object>(
       activePath: `with-floating/${innerResult.activePath}`,
       tracedSpec: setTraceInfo(
         { ...spec, inner: innerResult.tracedSpec },
-        { outputRendered: rendered },
-      ),
-      debugOverlay: () => (
-        <g opacity={0.8}>
-          <circle cx={elementPos.x} cy={elementPos.y} r={5} fill="magenta" />
-          <DistanceLine
-            from={elementPos}
-            to={frame.pointer}
-            distance={distance}
-          />
-        </g>
+        { outputRendered: rendered, elementPos },
       ),
     };
   };
@@ -264,19 +232,6 @@ function closestBehavior<T extends object>(
         { ...spec, specs: subResults.map((r) => r.tracedSpec) },
         { bestIndex: bestIdx },
       ),
-      debugOverlay: () => (
-        <g>
-          {subResults.map((r, i) => {
-            const sub = r.debugOverlay?.();
-            if (!sub) return null;
-            return (
-              <g key={i} opacity={i === bestIdx ? 1 : 0.2}>
-                {sub}
-              </g>
-            );
-          })}
-        </g>
-      ),
     };
   };
 }
@@ -292,8 +247,6 @@ function withBackgroundBehavior<T extends object>(
     const inForeground = foregroundResult.distance <= spec.radius;
     if (!inForeground) {
       const bgResult = backdropBehavior(frame);
-      const fgDebug = foregroundResult.debugOverlay;
-      const bgDebug = bgResult.debugOverlay;
       return {
         ...bgResult,
         activePath: `bg/${bgResult.activePath}`,
@@ -305,15 +258,6 @@ function withBackgroundBehavior<T extends object>(
           },
           { inForeground: false },
         ),
-        debugOverlay:
-          fgDebug || bgDebug
-            ? () => (
-                <g>
-                  {fgDebug && <g opacity={0.15}>{fgDebug()}</g>}
-                  {bgDebug?.()}
-                </g>
-              )
-            : undefined,
       };
     }
     return {
@@ -485,16 +429,6 @@ function varyBehavior<T extends object>(
         renderedStates: [{ layered: rendered, position: achievedPos }],
         currentParams: resultParams.slice(),
       }),
-      debugOverlay: () => (
-        <g opacity={0.8}>
-          <circle {...achievedPos.cxy()} r={5} fill="magenta" />
-          <DistanceLine
-            from={achievedPos}
-            to={frame.pointer}
-            distance={distance}
-          />
-        </g>
-      ),
     };
   };
 }
@@ -633,6 +567,8 @@ function betweenBehavior<T extends object>(
     throw new Error(`Failed to create Delaunay triangulation: ${e}`);
   }
 
+  const delaunayTriangles = delaunay.triangles();
+
   return (frame) => {
     const projection = delaunay.projectOntoConvexHull(frame.pointer);
 
@@ -672,50 +608,9 @@ function betweenBehavior<T extends object>(
         })),
         closestIndex,
         outputRendered: rendered,
+        delaunayTriangles,
+        projectedPoint: projection.projectedPt,
       }),
-      debugOverlay: () => (
-        <g>
-          {/* Delaunay triangulation edges */}
-          {delaunay.triangles().map((tri, i) => {
-            const [a, b, c] = tri;
-            return (
-              <path
-                key={`tri-${i}`}
-                d={svgPath("M", a.x, a.y, "L", b.x, b.y, "L", c.x, c.y, "Z")}
-                stroke="magenta"
-                strokeWidth={1}
-                fill="magenta"
-                fillOpacity={0.05}
-              />
-            );
-          })}
-          {/* State positions */}
-          {renderedStates.map((rs, i) => (
-            <circle
-              key={`pt-${i}`}
-              {...rs.position.cxy()}
-              r={6}
-              fill={i === closestIndex ? "magenta" : "none"}
-              stroke="magenta"
-              strokeWidth={1.5}
-              opacity={i === closestIndex ? 1 : 0.5}
-            />
-          ))}
-          {/* Projected point */}
-          <circle
-            {...projection.projectedPt.cxy()}
-            r={5}
-            stroke="magenta"
-            strokeWidth={2}
-            fill="none"
-          />
-          <DistanceLine
-            from={frame.pointer}
-            to={projection.projectedPt}
-            distance={projection.dist}
-          />
-        </g>
-      ),
     };
   };
 }
@@ -773,19 +668,8 @@ function dropTargetBehavior<T extends object>(
       tracedSpec: setTraceInfo(spec, {
         renderedStates: [{ layered: rendered, position: Vec2(0, 0) }],
         inside,
+        globalCorners,
       }),
-      debugOverlay: () => (
-        <g opacity={0.8}>
-          <polygon
-            points={globalCorners.map((c) => `${c.x},${c.y}`).join(" ")}
-            fill={inside ? "magenta" : "none"}
-            fillOpacity={0.15}
-            stroke="magenta"
-            strokeWidth={1.5}
-            strokeDasharray={inside ? undefined : "4 3"}
-          />
-        </g>
-      ),
     };
   };
 }
@@ -824,47 +708,4 @@ function getElementPosition<T extends object>(
   const found = findByPathInLayered(ctx.draggedPath, layered);
   if (!found) return Vec2(Infinity, Infinity);
   return localToGlobal(found.accumulatedTransform, ctx.pointerLocal);
-}
-
-function DistanceLine({
-  from,
-  to,
-  distance,
-}: {
-  from: Vec2;
-  to: Vec2;
-  distance: number;
-}) {
-  const label = `${Math.round(distance)}px`;
-  return (
-    <g>
-      <line
-        {...from.xy1()}
-        {...to.xy2()}
-        stroke="white"
-        strokeWidth={5}
-        strokeLinecap="round"
-      />
-      <line
-        {...from.xy1()}
-        {...to.xy2()}
-        stroke="magenta"
-        strokeWidth={1.5}
-        strokeDasharray="4 3"
-      />
-      <text
-        {...from.lerp(to, 0.5).xy()}
-        fill="magenta"
-        stroke="white"
-        strokeWidth={3}
-        paintOrder="stroke"
-        fontSize={11}
-        fontFamily="monospace"
-        textAnchor="middle"
-        dominantBaseline="central"
-      >
-        {label}
-      </text>
-    </g>
-  );
 }
