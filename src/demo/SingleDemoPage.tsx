@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { demosById } from "./registry";
 import { DemoCard, DemoSettingsBar, DemoSettingsProvider } from "./ui";
@@ -51,6 +51,8 @@ export function SingleDemoPage({ id }: { id: string }) {
 }
 
 function MinimalDemo({ Component }: { Component: React.ComponentType }) {
+  const [showSettings, setShowSettings] = useState(false);
+
   useEffect(() => {
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
@@ -62,11 +64,20 @@ function MinimalDemo({ Component }: { Component: React.ComponentType }) {
     };
   }, []);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "d") setShowSettings((s) => !s);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return (
     <DemoSettingsProvider persist={false}>
       <div className="p-[5px]">
         <Component />
       </div>
+      {showSettings && <DemoSettingsBar compact />}
     </DemoSettingsProvider>
   );
 }

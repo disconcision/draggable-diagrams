@@ -224,23 +224,37 @@ function TimingMeter() {
 
 export function DemoSettingsBar({
   only,
-}: { only?: (keyof DemoSettings)[] } = {}) {
+  compact,
+}: { only?: (keyof DemoSettings)[]; compact?: boolean } = {}) {
   const { settings, setSettings } = useContext(DemoContext);
   const entries = only
     ? settingsEntries.filter(({ key }) => only.includes(key))
     : settingsEntries;
   return (
-    <div className="sticky bottom-0 flex justify-center pointer-events-none">
-      <div className="pointer-events-auto bg-white py-2 px-3 rounded-t-3xl border border-b-0 border-gray-200 flex gap-1.5 items-center shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+    <div
+      className={`${compact ? "fixed" : "sticky"} bottom-0 left-0 right-0 flex justify-center pointer-events-none`}
+    >
+      <div
+        className={`pointer-events-auto bg-white border border-gray-200 flex items-center shadow-[0_-4px_12px_rgba(0,0,0,0.08)] ${
+          compact
+            ? "py-1.5 px-2 rounded-full gap-1 mb-2 border-b"
+            : "py-2 px-3 rounded-t-3xl border-b-0 gap-1.5"
+        }`}
+      >
         {entries.map(({ key, label, mobileHidden }) => {
           const active = settings[key];
           const colors = settingsActiveColors[key];
           return (
             <button
               key={key}
+              title={label}
               className={`${
-                mobileHidden ? "hidden md:inline-flex" : "inline-flex"
-              } items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium select-none cursor-pointer`}
+                mobileHidden && !compact
+                  ? "hidden md:inline-flex"
+                  : "inline-flex"
+              } items-center rounded-full border select-none cursor-pointer ${
+                compact ? "p-1.5" : "gap-1.5 px-3 py-1.5 text-xs font-medium"
+              }`}
               style={
                 active
                   ? {
@@ -259,7 +273,7 @@ export function DemoSettingsBar({
               <span className="shrink-0" style={{ opacity: active ? 1 : 0.4 }}>
                 {settingsIcons[key]}
               </span>
-              {label}
+              {!compact && label}
             </button>
           );
         })}
