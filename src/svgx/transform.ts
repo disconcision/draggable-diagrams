@@ -57,14 +57,14 @@ export function parseTransform(str: string | null | undefined): Transform[] {
 
 export type TransformsLike = Transform[] | string | null | undefined;
 
-export const parseTransformsLike = (t: TransformsLike) =>
+export const resolveTransformsLike = (t: TransformsLike) =>
   Array.isArray(t) ? t : parseTransform(t);
 
 export function localToGlobal(
   transformsLike: TransformsLike,
   able: Vec2able,
 ): Vec2 {
-  const transforms = parseTransformsLike(transformsLike);
+  const transforms = resolveTransformsLike(transformsLike);
   let point = Vec2(able);
   // Apply transforms in reverse order (SVG transforms are right-to-left)
   for (const t of transforms.slice().reverse()) {
@@ -90,7 +90,7 @@ export function globalToLocal(
   transformsLike: TransformsLike,
   able: Vec2able,
 ): Vec2 {
-  const transforms = parseTransformsLike(transformsLike);
+  const transforms = resolveTransformsLike(transformsLike);
   let point = Vec2(able);
   // Apply inverse transforms in forward order (opposite of localToGlobal)
   for (const t of transforms) {
