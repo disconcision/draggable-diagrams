@@ -269,5 +269,7 @@ export default demo(
       />
     </div>
   ),
-  { tags: ["d.closest", "spec.withFloating", "d.vary", "spec.withBackground"] },
+  {
+    tags: ["d.closest", "spec.withFloating", "d.vary", "spec.withBackground"],
+  },
 );

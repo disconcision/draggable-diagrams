@@ -117,12 +117,6 @@ export default demo(
     </div>
   ),
   {
-    tags: [
-      "d.between",
-      "d.closest",
-      "spec.withFloating",
-      "d.fixed",
-      "spec.withFloating",
-    ],
+    tags: ["d.between", "d.closest", "spec.withFloating"],
   },
 );

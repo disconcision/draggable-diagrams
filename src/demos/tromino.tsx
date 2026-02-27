@@ -272,9 +272,11 @@ export default demo(
       "spec.withSnapRadius [w/chain]",
       "math",
       "fancy",
+      "d.closest",
       "spec.withFloating [w/ghost]",
       "d.between",
       "spec.withChaining",
+      "puzzle",
     ],
   },
 );

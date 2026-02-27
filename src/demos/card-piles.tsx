@@ -208,5 +208,5 @@ export default demo(
       />
     </>
   ),
-  { tags: ["d.vary", "during"] },
+  { tags: ["d.vary", "spec.during"] },
 );

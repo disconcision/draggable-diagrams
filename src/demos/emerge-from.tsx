@@ -62,5 +62,5 @@ export default demo(
       </div>
     );
   },
-  { tags: ["d.between"] },
+  { tags: ["d.between", "spec.withSnapRadius"] },
 );

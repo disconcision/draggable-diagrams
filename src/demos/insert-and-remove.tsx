@@ -200,6 +200,7 @@ export default demo(
     tags: [
       "spec.onDrop",
       "d.closest",
+      "d.fixed",
       "spec.withFloating",
       "spec.withBackground",
     ],

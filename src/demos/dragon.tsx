@@ -132,5 +132,5 @@ export default demo(
       </div>
     );
   },
-  { tags: ["math", "isTracking"] },
+  { tags: ["d.vary", "math", "isTracking"] },
 );

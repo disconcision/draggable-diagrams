@@ -119,6 +119,7 @@ export default demo(
       "d.between",
       "d.closest",
       "spec.withFloating",
+      "spec.withSnapRadius",
       "reordering",
       "control",
     ],
