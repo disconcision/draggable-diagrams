@@ -4,12 +4,22 @@ import { Vec2 } from "./vec2";
 
 describe("coincident points", () => {
   it("throws CoincidentPointsError for two identical points", () => {
-    expect(() => new Delaunay([[1, 2], [1, 2]])).toThrow(CoincidentPointsError);
+    expect(
+      () =>
+        new Delaunay([
+          [1, 2],
+          [1, 2],
+        ]),
+    ).toThrow(CoincidentPointsError);
   });
 
   it("reports the correct indices", () => {
     try {
-      new Delaunay([[0, 0], [1, 1], [0, 0]]);
+      new Delaunay([
+        [0, 0],
+        [1, 1],
+        [0, 0],
+      ]);
       expect.unreachable("should have thrown");
     } catch (e) {
       expect(e).toBeInstanceOf(CoincidentPointsError);
@@ -20,7 +30,12 @@ describe("coincident points", () => {
 
   it("reports the first coincident pair found", () => {
     try {
-      new Delaunay([[5, 5], [1, 1], [5, 5], [1, 1]]);
+      new Delaunay([
+        [5, 5],
+        [1, 1],
+        [5, 5],
+        [1, 1],
+      ]);
       expect.unreachable("should have thrown");
     } catch (e) {
       expect(e).toBeInstanceOf(CoincidentPointsError);
@@ -30,7 +45,14 @@ describe("coincident points", () => {
   });
 
   it("allows distinct points", () => {
-    expect(() => new Delaunay([[0, 0], [1, 0], [0, 1]])).not.toThrow();
+    expect(
+      () =>
+        new Delaunay([
+          [0, 0],
+          [1, 0],
+          [0, 1],
+        ]),
+    ).not.toThrow();
   });
 });
 
