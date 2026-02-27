@@ -16,7 +16,7 @@ export type DragSpecData<T> = (
   | DragSpecWithBackground<T>
   | DragSpecOnDrop<T>
   | DragSpecVary<T>
-  | DragSpecWithDistance<T>
+  | DragSpecChangeDistance<T>
   | DragSpecWithSnapRadius<T>
   | DragSpecWithDropTransition<T>
   | DragSpecBetween<T>
@@ -89,8 +89,8 @@ export type DragSpecVary<T> = {
   constraint?(state: T): Many<number>;
 };
 
-export type DragSpecWithDistance<T> = {
-  type: "with-distance";
+export type DragSpecChangeDistance<T> = {
+  type: "change-distance";
   inner: DragSpecData<T>;
   f: (distance: number) => number;
 };
@@ -208,7 +208,7 @@ export interface DragSpecMethods<T> {
    * via the provided function. Use this, e.g., to "reweight" the
    * behavior's drop target in a `closest`.
    */
-  withDistance(f: (distance: number) => number): DragSpec<T>;
+  changeDistance(f: (distance: number) => number): DragSpec<T>;
 
   /**
    * Wrap this behavior with floating: on each frame, the inner
@@ -275,8 +275,8 @@ const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
       transition: resolveTransitionLike(transition) ?? false,
     });
   },
-  withDistance(f) {
-    return attachMethods({ type: "with-distance", inner: this, f });
+  changeDistance(f) {
+    return attachMethods({ type: "change-distance", inner: this, f });
   },
   withFloating({ ghost, tether } = {}) {
     return attachMethods({

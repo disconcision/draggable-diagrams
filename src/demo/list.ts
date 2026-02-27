@@ -53,6 +53,7 @@ export const demoList = [
   "node-wires",
   "sprouting-tree",
   "weird-floating-vs-fixed",
+  "magnetic-targets",
   "bluefish-static",
   "bluefish-perm",
   "emerge-from",

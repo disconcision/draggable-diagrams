@@ -88,21 +88,6 @@ const draggable: Draggable<State> = ({ state, d }) => {
               d.vary({ mode: "free", x: planetX, y: planetY }, [["x"], ["y"]]),
               { radius: 50 },
             );
-          // return d.closest([
-          //   ...STARS.map((_, starIdx) =>
-          //     d.vary<State>({ mode: "orbiting", currentStar: starIdx, angle }, [
-          //       "angle",
-          //     ])
-          //   ),
-          //   withDistance(
-          //     d.vary<State>(
-          //       { mode: "free", x: planetX, y: planetY },
-          //       ["x"],
-          //       ["y"]
-          //     ),
-          //     () => 200
-          //   ),
-          // ]);
         }}
       >
         <circle

@@ -99,8 +99,8 @@ export function dragSpecToBehavior<T extends object>(
       return duringBehavior(spec, ctx);
     case "vary":
       return varyBehavior(spec, ctx);
-    case "with-distance":
-      return withDistanceBehavior(spec, ctx);
+    case "change-distance":
+      return changeDistanceBehavior(spec, ctx);
     case "with-snap-radius":
       return withSnapRadiusBehavior(spec, ctx);
     case "with-drop-transition":
@@ -434,8 +434,8 @@ function varyBehavior<T extends object>(
   };
 }
 
-function withDistanceBehavior<T extends object>(
-  spec: DragSpecData<T> & { type: "with-distance" },
+function changeDistanceBehavior<T extends object>(
+  spec: DragSpecData<T> & { type: "change-distance" },
   ctx: DragBehaviorInitContext<T>,
 ): DragBehavior<T> {
   const subBehavior = dragSpecToBehavior(spec.inner, ctx);
@@ -445,7 +445,7 @@ function withDistanceBehavior<T extends object>(
     return {
       ...result,
       distance: scaledDistance,
-      activePath: `with-distance/${result.activePath}`,
+      activePath: `change-distance/${result.activePath}`,
       tracedSpec: { ...spec, inner: result.tracedSpec },
     };
   };
