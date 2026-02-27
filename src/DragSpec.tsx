@@ -144,6 +144,9 @@ export type Chaining<T> = {
 // Full API, including methods and a brand.
 export type DragSpec<T> = DragSpecData<T> & DragSpecMethods<T> & DragSpecBrand;
 
+/** Either a DragSpec or a bare state (coerced via d.fixed). */
+export type DragSpecLike<T> = DragSpec<T> | T;
+
 // Brand marker so jsx.d.ts can reference DragSpec without a generic parameter.
 declare const _dragSpecBrand: unique symbol;
 export type DragSpecBrand = { readonly [_dragSpecBrand]: true };
@@ -164,7 +167,7 @@ export interface DragSpecMethods<T> {
    * configured via the `radius` option.
    */
   withBackground(
-    background: DragSpec<T>,
+    background: DragSpecLike<T>,
     opts?: { radius?: number },
   ): DragSpec<T>;
 
@@ -245,7 +248,7 @@ const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
     return attachMethods({
       type: "with-background",
       foreground: this,
-      background: bg,
+      background: resolveDragSpecLike(bg),
       radius,
     });
   },
@@ -295,6 +298,19 @@ function attachMethods<T>(data: DragSpecData<T>): DragSpec<T> {
   return Object.assign(Object.create(dragSpecMethods), data);
 }
 
+function isDragSpec<T>(value: DragSpecLike<T>): value is DragSpec<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Object.getPrototypeOf(value) === dragSpecMethods
+  );
+}
+
+export function resolveDragSpecLike<T>(specLike: DragSpecLike<T>): DragSpec<T> {
+  if (isDragSpec(specLike)) return specLike;
+  return attachMethods({ type: "fixed", state: specLike });
+}
+
 // # DragSpecBuilder
 
 export class DragSpecBuilder<T> {
@@ -302,31 +318,17 @@ export class DragSpecBuilder<T> {
    * This drag behavior simply shows a static view of the given
    * state.
    */
-  fixed(states: T[]): DragSpec<T>[];
-  fixed(state: T): DragSpec<T>;
-  fixed(stateOrStates: T | T[]): DragSpec<T> | DragSpec<T>[] {
-    if (Array.isArray(stateOrStates))
-      return stateOrStates.map((s) => this.fixed(s));
-    return attachMethods({ type: "fixed", state: stateOrStates });
+  fixed(state: T): DragSpec<T> {
+    return attachMethods({ type: "fixed", state });
   }
 
   /**
-   * This drag behavior "detaches" a dragged element from its
-   * original position and lets it be dragged freely. Optionally, a
-   * "ghost" element can be rendered at the original position while
-   * dragging. Often used with `closest`.
-   *
-   * Note: This is actually the same as d.fixed(state).withFloating()!
+   * Shortcut for d.fixed(state).withFloating(). If you have more
+   * than one state, you'll want to use
+   * d.closest(states).withFloating().
    */
-  floating(states: T[], opts?: FloatingOptions): DragSpec<T>[];
-  floating(state: T, opts?: FloatingOptions): DragSpec<T>;
-  floating(
-    stateOrStates: T | T[],
-    opts?: FloatingOptions,
-  ): DragSpec<T> | DragSpec<T>[] {
-    if (Array.isArray(stateOrStates))
-      return stateOrStates.map((s) => this.floating(s, opts));
-    return this.fixed(stateOrStates).withFloating(opts);
+  floating(state: T, opts?: FloatingOptions): DragSpec<T> {
+    return this.fixed(state).withFloating(opts);
   }
 
   /**
@@ -343,8 +345,11 @@ export class DragSpecBuilder<T> {
    * it continuously switches to the behavior that gets the dragged
    * element closest to the pointer.
    */
-  closest(...specs: Many<DragSpec<T>>[]): DragSpec<T> {
-    return attachMethods({ type: "closest", specs: manyToArray(specs) });
+  closest(...specs: Many<DragSpecLike<T>>[]): DragSpec<T> {
+    return attachMethods({
+      type: "closest",
+      specs: manyToArray(specs).map(resolveDragSpecLike),
+    });
   }
 
   /**
@@ -386,13 +391,13 @@ export class DragSpecBuilder<T> {
   switchToStateAndFollow(
     state: T,
     draggedId: string,
-    followSpec?: DragSpec<T>,
+    followSpec?: DragSpecLike<T>,
   ): DragSpec<T> {
     return attachMethods({
       type: "switch-to-state-and-follow",
       state,
       draggedId,
-      followSpec,
+      followSpec: followSpec && resolveDragSpecLike(followSpec),
     });
   }
 }

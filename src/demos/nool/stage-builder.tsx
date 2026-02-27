@@ -266,14 +266,13 @@ function makePickupDrag(
       const stageTargets = emptyStageTarget(stateWithClone, tree);
       return d
         .closest(
-          d.floating([
-            ...holeTargets,
-            ...insertTargets,
-            ...paletteTargets,
-            ...stageTargets,
-            fullState,
-          ]),
+          holeTargets,
+          insertTargets,
+          paletteTargets,
+          stageTargets,
+          fullState,
         )
+        .withFloating()
         .withBackground(d.floating(stateWithClone));
     }
 
@@ -352,14 +351,16 @@ function makePickupDrag(
 
     return d
       .closest(
-        d.floating([
-          ...holeTargets,
-          ...insertTargets,
-          ...swapTargets,
-          ...paletteTargets,
-          ...stageTargets,
-          fullState,
-        ]),
+        d
+          .closest(
+            holeTargets,
+            insertTargets,
+            swapTargets,
+            paletteTargets,
+            stageTargets,
+            fullState,
+          )
+          .withFloating(),
         d
           .floating(removeStageHoles(eraseState))
           .onDrop(removeStageHoles(cleanState)),
@@ -414,15 +415,9 @@ function makeBrushDrag(
       : [];
 
     return d
-      .closest(
-        d.floating([
-          ...holeTargets,
-          ...insertTargets,
-          ...stageTargets,
-          ...paletteTargets,
-        ]),
-      )
-      .withBackground(d.floating(stateWithout));
+      .closest(holeTargets, insertTargets, stageTargets, paletteTargets)
+      .withBackground(stateWithout)
+      .withFloating();
   };
 }
 
@@ -460,16 +455,9 @@ function makePaletteDrag(
       const stageTargets = emptyStageTarget(stateWithClone, block);
       const palTargets = paletteInsertionTargets(stateWithClone, block);
       return d
-        .closest(
-          d.floating([
-            ...placeTargets,
-            ...insertTargets,
-            ...stageTargets,
-            ...palTargets,
-            state,
-          ]),
-        )
-        .withBackground(d.floating(stateWithClone));
+        .closest(placeTargets, insertTargets, stageTargets, palTargets, state)
+        .withBackground(stateWithClone)
+        .withFloating();
     }
 
     const stateWithout = produce(state, (draft) => {
@@ -504,12 +492,9 @@ function makePaletteDrag(
     };
     return d
       .closest(
-        d.floating([
-          ...placeTargets,
-          ...insertTargets,
-          ...stageTargets,
-          ...reorderTargets,
-        ]),
+        d
+          .closest(placeTargets, insertTargets, stageTargets, reorderTargets)
+          .withFloating(),
         d
           .floating(removeStageHoles(eraseState))
           .onDrop(removeStageHoles(cleanState)),
@@ -561,14 +546,8 @@ function makeVoidDrag(
     const stageTargets = emptyStageTarget(stateWithout, tree);
 
     return d
-      .closest(
-        d.floating([
-          ...holeTargets,
-          ...insertTargets,
-          ...paletteTargets,
-          ...stageTargets,
-        ]),
-      )
+      .closest(holeTargets, insertTargets, paletteTargets, stageTargets)
+      .withFloating()
       .withBackground(d.floating(stateWithout).onDrop(state));
   };
 }
@@ -1269,7 +1248,8 @@ export default demo(
       "setState",
       "d.between",
       "keyboard",
-      "d.floating",
+      "d.closest",
+      "spec.withFloating",
       "spec.withBackground",
     ],
   },

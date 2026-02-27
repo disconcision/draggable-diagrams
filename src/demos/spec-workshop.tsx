@@ -483,7 +483,10 @@ function nodeDrag(
 
   if (snaps.length > 0) {
     return d
-      .closest([...d.floating(snaps), d.dropTarget(deleted, "trash-bin")])
+      .closest([
+        d.closest(snaps).withFloating(),
+        d.dropTarget(deleted, "trash-bin"),
+      ])
       .withBackground(free, { radius: 40 });
   }
   return d.closest([d.dropTarget(deleted, "trash-bin")]).withBackground(free);
@@ -1061,7 +1064,8 @@ export default demo(
       "d.switchToStateAndFollow",
       "d.between",
       "d.vary w/constraint",
-      "d.floating",
+      "d.closest",
+      "spec.withFloating",
       "spec.withBackground",
     ],
   },

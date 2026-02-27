@@ -101,9 +101,9 @@ const draggable: Draggable<State> = ({ state, d }) => {
                     require(newPeg.length === 1 || newPeg[0] < newPeg[1]);
                   });
 
-                  return d.closest(
-                    d.floating(statesWith, { ghost: { opacity: 0.5 } }),
-                  );
+                  return d
+                    .closest(statesWith)
+                    .withFloating({ ghost: { opacity: 0.5 } });
                 })
               }
               data-z-index={1}
@@ -160,5 +160,12 @@ export default demo(
       />
     </div>
   ),
-  { tags: ["d.floating", "d.floating w/ghost", "puzzle"] },
+  {
+    tags: [
+      "d.closest",
+      "spec.withFloating",
+      "spec.withFloating w/ghost",
+      "puzzle",
+    ],
+  },
 );

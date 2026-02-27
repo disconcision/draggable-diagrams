@@ -250,8 +250,9 @@ function renderTree(
 
                 if (config.useFloating) {
                   return d
-                    .closest(d.floating(statesWith))
-                    .withBackground(d.floating(result.tree));
+                    .closest(statesWith)
+                    .withBackground(result.tree)
+                    .withFloating();
                 } else {
                   return d.between(statesWith);
                 }
@@ -403,5 +404,13 @@ export default demo(
       </div>
     );
   },
-  { tags: ["d.between", "d.floating", "spec.withBackground", "reordering"] },
+  {
+    tags: [
+      "d.between",
+      "d.closest",
+      "spec.withFloating",
+      "spec.withBackground",
+      "reordering",
+    ],
+  },
 );

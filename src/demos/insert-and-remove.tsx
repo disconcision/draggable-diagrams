@@ -102,8 +102,9 @@ const draggable: Draggable<State> = ({ state, d }) => {
             });
 
             return d
-              .closest(d.floating(statesWith))
-              .withBackground(d.floating(stateWithout));
+              .closest(statesWith)
+              .withBackground(stateWithout)
+              .withFloating();
           },
         }),
       )}
@@ -134,11 +135,13 @@ const draggable: Draggable<State> = ({ state, d }) => {
             });
 
             return d
-              .closest([
-                ...d.floating(rearrangeStates),
-                d.floating(deleteState).onDrop(postDeleteState),
-              ])
-              .withBackground(d.floating(stateWithout));
+              .closest(
+                rearrangeStates,
+                // This state needs "d.fixed" so we can call "onDrop"
+                d.fixed(deleteState).onDrop(postDeleteState),
+              )
+              .withBackground(stateWithout)
+              .withFloating();
           },
         }),
       )}
@@ -193,5 +196,12 @@ export default demo(
       />
     </div>
   ),
-  { tags: ["spec.onDrop", "d.floating", "spec.withBackground"] },
+  {
+    tags: [
+      "spec.onDrop",
+      "d.closest",
+      "spec.withFloating",
+      "spec.withBackground",
+    ],
+  },
 );

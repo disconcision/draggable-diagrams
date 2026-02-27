@@ -151,12 +151,15 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                       y: 0,
                     };
                   });
-                  return d.closest(d.floating(statesWith)).withBackground(
-                    d.vary(stateWithNewRow, [
-                      ["rows", newRowId, "x"],
-                      ["rows", newRowId, "y"],
-                    ]),
-                  );
+                  return d
+                    .closest(statesWith)
+                    .withFloating()
+                    .withBackground(
+                      d.vary(stateWithNewRow, [
+                        ["rows", newRowId, "x"],
+                        ["rows", newRowId, "y"],
+                      ]),
+                    );
                 }}
               >
                 <rect
@@ -206,7 +209,8 @@ export default demo(
   ),
   {
     tags: [
-      "d.floating",
+      "d.closest",
+      "spec.withFloating",
       "d.vary",
       "spec.withBackground",
       "discrete on top of continuous",

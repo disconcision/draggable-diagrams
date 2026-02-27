@@ -47,10 +47,10 @@ function makeDraggable(
                 (items) => ({ items }),
               );
               let spec = useFloating
-                ? d.closest(d.floating(reinsertions))
+                ? d.closest(reinsertions).withFloating()
                 : d.between(reinsertions);
               if (useSnapRadius) {
-                spec = spec.withSnapRadius(20);
+                spec = spec.withSnapRadius(10);
               }
               return spec;
             }}
@@ -101,7 +101,7 @@ export default demo(
         />
         <ConfigPanel>
           <ConfigCheckbox
-            label="Use d.floating"
+            label="Use d.closest with floating"
             value={useFloating}
             onChange={setUseFloating}
           />
@@ -114,5 +114,13 @@ export default demo(
       </div>
     );
   },
-  { tags: ["d.between", "d.floating", "reordering", "control"] },
+  {
+    tags: [
+      "d.between",
+      "d.closest",
+      "spec.withFloating",
+      "reordering",
+      "control",
+    ],
+  },
 );

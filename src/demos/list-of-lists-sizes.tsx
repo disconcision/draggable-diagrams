@@ -79,8 +79,9 @@ const draggable: Draggable<State> = ({ state, d }) => {
                 }),
               );
               return d
-                .closest(d.floating(statesWith))
-                .withBackground(d.floating(stateWithout));
+                .closest(statesWith)
+                .withBackground(stateWithout)
+                .withFloating();
             }}
           >
             <rect
@@ -131,8 +132,9 @@ const draggable: Draggable<State> = ({ state, d }) => {
                       newRow.items.splice(newColIdx, 0, p);
                     });
                     return d
-                      .closest(d.floating(statesWith))
-                      .withBackground(d.floating(stateWithout).onDrop(state));
+                      .closest(statesWith)
+                      .withBackground(stateWithout)
+                      .withFloating();
                   }}
                 >
                   <rect
@@ -180,5 +182,12 @@ export default demo(
       />
     </div>
   ),
-  { tags: ["spec.onDrop", "d.floating", "spec.withBackground"] },
+  {
+    tags: [
+      "spec.onDrop",
+      "d.closest",
+      "spec.withFloating",
+      "spec.withBackground",
+    ],
+  },
 );

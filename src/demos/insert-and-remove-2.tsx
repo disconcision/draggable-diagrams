@@ -70,10 +70,12 @@ const draggable: Draggable<State> = ({ state, d }) => {
       draft.items.splice(insertIdx, 0, tile);
     });
 
-    return d.closest([
-      ...d.floating(rearrangeStates),
+    return d.closest(
+      d.closest(rearrangeStates).withFloating(),
+      // we leave "withFloating" off this part, so we see the tile
+      // disappear
       d.dropTarget(state, "delete-bin"),
-    ]);
+    );
   };
 
   return (
@@ -178,7 +180,8 @@ export default demo(
   {
     tags: [
       "d.switchToStateAndFollow",
-      "d.floating",
+      "d.closest",
+      "spec.withFloating",
       "d.dropTarget",
       "spec.withBackground",
     ],

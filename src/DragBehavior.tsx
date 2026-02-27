@@ -202,11 +202,10 @@ function withFloatingBehavior<T extends object>(
         (h) => layeredShiftZIndices(h, 1000000),
       ),
     );
-    const distance = frame.pointer.dist(elementPos);
     return {
       rendered,
       dropState: innerResult.dropState,
-      distance,
+      distance: innerResult.distance,
       activePath: `with-floating/${innerResult.activePath}`,
       tracedSpec: setTraceInfo(
         { ...spec, inner: innerResult.tracedSpec },

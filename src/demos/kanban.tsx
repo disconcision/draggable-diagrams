@@ -128,11 +128,9 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                     isDragged ? 10 : draggedId === `column-${column.id}` ? 6 : 1
                   }
                   dragology={() =>
-                    d.closest(
-                      d.floating(cardMoveStates, {
-                        ghost: { opacity: 0.3 },
-                      }),
-                    )
+                    d.closest(cardMoveStates).withFloating({
+                      ghost: { opacity: 0.3 },
+                    })
                   }
                 >
                   <rect
@@ -173,5 +171,13 @@ export default demo(
       height={200}
     />
   ),
-  { tags: ["d.between", "d.floating", "reordering"] },
+  {
+    tags: [
+      "d.between",
+      "d.closest",
+      "spec.withFloating",
+      "spec.withFloating w/ghost",
+      "reordering",
+    ],
+  },
 );

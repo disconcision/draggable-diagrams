@@ -128,7 +128,7 @@ export default demo(() => (
 | Free-form 2D dragging | `src/demos/graph.tsx` | `d.vary(state, ["nodes", key, "x"], ["nodes", key, "y"])` |
 | Drag-to-copy | `src/demos/drag-to-copy.tsx` | `d.switchToStateAndFollow` + `setState` for delete |
 | Permutation / reorder | `src/demos/perm.tsx` | `d.between` over all possible permutations |
-| Floating with ambiguity | `src/demos/perm-floating.tsx` | `produceAmb` + `d.closest(d.floating(...))` |
+| Floating with ambiguity | `src/demos/perm-floating.tsx` | `produceAmb` + `d.closest(...).withFloating()` |
 | Nested structures | `src/demos/canvas-of-lists-nested.tsx` | Recursive rendering with path-based state updates |
 | Group movement + `during` | `src/demos/card-piles.tsx` | Vary pile position, `during(recomputePiles)` for live regrouping |
 

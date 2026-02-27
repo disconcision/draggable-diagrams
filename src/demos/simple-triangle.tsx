@@ -24,9 +24,9 @@ const SQUARE_SIZE = 40;
 const initialState: State = { posIndex: 0 };
 
 const MODES = [
-  "d.closest(d.fixed(states))",
-  "d.closest(d.fixed(states)).withFloating()",
-  "d.closest(d.floating(states))",
+  "d.closest(states)",
+  "d.closest(states).withFloating()",
+  "d.closest(states.map((s) => d.floating(s)))",
   "d.between(states)",
   "d.between(states).withFloating()",
 ] as const;
@@ -61,12 +61,12 @@ function draggableFactory(mode: Mode): Draggable<State> {
           }));
 
           switch (mode) {
-            case "d.closest(d.fixed(states))":
-              return d.closest(d.fixed(states));
-            case "d.closest(d.fixed(states)).withFloating()":
-              return d.closest(d.fixed(states)).withFloating();
-            case "d.closest(d.floating(states))":
-              return d.closest(d.floating(states));
+            case "d.closest(states)":
+              return d.closest(states);
+            case "d.closest(states).withFloating()":
+              return d.closest(states).withFloating();
+            case "d.closest(states.map((s) => d.floating(s)))":
+              return d.closest(states.map((s) => d.floating(s)));
             case "d.between(states)":
               return d.between(states);
             case "d.between(states).withFloating()":
@@ -116,5 +116,13 @@ export default demo(
       ))}
     </div>
   ),
-  { tags: ["d.between", "d.floating", "d.fixed", "spec.withFloating"] },
+  {
+    tags: [
+      "d.between",
+      "d.closest",
+      "spec.withFloating",
+      "d.fixed",
+      "spec.withFloating",
+    ],
+  },
 );

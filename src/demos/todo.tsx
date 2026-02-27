@@ -111,8 +111,9 @@ function draggableFactory(config: Config): Draggable<State> {
             );
             return config.useFloating
               ? d
-                  .closest(d.floating(statesWith))
-                  .withBackground(d.floating(stateWithout))
+                  .closest(statesWith)
+                  .withBackground(stateWithout)
+                  .withFloating()
               : d.between(statesWith);
           },
         });
@@ -203,5 +204,13 @@ export default demo(
       </div>
     );
   },
-  { tags: ["setState", "d.between", "d.floating", "spec.withBackground"] },
+  {
+    tags: [
+      "setState",
+      "d.between",
+      "d.closest",
+      "spec.withFloating",
+      "spec.withBackground",
+    ],
+  },
 );

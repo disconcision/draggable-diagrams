@@ -67,23 +67,17 @@ function draggableFactory(config: Config): Draggable<State> {
             const singleRotations = singleRotationStates(state, boardLevel);
             return config.snappyMode
               ? d
-                  .closest(
-                    d.floating([state, ...singleRotations], {
-                      ghost: { opacity: 0.2 },
-                    }),
-                  )
+                  .closest(state, singleRotations)
+                  .withFloating({ ghost: { opacity: 0.2 } })
                   .withChaining()
               : d
-                  .closest(singleRotations.map((s) => d.between([state, s])))
+                  .closest(singleRotations.map((s) => d.between(state, s)))
                   .withSnapRadius(1, { chain: true });
           } else {
+            const all = allStates(boardLevel);
             return config.snappyMode
-              ? d.closest(
-                  d.floating(allStates(boardLevel), {
-                    ghost: { opacity: 0.2 },
-                  }),
-                )
-              : d.between(allStates(boardLevel));
+              ? d.closest(all).withFloating({ ghost: { opacity: 0.2 } })
+              : d.between(all);
           }
         }}
       />
@@ -277,7 +271,9 @@ export default demo(
     tags: [
       "spec.withSnapRadius w/chain",
       "math",
-      "d.floating w/ghost",
+      "fancy",
+      "spec.withFloating",
+      "spec.withFloating w/ghost",
       "d.between",
       "spec.withChaining",
     ],

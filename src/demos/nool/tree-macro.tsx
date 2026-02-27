@@ -407,8 +407,9 @@ function renderMacroTree(
       };
       const gutterTargets = gutterInsertionTargets(stateWithout, tree);
       return d
-        .closest(d.floating([...gutterTargets, fullState]))
-        .withBackground(d.floating(stateWithout));
+        .closest(gutterTargets, fullState)
+        .withBackground(stateWithout)
+        .withFloating();
     }
 
     // Remove from parent
@@ -445,14 +446,13 @@ function renderMacroTree(
 
     return d
       .closest(
-        d.floating([
-          ...insertTargets,
-          ...swapTargets,
-          ...gutterTargets,
-          fullState, // put back
-        ]),
+        insertTargets,
+        swapTargets,
+        gutterTargets,
+        fullState, // put back
       )
-      .withBackground(d.floating(stateWithout));
+      .withBackground(stateWithout)
+      .withFloating();
   };
 
   const zIndex = opts?.flatZIndex ? 0 : depth;
@@ -626,8 +626,9 @@ function renderMacroMode(
                         }),
                       );
                       return d
-                        .closest(d.floating(targetStates))
-                        .withBackground(d.floating(stateWithout));
+                        .closest(targetStates)
+                        .withBackground(stateWithout)
+                        .withFloating();
                     }
                   : undefined,
             }).element
@@ -680,8 +681,9 @@ function renderMacroMode(
                 block,
               );
               return d
-                .closest(d.floating([...placeTargets, ...reorderTargets]))
-                .withBackground(d.floating(stateWithout));
+                .closest(placeTargets, reorderTargets)
+                .withBackground(stateWithout)
+                .withFloating();
             },
           }).element,
       )}
@@ -865,5 +867,12 @@ export default demo(
       </div>
     );
   },
-  { tags: ["d.between", "d.floating", "spec.withBackground"] },
+  {
+    tags: [
+      "d.between",
+      "d.closest",
+      "spec.withFloating",
+      "spec.withBackground",
+    ],
+  },
 );
