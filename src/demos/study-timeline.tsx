@@ -100,5 +100,12 @@ export default demo(
       height={200}
     />
   ),
-  { tags: ["d.vary [w/constraint]", "d.closest", "control"] },
+  {
+    tags: [
+      "d.vary [w/constraint]",
+      "d.closest",
+      "control",
+      "spec.withBranchTransition",
+    ],
+  },
 );

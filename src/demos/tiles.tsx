@@ -73,6 +73,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
                 }),
               )
               .withSnapRadius(3, { transition: true, chain: true })
+              .withBranchTransition(false)
           }
         >
           <rect
@@ -124,5 +125,11 @@ export default demo(
       />
     </div>
   ),
-  { tags: ["spec.withSnapRadius [w/chain]", "d.between"] },
+  {
+    tags: [
+      "spec.withSnapRadius [w/chain]",
+      "d.between",
+      "spec.withBranchTransition",
+    ],
+  },
 );
