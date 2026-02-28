@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { demo } from "../demo";
-import { DemoDraggable } from "../demo/ui";
+import { DemoDraggable, DemoNotes } from "../demo/ui";
 import { Draggable } from "../draggable";
 import { lessThan } from "../DragSpec";
 import { translate } from "../svgx/helpers";
@@ -88,12 +88,20 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => (
 
 export default demo(
   () => (
-    <DemoDraggable
-      draggable={draggable}
-      initialState={initialState}
-      width={370}
-      height={200}
-    />
+    <>
+      <DemoNotes>
+        An approach to the "Timeline" study task using the experimental{" "}
+        <code>d.substate</code> operator, which lets you write a drag-spec for a
+        particular piece of the state so you don't need to keep drilling down
+        repetitively.
+      </DemoNotes>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={initialState}
+        width={370}
+        height={200}
+      />
+    </>
   ),
   {
     tags: [

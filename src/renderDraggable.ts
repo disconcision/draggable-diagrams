@@ -1,5 +1,4 @@
-import { Draggable } from "./draggable";
-import { DragSpecBuilder } from "./DragSpec";
+import { Draggable, makeDraggableProps } from "./draggable";
 import { Svgx } from "./svgx";
 import { LayeredSvgx, layerSvg } from "./svgx/layers";
 import { assignPaths } from "./svgx/path";
@@ -13,13 +12,14 @@ export function renderDraggableInertUnlayered<T extends object>(
   isTracking: boolean,
 ): Svgx {
   return pipe(
-    draggable({
-      state,
-      d: new DragSpecBuilder<T>(state),
-      draggedId,
-      setState: throwError,
-      isTracking,
-    }),
+    draggable(
+      makeDraggableProps({
+        state,
+        draggedId,
+        setState: throwError,
+        isTracking,
+      }),
+    ),
     assignPaths,
   );
 }

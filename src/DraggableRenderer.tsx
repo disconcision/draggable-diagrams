@@ -14,13 +14,14 @@ import {
   DragResult,
   dragSpecToBehavior,
 } from "./DragBehavior";
-import { DragSpec, DragSpecBuilder, DragSpecData } from "./DragSpec";
+import { DragSpec, DragSpecData } from "./DragSpec";
 import { debugOverlay } from "./DragSpecTraceInfo";
 import { ErrorBoundary } from "./ErrorBoundary";
 import {
   DragParams,
   Draggable,
   getDragSpecCallbackOnElement,
+  makeDraggableProps,
 } from "./draggable";
 import { Vec2 } from "./math/vec2";
 import {
@@ -718,31 +719,40 @@ const DrawIdleMode = memoGeneric(
     dragState: DragState<T> & { type: "idle" };
     ctx: RenderContext<T>;
   }) => {
-    const content = ctx.draggable({
-      state: dragState.state,
-      d: new DragSpecBuilder<T>(dragState.state),
-      draggedId: null,
-      setState: ctx.catchToRenderError(
-        (
-          newState: SetStateAction<T>,
-          { transition }: { transition?: TransitionLike } = {},
-        ) => {
-          const resolved =
-            typeof newState === "function"
-              ? (newState as (prev: T) => T)(dragState.state)
-              : newState;
-          ctx.setDragState({
-            type: "idle",
-            state: resolved,
-            springingFrom: makeSpringingFrom(transition, () =>
-              renderDraggableInert(ctx.draggable, dragState.state, null, false),
-            ),
-          });
-          ctx.onDebugDragInfoRef.current?.({ type: "idle", state: resolved });
-        },
-      ),
-      isTracking: false,
-    });
+    const content = ctx.draggable(
+      makeDraggableProps({
+        state: dragState.state,
+        draggedId: null,
+        setState: ctx.catchToRenderError(
+          (
+            newState: SetStateAction<T>,
+            { transition }: { transition?: TransitionLike } = {},
+          ) => {
+            const resolved =
+              typeof newState === "function"
+                ? (newState as (prev: T) => T)(dragState.state)
+                : newState;
+            ctx.setDragState({
+              type: "idle",
+              state: resolved,
+              springingFrom: makeSpringingFrom(transition, () =>
+                renderDraggableInert(
+                  ctx.draggable,
+                  dragState.state,
+                  null,
+                  false,
+                ),
+              ),
+            });
+            ctx.onDebugDragInfoRef.current?.({
+              type: "idle",
+              state: resolved,
+            });
+          },
+        ),
+        isTracking: false,
+      }),
+    );
 
     const layered = postProcessForInteraction(content, dragState.state, ctx);
     return drawLayered(runSpring(dragState.springingFrom, layered));

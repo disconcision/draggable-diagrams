@@ -1,6 +1,6 @@
 import { PrettyPrint } from "@joshuahhh/pretty-print";
 import _ from "lodash";
-import { Draggable } from "./draggable";
+import { Draggable, makeDraggableProps } from "./draggable";
 import { Chaining, DragSpecData } from "./DragSpec";
 import { setTraceInfo } from "./DragSpecTraceInfo";
 import { ErrorWithJSX } from "./ErrorBoundary";
@@ -698,12 +698,15 @@ function substateBehavior<T extends object>(
 ): DragBehavior<T> {
   const { state, path, innerSpec } = spec;
 
-  // Create a lensed draggable: takes SubState, lifts to T, renders
   const lensedDraggable: Draggable<any> = (props) =>
-    ctx.draggable({
-      ...props,
-      state: setAtPath(state, path as any, props.state),
-    });
+    ctx.draggable(
+      makeDraggableProps({
+        state: setAtPath(state, path as any, props.state),
+        draggedId: props.draggedId,
+        setState: props.setState,
+        isTracking: props.isTracking,
+      }),
+    );
 
   const innerBehavior = dragSpecToBehavior(innerSpec, {
     ...ctx,
@@ -715,7 +718,13 @@ function substateBehavior<T extends object>(
     return {
       ...result,
       dropState: setAtPath(state, path as any, result.dropState),
-      tracedSpec: setTraceInfo({ ...spec, innerSpec: result.tracedSpec }, {}),
+      tracedSpec: setTraceInfo(
+        {
+          ...spec,
+          innerSpec: result.tracedSpec as DragSpecData<unknown>,
+        } as DragSpecData<T>,
+        {},
+      ),
     };
   };
 }

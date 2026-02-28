@@ -131,7 +131,7 @@ export type DragSpecSubstate<T> = {
   state: T;
   path: (string | number)[];
   /** This is really a DragSpecData<T[path]> */
-  innerSpec: DragSpecData<any>;
+  innerSpec: DragSpecData<unknown>;
 };
 
 /**
@@ -399,8 +399,7 @@ export class DragSpecBuilder<T> {
   /**
    * Focus on a sub-path of the state (a lens). The callback receives
    * a DragSpecBuilder for the substate type, and should return a
-   * DragSpec for that substate. `substate` lifts it back to a
-   * DragSpec for the full state.
+   * DragSpec for that substate.
    */
   substate<const P extends PathIn<T, any>>(
     state: T,
@@ -413,7 +412,7 @@ export class DragSpecBuilder<T> {
       type: "substate",
       state,
       path: path as any,
-      innerSpec,
+      innerSpec: innerSpec as DragSpecData<unknown>,
     });
   }
 

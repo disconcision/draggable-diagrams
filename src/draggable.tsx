@@ -1,6 +1,7 @@
 import { ReactElement, SetStateAction } from "react";
 import { DragSpec, DragSpecBuilder } from "./DragSpec";
-import { Svgx } from "./svgx";
+import { getAtPath, PathIn, setAtPath, ValueAtPath } from "./paths";
+import { Svgx, updatePropsDownTree } from "./svgx";
 import { TransitionLike } from "./transition";
 
 /**
@@ -21,7 +22,32 @@ export type DraggableProps<T extends object> = {
    * extra stuff as an optimization.
    */
   isTracking: boolean;
+  /**
+   * Embed a sub-draggable at a given path into the state. The
+   * sub-draggable operates on the substate type and its drag specs
+   * and setState calls are automatically lifted back to the parent.
+   */
+  embed<const P extends PathIn<T, any>>(
+    draggable: Draggable<ValueAtPath<T, P>>,
+    path: P,
+  ): Svgx;
 };
+
+export function makeDraggableProps<T extends object>(fields: {
+  state: T;
+  draggedId: string | null;
+  setState: SetState<T>;
+  isTracking: boolean;
+}): DraggableProps<T> {
+  const props: DraggableProps<T> = {
+    ...fields,
+    d: new DragSpecBuilder(fields.state),
+    embed(draggable, path) {
+      return embedImpl(draggable, props, path);
+    },
+  };
+  return props;
+}
 
 // # setState
 
@@ -49,4 +75,42 @@ export function getDragSpecCallbackOnElement<T>(
   element: ReactElement,
 ): ((params: DragParams) => DragSpec<T>) | undefined {
   return (element.props as any)[DRAGOLOGY_PROP_NAME] || undefined;
+}
+
+// # embed
+
+function embedImpl<T extends object, const P extends PathIn<T, any>>(
+  draggable: Draggable<ValueAtPath<T, P>>,
+  props: DraggableProps<T>,
+  path: P,
+): Svgx {
+  const subState = getAtPath(props.state, path as any) as ValueAtPath<T, P>;
+  const subProps = makeDraggableProps({
+    state: subState,
+    draggedId: props.draggedId,
+    setState: (action, options) => {
+      props.setState((prev) => {
+        const prevSub = getAtPath(prev, path as any) as ValueAtPath<T, P>;
+        const newSub =
+          typeof action === "function"
+            ? (action as (prev: ValueAtPath<T, P>) => ValueAtPath<T, P>)(
+                prevSub,
+              )
+            : action;
+        return setAtPath(prev, path as any, newSub);
+      }, options);
+    },
+    isTracking: props.isTracking,
+  });
+  const rendered = draggable(subProps);
+  return updatePropsDownTree(rendered, (el) => {
+    const dragSpecCallback = getDragSpecCallbackOnElement<any>(el);
+    if (!dragSpecCallback) return;
+    return {
+      [DRAGOLOGY_PROP_NAME]: (params: DragParams) => {
+        const subSpec = dragSpecCallback(params);
+        return props.d.substate(props.state, path as any, () => subSpec as any);
+      },
+    };
+  });
 }
