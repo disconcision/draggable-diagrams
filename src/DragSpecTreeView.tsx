@@ -10,7 +10,7 @@ type TreeViewContext = {
   colorMap: Map<string, string> | null;
   svgWidth: number;
   svgHeight: number;
-  thumbHeight: number;
+  thumbArea: number;
 };
 
 const TreeViewContext = createContext<TreeViewContext | null>(null);
@@ -27,18 +27,18 @@ export function DragSpecTreeView<T>({
   colorMap,
   svgWidth,
   svgHeight,
-  thumbHeight,
+  thumbArea,
 }: {
   spec: DragSpecData<T>;
   activePath: string;
   colorMap: Map<string, string> | null;
   svgWidth: number;
   svgHeight: number;
-  thumbHeight: number;
+  thumbArea: number;
 }) {
   return (
     <TreeViewContext.Provider
-      value={{ activePath, colorMap, svgWidth, svgHeight, thumbHeight }}
+      value={{ activePath, colorMap, svgWidth, svgHeight, thumbArea }}
     >
       <div className="text-xs font-mono">
         <SpecNode spec={spec} path="" />
@@ -308,10 +308,11 @@ function StateThumbnails({
   renderedStates: RenderedState[];
   closestIndex?: number;
 }) {
-  const { svgWidth, svgHeight, thumbHeight } = useTreeViewContext();
+  const { svgWidth, svgHeight, thumbArea } = useTreeViewContext();
   if (svgWidth === 0 || svgHeight === 0) return null;
-  const h = Math.min(thumbHeight, svgHeight);
-  const w = Math.round(h * (svgWidth / svgHeight));
+  const aspect = svgWidth / svgHeight;
+  const h = Math.round(Math.sqrt(thumbArea / aspect));
+  const w = Math.round(h * aspect);
   return (
     <div
       style={{
@@ -346,10 +347,11 @@ function StateThumbnails({
 }
 
 function OutputThumbnail({ outputRendered }: { outputRendered: LayeredSvgx }) {
-  const { svgWidth, svgHeight, thumbHeight } = useTreeViewContext();
+  const { svgWidth, svgHeight, thumbArea } = useTreeViewContext();
   if (svgWidth === 0 || svgHeight === 0) return null;
-  const h = Math.min(thumbHeight, svgHeight);
-  const w = Math.round(h * (svgWidth / svgHeight));
+  const aspect = svgWidth / svgHeight;
+  const h = Math.round(Math.sqrt(thumbArea / aspect));
+  const w = Math.round(h * aspect);
   return (
     <div style={{ marginTop: 2, marginBottom: 4 }}>
       <svg
@@ -392,6 +394,7 @@ function Box({
   return (
     <div
       style={{
+        width: "fit-content",
         background: bg,
         border: `1px solid ${border}`,
         borderRadius: 6,

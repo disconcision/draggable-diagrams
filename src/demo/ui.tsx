@@ -32,10 +32,10 @@ export type DemoToggleSettings = {
 };
 
 export type DemoSettings = DemoToggleSettings & {
-  thumbHeight: number;
+  thumbArea: number;
 };
 
-const defaultThumbHeight = 40;
+const defaultThumbArea = 10000;
 
 const defaultToggles: DemoToggleSettings = {
   showTreeView: false,
@@ -49,7 +49,7 @@ const DemoContext = createContext<{
   settings: DemoSettings;
   setToggles: React.Dispatch<React.SetStateAction<DemoToggleSettings>>;
 }>({
-  settings: { ...defaultToggles, thumbHeight: defaultThumbHeight },
+  settings: { ...defaultToggles, thumbArea: defaultThumbArea },
   setToggles: () => {},
 });
 
@@ -75,7 +75,7 @@ export function DemoSettingsProvider({
   const [toggles, setToggles] = useState<DemoToggleSettings>(
     persist ? loadToggles : () => defaultToggles,
   );
-  const [thumbHeight, setThumbHeight] = useState(defaultThumbHeight);
+  const [thumbArea, setThumbArea] = useState(defaultThumbArea);
 
   useEffect(() => {
     if (!persist) return;
@@ -87,16 +87,16 @@ export function DemoSettingsProvider({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (e.key === "]") {
-        setThumbHeight((h) => Math.min(h + 10, 200));
+        setThumbArea((a) => Math.min(Math.round(a * 1.4), 40000));
       } else if (e.key === "[") {
-        setThumbHeight((h) => Math.max(h - 10, 12));
+        setThumbArea((a) => Math.max(Math.round(a / 1.4), 400));
       }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const settings: DemoSettings = { ...toggles, thumbHeight };
+  const settings: DemoSettings = { ...toggles, thumbArea };
 
   return (
     <DemoContext.Provider value={{ settings, setToggles }}>
@@ -325,7 +325,7 @@ export function DemoDraggable<T extends object>({
     showDebugOverlay,
     showStateViewer,
     showTimingMeter,
-    thumbHeight,
+    thumbArea,
   } = useDemoSettings();
   const [status, setStatus] = useState<DragStatus<T> | null>(null);
 
@@ -382,7 +382,7 @@ export function DemoDraggable<T extends object>({
             )}
           </div>
           {(showTreeView || showStateViewer || showTimingMeter) && (
-            <div className="w-72 shrink-0 flex flex-col gap-2">
+            <div className="min-w-72 flex-1 flex flex-col gap-2">
               {showTimingMeter && <TimingMeter />}
               {showTreeView && (
                 <>
@@ -397,7 +397,7 @@ export function DemoDraggable<T extends object>({
                         colorMap={overlayData?.colorMap ?? null}
                         svgWidth={width}
                         svgHeight={height}
-                        thumbHeight={thumbHeight}
+                        thumbArea={thumbArea}
                       />
                     </div>
                   ) : (
