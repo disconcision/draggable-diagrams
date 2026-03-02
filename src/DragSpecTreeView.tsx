@@ -96,9 +96,10 @@ function SpecNode<T>({ spec, path }: { spec: DragSpecData<T>; path: string }) {
       const last = p[p.length - 1];
       return typeof last === "string" ? last : String(last);
     });
-    const constraintSrc = spec.constraint
-      ? truncate(spec.constraint.toString(), 60)
+    const constraintSrc = spec.options.constraint
+      ? truncate(spec.options.constraint.toString(), 60)
       : null;
+    // TODO: pins?
     return (
       <Box
         label={`vary [${paramNames.join(", ")}]`}
