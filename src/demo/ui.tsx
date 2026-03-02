@@ -495,6 +495,15 @@ export function DemoNotes({ children }: { children?: React.ReactNode }) {
   return <div className="text-sm text-gray-600 mb-4">{children}</div>;
 }
 
+export function DemoLink(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+  return (
+    <a
+      className="text-blue-600/70 hover:text-blue-700 hover:underline"
+      {...props}
+    />
+  );
+}
+
 export function DemoTags({ children }: { children?: React.ReactNode }) {
   return <div className="flex flex-wrap gap-1.5 mb-4">{children}</div>;
 }

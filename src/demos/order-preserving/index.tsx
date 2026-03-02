@@ -7,6 +7,7 @@ import {
   ConfigCheckbox,
   ConfigPanel,
   DemoDraggable,
+  DemoLink,
   DemoNotes,
 } from "../../demo/ui";
 import { Draggable } from "../../draggable";
@@ -640,13 +641,7 @@ export default demo(
       <div>
         <DemoNotes>
           Featuring multi-drag from{" "}
-          <a
-            href="https://elliot.website/"
-            className="hover:text-gray-700 hover:underline"
-          >
-            Elliot Evans
-          </a>
-          .
+          <DemoLink href="https://elliot.website/">Elliot Evans</DemoLink>.
         </DemoNotes>
         <div className="flex flex-col md:flex-row gap-4 items-start">
           <div>

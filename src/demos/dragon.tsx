@@ -4,6 +4,7 @@ import {
   ConfigPanel,
   ConfigSlider,
   DemoDraggable,
+  DemoLink,
   DemoNotes,
 } from "../demo/ui";
 import { Draggable } from "../draggable";
@@ -103,12 +104,7 @@ export default demo(
       <div>
         <DemoNotes>
           Adapted from{" "}
-          <a
-            href="https://omrelli.ug/g9/"
-            className="hover:text-gray-700 hover:underline"
-          >
-            g9's famous example
-          </a>
+          <DemoLink href="https://omrelli.ug/g9/">g9's famous example</DemoLink>
           . Nice performance stress test (which we are failing; try larger
           "Levels").
         </DemoNotes>

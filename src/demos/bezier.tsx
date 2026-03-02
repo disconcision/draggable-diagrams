@@ -1,5 +1,5 @@
 import { demo } from "../demo";
-import { DemoDraggable, DemoNotes } from "../demo/ui";
+import { DemoDraggable, DemoLink, DemoNotes } from "../demo/ui";
 import { Draggable } from "../draggable";
 import { translate } from "../svgx/helpers";
 
@@ -217,12 +217,7 @@ export default demo(
         Drag the endpoints (red) or control points (yellow) orrrrr the curve
         (??).
         {" – "}
-        <a
-          href="https://www.orionreed.com/"
-          className="hover:text-gray-700 hover:underline"
-        >
-          Orion Reed
-        </a>
+        <DemoLink href="https://www.orionreed.com/">Orion Reed</DemoLink>
       </DemoNotes>
       <DemoDraggable
         draggable={draggable}

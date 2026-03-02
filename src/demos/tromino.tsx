@@ -7,6 +7,7 @@ import {
   ConfigPanel,
   ConfigSlider,
   DemoDraggable,
+  DemoLink,
   DemoNotes,
 } from "../demo/ui";
 import { Draggable } from "../draggable";
@@ -227,12 +228,9 @@ export default demo(
         <div>
           <DemoNotes>
             Inspired by a{" "}
-            <a
-              href="https://www.reddit.com/r/math/comments/gpxwl4/animated_golombs_ltromino_tiling/"
-              className="hover:text-gray-700 hover:underline"
-            >
+            <DemoLink href="https://www.reddit.com/r/math/comments/gpxwl4/animated_golombs_ltromino_tiling/">
               neat Reddit post
-            </a>
+            </DemoLink>
             .
           </DemoNotes>
           <DemoDraggable
