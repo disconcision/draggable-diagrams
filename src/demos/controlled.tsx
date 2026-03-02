@@ -216,6 +216,38 @@ const DoubleSliderDemo = ({ handlerName }: DemoProps) => {
   );
 };
 
+const EMPTY_STATE = {};
+
+const ExternalControlDemo = () => {
+  const [x, setX] = useState(100);
+
+  return (
+    <>
+      <h3 className="text-xl font-medium mt-6 mb-1">external control</h3>
+      <DemoNotes>
+        An HTML slider controls the draggable's definition. The draggable itself
+        has no state – it changes because a new draggable is passed in. The
+        draggable should update without a transition.
+      </DemoNotes>
+      <div className="mb-2">
+        <input
+          type="range"
+          min={0}
+          max={200}
+          value={x}
+          onChange={(e) => setX(Number(e.target.value))}
+        />
+      </div>
+      <DraggableRenderer
+        draggable={() => <circle cx={x} cy={30} r={12} fill="#6366f1" />}
+        state={EMPTY_STATE}
+        width={200}
+        height={60}
+      />
+    </>
+  );
+};
+
 export default demo(
   () => {
     return (
@@ -227,19 +259,27 @@ export default demo(
           from <code>lib.ts</code>.)
         </DemoNotes>
 
-        <h3 className="text-xl font-medium mt-6 mb-1">using onDropState</h3>
-        <SimpleDemo handlerName="onDropState" />
-        <DoubleSwitchDemo handlerName="onDropState" />
-        <RejectionDemo handlerName="onDropState" />
-        <OverrideDemo handlerName="onDropState" />
-        <DoubleSliderDemo handlerName="onDropState" />
+        <div className="grid grid-cols-2 gap-8">
+          <div>
+            <h3 className="text-xl font-medium mt-6 mb-1">using onDropState</h3>
+            <SimpleDemo handlerName="onDropState" />
+            <DoubleSwitchDemo handlerName="onDropState" />
+            <RejectionDemo handlerName="onDropState" />
+            <OverrideDemo handlerName="onDropState" />
+            <DoubleSliderDemo handlerName="onDropState" />
+          </div>
 
-        <h3 className="text-xl font-medium mt-6 mb-1">using onDragState</h3>
-        <SimpleDemo handlerName="onDragState" />
-        <DoubleSwitchDemo handlerName="onDragState" />
-        <RejectionDemo handlerName="onDragState" />
-        <OverrideDemo handlerName="onDragState" />
-        <DoubleSliderDemo handlerName="onDragState" />
+          <div>
+            <h3 className="text-xl font-medium mt-6 mb-1">using onDragState</h3>
+            <SimpleDemo handlerName="onDragState" />
+            <DoubleSwitchDemo handlerName="onDragState" />
+            <RejectionDemo handlerName="onDragState" />
+            <OverrideDemo handlerName="onDragState" />
+            <DoubleSliderDemo handlerName="onDragState" />
+          </div>
+        </div>
+
+        <ExternalControlDemo />
       </div>
     );
   },
