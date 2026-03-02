@@ -128,7 +128,7 @@ export type Many<T> = T | Many<T>[] | undefined | null | false;
 export function manyToArray<T>(arr: Many<T>): T[] {
   const result: T[] = [];
   function helper(a: Many<T>) {
-    if (!a) {
+    if (a === undefined || a === null || a === false) {
       return;
     } else if (Array.isArray(a)) {
       a.forEach(helper);

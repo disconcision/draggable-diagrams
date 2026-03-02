@@ -48,6 +48,8 @@ export const demoList = [
   "constrained-slider",
   "point-in-circle",
   "point-in-polygon",
+  "point-on-circle-via-constraint",
+  "point-on-curve",
   "multi-circle-points",
   "multi-circle-points-vanilla",
   "node-wires",

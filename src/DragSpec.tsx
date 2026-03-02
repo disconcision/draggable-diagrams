@@ -446,17 +446,4 @@ export type VaryOptions<T> = {
   constraint?: (state: T) => Many<number>;
 };
 
-/** Constraint helper: returns a - b, so a < b when result ≤ 0 */
-export function lessThan(a: number, b: number): number {
-  return a - b;
-}
-
-/** Constraint helper: returns b - a, so a > b when result ≤ 0 */
-export function moreThan(a: number, b: number): number {
-  return b - a;
-}
-
-/** Constraint helper: combine multiple numeric constraints */
-export function and(...constraints: number[]): number[] {
-  return constraints;
-}
+export { and, equal, lessThan, moreThan } from "./math/optimization";

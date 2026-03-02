@@ -4,8 +4,8 @@ import { Draggable, makeDraggableProps } from "./draggable";
 import { Chaining, DragSpecData } from "./DragSpec";
 import { setTraceInfo } from "./DragSpecTraceInfo";
 import { ErrorWithJSX } from "./ErrorBoundary";
-import { FindMinimum } from "./math/cobyla";
 import { CoincidentPointsError, Delaunay } from "./math/delaunay";
+import { DistanceMinimizer } from "./math/optimization";
 import { Vec2 } from "./math/vec2";
 import { getAtPath, setAtPath } from "./paths";
 import {
@@ -323,8 +323,6 @@ function varyBehavior<T extends object>(
   spec: DragSpecData<T> & { type: "vary" },
   ctx: DragBehaviorInitContext<T>,
 ): DragBehavior<T> {
-  let curParams = spec.paramPaths.map((path) => getAtPath(spec.state, path));
-
   const stateFromParams = (params: number[]): T => {
     let s = spec.state;
     for (let i = 0; i < spec.paramPaths.length; i++) {
@@ -352,73 +350,21 @@ function varyBehavior<T extends object>(
     ? manyToArray(spec.constraint(spec.state)).length
     : 0;
 
-  let firstFrame = true;
+  const initialParams = spec.paramPaths.map((path) =>
+    getAtPath(spec.state, path),
+  );
+  const minimizer = new DistanceMinimizer(initialParams, numConstraints);
+
+  const constraintsFn = spec.constraint
+    ? (params: number[]) =>
+        manyToArray(spec.constraint!(stateFromParams(params)))
+    : undefined;
 
   return (frame) => {
-    const n = spec.paramPaths.length;
+    const resultParams = minimizer.minimize(frame.pointer, getElementPos, {
+      constraints: constraintsFn,
+    });
 
-    // COBYLA modifies x in-place, so pass a copy of curParams
-    const x: number[] = curParams.slice();
-
-    // Ensure x is not the zero vector (COBYLA uses zero as another
-    // simplex vertex, so they'd coincide)
-    if (x.every((v) => v === 0)) {
-      (x as number[])[0] = 1e-4;
-    }
-
-    const rhoend = 1e-3;
-    // Shrink the feasible region by a margin so COBYLA's ~rhoend
-    // constraint inaccuracy lands safely inside the actual boundary.
-    // This eliminates the need for post-hoc correction (bisect or
-    // projection), which caused either directional distortion or
-    // oscillation feedback loops.
-    const constraintMargin = 10 * rhoend;
-
-    // On the first frame, the initial params may be far from optimal
-    // (e.g. starting from [0,0]). Use a large enough trust region to
-    // reach the target. On subsequent frames we're warm-starting from
-    // the previous result, so a small trust region suffices.
-    let rhobeg = 1;
-    if (firstFrame) {
-      const initialPos = getElementPos(x);
-      rhobeg = Math.max(1, initialPos.dist(frame.pointer));
-      firstFrame = false;
-    }
-    FindMinimum(
-      (_n, _m, xArr, con) => {
-        // xArr is a Float64Array — copy into a plain number[]
-        const params: number[] = [];
-        for (let i = 0; i < n; i++) params[i] = xArr[i];
-
-        // Objective: distance² from pointer to element position
-        const pos = getElementPos(params);
-        const obj = pos.dist2(frame.pointer);
-
-        // Constraints: spec.constraint returns values where > 0 means
-        // violated. COBYLA wants con[k] >= 0 to mean satisfied. So negate,
-        // and subtract margin so COBYLA targets gs[k] <= -margin.
-        if (spec.constraint) {
-          const gs = manyToArray(spec.constraint(stateFromParams(params)));
-          for (let k = 0; k < gs.length; k++) {
-            con[k] = -gs[k] - constraintMargin;
-          }
-        }
-
-        return obj;
-      },
-      n,
-      numConstraints,
-      x,
-      rhobeg,
-      rhoend,
-      0, // iprint: silent
-      200, // maxfun: max evaluations
-    );
-
-    // x has been modified in-place by FindMinimum
-    const resultParams = x;
-
-    curParams = resultParams;
     const newState = stateFromParams(resultParams);
     const rendered = renderStateReadOnly(ctx, newState);
     const achievedPos = getElementPosition(ctx, rendered);
