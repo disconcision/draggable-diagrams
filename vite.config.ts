@@ -3,7 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { execSync } from "node:child_process";
 import { defineConfig, type Plugin } from "vite";
-import { qrcodePlugin } from "./vite-plugin-qrcode";
+import { qrcode } from "vite-plugin-qrcode";
 
 const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
 
@@ -66,7 +66,7 @@ export default defineConfig({
     },
     react(),
     tailwindcss(),
-    qrcodePlugin(),
+    qrcode(),
   ],
   define: {
     "process.env": {},
