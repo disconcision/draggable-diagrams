@@ -35,31 +35,17 @@ type State = {
   previewDot: DotLabel;
 };
 
+type RenderResult = { w: number; content: React.ReactElement };
+
 // ─── Constants ───
 
 const DIAMOND_R = 14;
-const BLK_PAD = 14;
 const BLK_HDR = 26;
 const BLK_RX = 8;
-const SLOT_W = 38;
-const BETWEEN_BODY_PAD = 18;
-const BTW_NOTCH_HW = DIAMOND_R;
-const BTW_NOTCH_D = DIAMOND_R;
-
-const WSR_PAD = 12;
-const WSR_SLIDER_H = 40;
-const WSR_MIN_W = 160;
-const WSR_DEFAULT_NOTCH_HW = 24;
-const WSR_NOTCH_PAD = 0;
-const WSR_NOTCH_D = 10;
-
-const CLS_PAD = 14;
-const CLS_GAP = 8;
-const CLS_DEFAULT_NHW = 30;
-
-const FLT_W = 100;
-const FXD_W = 80;
-const AS_MIN_W = 120;
+const BODY_PAD = 18;
+const NOTCH_D = 10;
+const DEFAULT_NHW = 24;
+const SLOT_PAD = 12;
 
 const TOOLBAR_H = 52;
 const CANVAS_W = 600;
@@ -92,153 +78,6 @@ const S: Record<string, BlockStyle> = {
   activeSpec: { bg: "#f1f5f9", stroke: "#94a3b8", text: "#475569", fs: 10 },
 };
 
-// ─── Geometry ───
-
-// -- Between --
-
-function btwSlots(e: BetweenExpr) {
-  return e.childIds.length + 1;
-}
-function btwW(e: BetweenExpr) {
-  return BLK_PAD * 2 + btwSlots(e) * SLOT_W;
-}
-function btwH() {
-  return BLK_HDR + BETWEEN_BODY_PAD;
-}
-function btwInlet(_e: BetweenExpr, i: number) {
-  return {
-    x: BLK_PAD + i * SLOT_W + SLOT_W / 2,
-    y: btwH() - BTW_NOTCH_D + DIAMOND_R,
-  };
-}
-
-// -- WSR --
-
-function wsrH() {
-  return BLK_HDR + WSR_SLIDER_H;
-}
-
-// -- Shared --
-
-function childBlockW(expr: Expr, nodes: Record<string, CanvasNode>): number {
-  switch (expr.type) {
-    case "between":
-      return btwW(expr);
-    case "closest":
-      return clsW(expr, nodes);
-    case "withSnapRadius":
-      return wsrW(expr, nodes);
-    case "withFloating": {
-      const nhw =
-        expr.childId && nodes[expr.childId]
-          ? childBlockW(nodes[expr.childId].expr, nodes) / 2
-          : WSR_DEFAULT_NOTCH_HW;
-      return Math.max(FLT_W, nhw * 2 + WSR_PAD * 2);
-    }
-    case "fixed":
-      return FXD_W;
-    default:
-      return DIAMOND_R * 2;
-  }
-}
-
-// -- WSR (continued) --
-
-function wsrNotchHW(
-  expr: WithSnapRadiusExpr,
-  nodes: Record<string, CanvasNode>,
-): number {
-  if (!expr.childId || !nodes[expr.childId]) return WSR_DEFAULT_NOTCH_HW;
-  return childBlockW(nodes[expr.childId].expr, nodes) / 2 + WSR_NOTCH_PAD;
-}
-
-function wsrW(
-  expr: WithSnapRadiusExpr,
-  nodes: Record<string, CanvasNode>,
-): number {
-  const nhw = wsrNotchHW(expr, nodes);
-  return Math.max(WSR_MIN_W, nhw * 2 + WSR_PAD * 2);
-}
-
-function wsrChildOff(
-  wsrExpr: WithSnapRadiusExpr,
-  childExpr: Expr,
-  nodes: Record<string, CanvasNode>,
-) {
-  const w = wsrW(wsrExpr, nodes);
-  const childW = childBlockW(childExpr, nodes);
-  return { x: w / 2 - childW / 2, y: wsrH() - WSR_NOTCH_D };
-}
-
-// -- Closest --
-
-function clsSlots(e: ClosestExpr) {
-  return e.childIds.length + 1;
-}
-
-function clsNHW(
-  expr: ClosestExpr,
-  i: number,
-  nodes: Record<string, CanvasNode>,
-): number {
-  if (i < expr.childIds.length && nodes[expr.childIds[i]]) {
-    return childBlockW(nodes[expr.childIds[i]].expr, nodes) / 2;
-  }
-  return CLS_DEFAULT_NHW;
-}
-
-function clsW(expr: ClosestExpr, nodes: Record<string, CanvasNode>): number {
-  const slots = clsSlots(expr);
-  let w = CLS_PAD * 2 + CLS_GAP * Math.max(0, slots - 1);
-  for (let i = 0; i < slots; i++) w += 2 * clsNHW(expr, i, nodes);
-  return w;
-}
-
-function clsSlotCenterX(
-  expr: ClosestExpr,
-  i: number,
-  nodes: Record<string, CanvasNode>,
-): number {
-  let x = CLS_PAD;
-  for (let j = 0; j < i; j++) {
-    x += 2 * clsNHW(expr, j, nodes) + CLS_GAP;
-  }
-  return x + clsNHW(expr, i, nodes);
-}
-
-function clsChildOff(
-  expr: ClosestExpr,
-  i: number,
-  childExpr: Expr,
-  nodes: Record<string, CanvasNode>,
-) {
-  const cx = clsSlotCenterX(expr, i, nodes);
-  const childW = childBlockW(childExpr, nodes);
-  return { x: cx - childW / 2, y: btwH() - WSR_NOTCH_D };
-}
-
-// -- Active Spec --
-
-function asNotchHW(state: State): number {
-  if (!state.activeSpecId || !state.nodes[state.activeSpecId])
-    return WSR_DEFAULT_NOTCH_HW;
-  return childBlockW(state.nodes[state.activeSpecId].expr, state.nodes) / 2;
-}
-
-function asW(state: State): number {
-  const nhw = asNotchHW(state);
-  return Math.max(AS_MIN_W, nhw * 2 + WSR_PAD * 2);
-}
-
-function asChildOff(state: State): { x: number; y: number } {
-  const w = asW(state);
-  const childW =
-    state.activeSpecId && state.nodes[state.activeSpecId]
-      ? childBlockW(state.nodes[state.activeSpecId].expr, state.nodes)
-      : 0;
-  return { x: w / 2 - childW / 2, y: btwH() - WSR_NOTCH_D };
-}
-
 // ─── Path Segment Helpers ───
 
 const R = BLK_RX;
@@ -252,81 +91,16 @@ const pCloseRounded = (h: number) =>
   ` H ${R}${arc(1, 0, h - R)} V ${R}${arc(1, R, 0)} Z`;
 const pCloseFlat = (h: number) => ` H ${R}${arc(1, 0, h - R)} Z`;
 
-// V-notch (diamond inlet): 3 path commands
 const pVNotch = (cx: number, hw: number, nd: number, h: number) =>
   ` H ${cx + hw} L ${cx},${h - nd} L ${cx - hw},${h}`;
 const pVNotchCollapsed = (x: number, h: number) =>
   ` H ${x} L ${x},${h} L ${x},${h}`;
 
-// Rounded-rect notch (spec inlet): 6 path commands
 const pRectNotch = (cx: number, hw: number, nd: number, h: number) =>
   ` H ${cx + hw} V ${h - nd + R}${arc(0, cx + hw - R, h - nd)}` +
   ` H ${cx - hw + R}${arc(0, cx - hw, h - nd + R)} V ${h}`;
 const pRectNotchCollapsed = (x: number, h: number) =>
   ` H ${x} V ${h}${arc(0, x, h, 0.01)} H ${x}${arc(0, x, h, 0.01)} V ${h}`;
-
-// ─── Path Builders ───
-
-const MAX_BTW_SLOTS = 6;
-const MAX_CLS_SLOTS = 6;
-
-function betweenPathD(expr: BetweenExpr): string {
-  const w = btwW(expr),
-    h = btwH(),
-    slots = btwSlots(expr);
-  let p = pRoundedTop(w, h);
-  for (let i = MAX_BTW_SLOTS - 1; i >= 0; i--)
-    p +=
-      i < slots
-        ? pVNotch(
-            BLK_PAD + i * SLOT_W + SLOT_W / 2,
-            BTW_NOTCH_HW,
-            BTW_NOTCH_D,
-            h,
-          )
-        : pVNotchCollapsed(w - R, h);
-  return p + pCloseRounded(h);
-}
-
-function wsrPathD(w: number, nhw: number): string {
-  const h = wsrH();
-  return (
-    pRoundedTop(w, h) +
-    pRectNotch(w / 2, nhw, WSR_NOTCH_D, h) +
-    pCloseRounded(h)
-  );
-}
-
-function closestPathD(
-  expr: ClosestExpr,
-  nodes: Record<string, CanvasNode>,
-): string {
-  const w = clsW(expr, nodes),
-    h = btwH(),
-    slots = clsSlots(expr);
-  let p = pRoundedTop(w, h);
-  for (let i = MAX_CLS_SLOTS - 1; i >= 0; i--)
-    p +=
-      i < slots
-        ? pRectNotch(
-            clsSlotCenterX(expr, i, nodes),
-            clsNHW(expr, i, nodes),
-            WSR_NOTCH_D,
-            h,
-          )
-        : pRectNotchCollapsed(w - R, h);
-  return p + pCloseRounded(h);
-}
-
-function activeSpecPathD(state: State): string {
-  const w = asW(state),
-    h = btwH();
-  return (
-    pSquareTop(w, h) +
-    pRectNotch(w / 2, asNotchHW(state), WSR_NOTCH_D, h) +
-    pCloseFlat(h)
-  );
-}
 
 // ─── Expr Helpers ───
 
@@ -701,7 +475,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   function renderSpecBlock(
     nodeId: string,
     node: CanvasNode,
-  ): React.ReactElement | null {
+  ): RenderResult | null {
     switch (node.expr.type) {
       case "between":
         return renderBetweenBlock(nodeId, node.expr);
@@ -718,31 +492,51 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     }
   }
 
-  function renderBetweenBlock(_parentId: string, expr: BetweenExpr) {
-    return (
+  function renderBetweenBlock(
+    _parentId: string,
+    expr: BetweenExpr,
+  ): RenderResult {
+    const PAD = 14,
+      SW = 38,
+      MAX_SLOTS = 6;
+    const slots = expr.childIds.length + 1;
+    const w = PAD * 2 + slots * SW;
+    const h = BLK_HDR + BODY_PAD;
+
+    let p = pRoundedTop(w, h);
+    for (let i = MAX_SLOTS - 1; i >= 0; i--)
+      p +=
+        i < slots
+          ? pVNotch(PAD + i * SW + SW / 2, DIAMOND_R, DIAMOND_R, h)
+          : pVNotchCollapsed(w - R, h);
+    p += pCloseRounded(h);
+
+    const content = (
       <g>
-        {blockHeader(betweenPathD(expr), btwW(expr), "between", S.between)}
+        {blockHeader(p, w, "between", S.between)}
         {expr.childIds.map((childId, i) => {
           const cn = state.nodes[childId];
           if (!cn || cn.expr.type !== "state") return null;
           return renderSnappedChild(
             childId,
-            btwInlet(expr, i),
+            { x: PAD + i * SW + SW / 2, y: h },
             renderDiamond(cn.expr.label),
           );
         })}
       </g>
     );
+    return { w, content };
   }
 
-  function renderFixedBlock(_parentId: string, expr: FixedExpr) {
-    const w = FXD_W;
-    const h = btwH();
+  function renderFixedBlock(_parentId: string, expr: FixedExpr): RenderResult {
+    const w = 80;
+    const h = BLK_HDR + BODY_PAD;
     const pathD =
       pRoundedTop(w, h) +
-      pVNotch(w / 2, BTW_NOTCH_HW, BTW_NOTCH_D, h) +
+      pVNotch(w / 2, DIAMOND_R, DIAMOND_R, h) +
       pCloseRounded(h);
-    return (
+
+    const content = (
       <g>
         {blockHeader(pathD, w, "fixed", S.fixed)}
         {expr.childId &&
@@ -752,58 +546,68 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             if (cn.expr.type !== "state") return null;
             return renderSnappedChild(
               expr.childId!,
-              { x: w / 2, y: h - BTW_NOTCH_D + DIAMOND_R },
+              { x: w / 2, y: h },
               renderDiamond(cn.expr.label),
             );
           })()}
       </g>
     );
+    return { w, content };
   }
 
-  function renderWithFloatingBlock(_parentId: string, expr: WithFloatingExpr) {
-    const nhw =
+  function renderWithFloatingBlock(
+    _parentId: string,
+    expr: WithFloatingExpr,
+  ): RenderResult {
+    const MIN_W = 100;
+    const h = BLK_HDR + BODY_PAD;
+    const child =
       expr.childId && state.nodes[expr.childId]
-        ? childBlockW(state.nodes[expr.childId].expr, state.nodes) / 2
-        : WSR_DEFAULT_NOTCH_HW;
-    const w = Math.max(FLT_W, nhw * 2 + WSR_PAD * 2);
-    return (
+        ? renderSpecBlock(expr.childId, state.nodes[expr.childId])
+        : null;
+    const nhw = child ? child.w / 2 : DEFAULT_NHW;
+    const w = Math.max(MIN_W, nhw * 2 + SLOT_PAD * 2);
+    const pathD =
+      pRoundedTop(w, h) + pRectNotch(w / 2, nhw, NOTCH_D, h) + pCloseRounded(h);
+
+    const content = (
       <g>
-        {blockHeader(
-          pRoundedTop(w, btwH()) +
-            pRectNotch(w / 2, nhw, WSR_NOTCH_D, btwH()) +
-            pCloseRounded(btwH()),
-          w,
-          "withFloating",
-          S.withFloating,
-        )}
-        {expr.childId &&
-          state.nodes[expr.childId] &&
-          (() => {
-            const childId = expr.childId!;
-            const cn = state.nodes[childId];
-            const childW = childBlockW(cn.expr, state.nodes);
-            return renderSnappedChild(
-              childId,
-              { x: w / 2 - childW / 2, y: btwH() - WSR_NOTCH_D },
-              renderSpecBlock(childId, cn),
-            );
-          })()}
+        {blockHeader(pathD, w, "withFloating", S.withFloating)}
+        {child &&
+          renderSnappedChild(
+            expr.childId!,
+            { x: w / 2 - child.w / 2, y: h - NOTCH_D },
+            child.content,
+          )}
       </g>
     );
+    return { w, content };
   }
 
-  function renderWSRBlock(parentId: string, expr: WithSnapRadiusExpr) {
-    const nhw = wsrNotchHW(expr, state.nodes);
-    const w = wsrW(expr, state.nodes);
-    const trackX = WSR_PAD;
-    const trackW = w - WSR_PAD * 2;
-    const sliderY = BLK_HDR + WSR_SLIDER_H / 2;
+  function renderWSRBlock(
+    parentId: string,
+    expr: WithSnapRadiusExpr,
+  ): RenderResult {
+    const SLIDER_H = 40,
+      MIN_W = 160;
+    const h = BLK_HDR + SLIDER_H;
+    const child =
+      expr.childId && state.nodes[expr.childId]
+        ? renderSpecBlock(expr.childId, state.nodes[expr.childId])
+        : null;
+    const nhw = child ? child.w / 2 : DEFAULT_NHW;
+    const w = Math.max(MIN_W, nhw * 2 + SLOT_PAD * 2);
+    const pathD =
+      pRoundedTop(w, h) + pRectNotch(w / 2, nhw, NOTCH_D, h) + pCloseRounded(h);
+    const trackX = SLOT_PAD;
+    const trackW = w - SLOT_PAD * 2;
+    const sliderY = BLK_HDR + SLIDER_H / 2;
     const knobX = trackX + (expr.radius / 30) * trackW;
     const parentDragged = draggedId === `n-${parentId}`;
 
-    return (
+    const content = (
       <g>
-        {blockHeader(wsrPathD(w, nhw), w, "withSnapRadius", S.wsr)}
+        {blockHeader(pathD, w, "withSnapRadius", S.wsr)}
         <line
           x1={trackX}
           y1={sliderY}
@@ -842,41 +646,73 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         >
           {Math.round(expr.radius)}
         </text>
-        {expr.childId &&
-          state.nodes[expr.childId] &&
-          (() => {
-            const childId = expr.childId!;
-            const cn = state.nodes[childId];
-            return renderSnappedChild(
-              childId,
-              wsrChildOff(expr, cn.expr, state.nodes),
-              renderSpecBlock(childId, cn),
-            );
-          })()}
+        {child &&
+          renderSnappedChild(
+            expr.childId!,
+            { x: w / 2 - child.w / 2, y: h - NOTCH_D },
+            child.content,
+          )}
       </g>
     );
+    return { w, content };
   }
 
-  function renderClosestBlock(_parentId: string, expr: ClosestExpr) {
-    return (
+  function renderClosestBlock(
+    _parentId: string,
+    expr: ClosestExpr,
+  ): RenderResult {
+    const PAD = 14,
+      GAP = 8,
+      EMPTY_NHW = 30,
+      MAX_SLOTS = 6;
+    const h = BLK_HDR + BODY_PAD;
+
+    const slots = expr.childIds.length + 1;
+    const children = expr.childIds.map((cid) => {
+      const cn = state.nodes[cid];
+      return cn ? renderSpecBlock(cid, cn) : null;
+    });
+
+    // Compute slot half-widths and centers
+    const nhws: number[] = [];
+    for (let i = 0; i < slots; i++)
+      nhws.push(
+        i < children.length && children[i] ? children[i]!.w / 2 : EMPTY_NHW,
+      );
+
+    let w = PAD * 2 + GAP * Math.max(0, slots - 1);
+    for (const nhw of nhws) w += 2 * nhw;
+
+    const centers: number[] = [];
+    let cx = PAD;
+    for (let i = 0; i < slots; i++) {
+      cx += nhws[i];
+      centers.push(cx);
+      cx += nhws[i] + GAP;
+    }
+
+    let p = pRoundedTop(w, h);
+    for (let i = MAX_SLOTS - 1; i >= 0; i--)
+      p +=
+        i < slots
+          ? pRectNotch(centers[i], nhws[i], NOTCH_D, h)
+          : pRectNotchCollapsed(w - R, h);
+    p += pCloseRounded(h);
+
+    const content = (
       <g>
-        {blockHeader(
-          closestPathD(expr, state.nodes),
-          clsW(expr, state.nodes),
-          "closest",
-          S.closest,
-        )}
-        {expr.childIds.map((childId, i) => {
-          const cn = state.nodes[childId];
-          if (!cn) return null;
+        {blockHeader(p, w, "closest", S.closest)}
+        {children.map((child, i) => {
+          if (!child) return null;
           return renderSnappedChild(
-            childId,
-            clsChildOff(expr, i, cn.expr, state.nodes),
-            renderSpecBlock(childId, cn),
+            expr.childIds[i],
+            { x: centers[i] - child.w / 2, y: h - NOTCH_D },
+            child.content,
           );
         })}
       </g>
     );
+    return { w, content };
   }
 
   function renderNode(nodeId: string, node: CanvasNode) {
@@ -884,7 +720,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     const inner =
       node.expr.type === "state"
         ? renderDiamond(node.expr.label)
-        : renderSpecBlock(nodeId, node);
+        : (renderSpecBlock(nodeId, node)?.content ?? null);
 
     return (
       <g
@@ -904,6 +740,20 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
 
   const previewDragSpec =
     state.activeSpecId !== null && compileExpr(d, state, state.activeSpecId);
+
+  // ── Active spec slot ──
+
+  const activeChild =
+    state.activeSpecId && state.nodes[state.activeSpecId]
+      ? renderSpecBlock(state.activeSpecId, state.nodes[state.activeSpecId])
+      : null;
+  const asNHW = activeChild ? activeChild.w / 2 : DEFAULT_NHW;
+  const asW = Math.max(120, asNHW * 2 + SLOT_PAD * 2);
+  const asH = BLK_HDR + BODY_PAD;
+  const asPathD =
+    pSquareTop(asW, asH) +
+    pRectNotch(asW / 2, asNHW, NOTCH_D, asH) +
+    pCloseFlat(asH);
 
   // ── Main render ──
 
@@ -984,24 +834,14 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         </text>
       </g>
 
-      {/* active spec slot (fixed, anchored to toolbar) */}
+      {/* active spec slot */}
       <g transform={translate(0, TOOLBAR_H)}>
-        {blockHeader(
-          activeSpecPathD(state),
-          asW(state),
-          "active spec",
-          S.activeSpec,
-        )}
-
-        {state.activeSpecId &&
-          state.nodes[state.activeSpecId] &&
+        {blockHeader(asPathD, asW, "active spec", S.activeSpec)}
+        {activeChild &&
           renderSnappedChild(
-            state.activeSpecId,
-            asChildOff(state),
-            renderSpecBlock(
-              state.activeSpecId,
-              state.nodes[state.activeSpecId],
-            ),
+            state.activeSpecId!,
+            { x: asW / 2 - activeChild.w / 2, y: asH - NOTCH_D },
+            activeChild.content,
           )}
       </g>
 
