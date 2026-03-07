@@ -171,10 +171,9 @@ function withFloatingBehavior<T extends object>(
     const elementPos = draggedElement
       ? localToGlobal(draggedElement.props.transform, ctx.pointerLocal)
       : Vec2(Infinity, Infinity);
-    const hasElement = layered.byId.has(draggedId);
 
     let backdrop: LayeredSvgx;
-    if (!hasElement) {
+    if (!draggedElement) {
       backdrop = layered;
     } else if (spec.ghost !== undefined) {
       const { remaining, extracted } = layeredExtract(layered, draggedId);
