@@ -188,34 +188,70 @@ function nodeDrag(
   nid: string,
 ): DragSpec<State> {
   const node = base.nodes[nid];
-  const snaps: State[] = [];
 
   const myKind = node.expr.type === "state" ? "state" : "spec";
+  const targets: DragSpec<State>[] = [];
+
   for (const [sid, sn] of Object.entries(base.nodes)) {
     if (sid === nid) continue;
     const slotKind = exprSlotKind(sn.expr);
     if (slotKind === myKind) {
       for (const i of exprOpenSlots(sn.expr)) {
-        snaps.push(
-          produce(base, (draft) => {
-            insertChild(draft.nodes[sid].expr, nid, i);
-          }),
+        targets.push(
+          d.floating(
+            produce(base, (draft) => {
+              insertChild(draft.nodes[sid].expr, nid, i);
+            }),
+          ),
         );
       }
     }
     // States can also snap into spec slots via an auto-created fixed adapter
     if (myKind === "state" && slotKind === "spec") {
       for (const i of exprOpenSlots(sn.expr)) {
-        snaps.push(
-          produce(base, (draft) => {
-            const fixedId = makeId();
-            draft.nodes[fixedId] = {
-              expr: { type: "fixed", childId: nid },
-              x: sn.x,
-              y: sn.y,
-            };
-            insertChild(draft.nodes[sid].expr, fixedId, i);
-          }),
+        targets.push(
+          d.floating(
+            produce(base, (draft) => {
+              const fixedId = makeId();
+              draft.nodes[fixedId] = {
+                expr: { type: "fixed", childId: nid },
+                x: sn.x,
+                y: sn.y,
+              };
+              insertChild(draft.nodes[sid].expr, fixedId, i);
+            }),
+          ),
+        );
+      }
+    }
+  }
+
+  // Chain insertion: splice a single-child spec node between a parent and its
+  // existing spec child (e.g. drag withFloating onto closest→between edge)
+  if (
+    myKind === "spec" &&
+    "childId" in node.expr &&
+    node.expr.childId === null
+  ) {
+    const draggedSlotKind = exprSlotKind(node.expr);
+    for (const [sid, sn] of Object.entries(base.nodes)) {
+      if (sid === nid || exprSlotKind(sn.expr) !== "spec") continue;
+      const children = exprChildren(sn.expr);
+      for (let i = 0; i < children.length; i++) {
+        const cid = children[i];
+        const childNode = base.nodes[cid];
+        if (!childNode) continue;
+        const childKind = childNode.expr.type === "state" ? "state" : "spec";
+        if (childKind !== draggedSlotKind) continue;
+        targets.push(
+          d.fixed(
+            produce(base, (draft) => {
+              removeChild(draft.nodes[sid].expr, i);
+              insertChild(draft.nodes[sid].expr, nid, i);
+              (draft.nodes[nid].expr as { childId: string | null }).childId =
+                cid;
+            }),
+          ),
         );
       }
     }
@@ -226,21 +262,14 @@ function nodeDrag(
   const deleted = produce(base, (draft) => {
     for (const id of idsToDelete) delete draft.nodes[id];
   });
+  targets.push(d.dropTarget(deleted, "trash-bin"));
 
   const free = d.vary(base, [
     ["nodes", nid, "x"],
     ["nodes", nid, "y"],
   ]);
 
-  if (snaps.length > 0) {
-    return d
-      .closest([
-        d.closest(snaps).withFloating(),
-        d.dropTarget(deleted, "trash-bin"),
-      ])
-      .whenFar(free, { distance: 40 });
-  }
-  return d.closest([d.dropTarget(deleted, "trash-bin")]).whenFar(free);
+  return d.closest(targets).whenFar(free, { distance: 40 });
 }
 
 // ─── Initial State ───
