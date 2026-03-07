@@ -18,12 +18,14 @@ type WithSnapRadiusExpr = {
 };
 type ClosestExpr = { type: "closest"; childIds: string[] };
 type WithFloatingExpr = { type: "withFloating"; childId: string | null };
+type FixedExpr = { type: "fixed"; childId: string | null };
 type Expr =
   | StateExpr
   | BetweenExpr
   | WithSnapRadiusExpr
   | ClosestExpr
-  | WithFloatingExpr;
+  | WithFloatingExpr
+  | FixedExpr;
 
 type CanvasNode = { expr: Expr; x: number; y: number };
 type DotLabel = "A" | "B" | "C";
@@ -56,6 +58,7 @@ const CLS_GAP = 8;
 const CLS_DEFAULT_NHW = 30;
 
 const FLT_W = 100;
+const FXD_W = 80;
 const AS_MIN_W = 120;
 
 const TOOLBAR_H = 52;
@@ -83,6 +86,7 @@ type BlockStyle = { bg: string; stroke: string; text: string; fs: number };
 const S: Record<string, BlockStyle> = {
   between: { bg: "#ede9fe", stroke: "#c4b5fd", text: "#7c3aed", fs: 11 },
   withFloating: { bg: "#ccfbf1", stroke: "#5eead4", text: "#0f766e", fs: 10 },
+  fixed: { bg: "#fce7f3", stroke: "#f9a8d4", text: "#be185d", fs: 11 },
   closest: { bg: "#fef3c7", stroke: "#fcd34d", text: "#b45309", fs: 11 },
   wsr: { bg: "#e0f2fe", stroke: "#93c5fd", text: "#2563eb", fs: 10 },
   activeSpec: { bg: "#f1f5f9", stroke: "#94a3b8", text: "#475569", fs: 10 },
@@ -131,6 +135,8 @@ function childBlockW(expr: Expr, nodes: Record<string, CanvasNode>): number {
           : WSR_DEFAULT_NOTCH_HW;
       return Math.max(FLT_W, nhw * 2 + WSR_PAD * 2);
     }
+    case "fixed":
+      return FXD_W;
     default:
       return DIAMOND_R * 2;
   }
@@ -333,6 +339,7 @@ function exprChildren(e: Expr): string[] {
 function exprSlotKind(e: Expr): "state" | "spec" | null {
   switch (e.type) {
     case "between":
+    case "fixed":
       return "state";
     case "closest":
     case "withSnapRadius":
@@ -579,6 +586,12 @@ function compileExpr(
       if (!inner) return null;
       return inner.withSnapRadius(expr.radius);
     }
+    case "fixed": {
+      if (!expr.childId || !state.nodes[expr.childId]) return null;
+      const cn = state.nodes[expr.childId];
+      if (cn.expr.type !== "state") return null;
+      return d.fixed({ ...state, previewDot: cn.expr.label });
+    }
     default:
       return null;
   }
@@ -632,16 +645,22 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
       x: 150,
     },
     {
+      label: "fixed",
+      makeExpr: (): Expr => ({ type: "fixed", childId: null }),
+      preview: tbPreview("fixed", S.fixed),
+      x: 220,
+    },
+    {
       label: "withFloating",
       makeExpr: (): Expr => ({ type: "withFloating", childId: null }),
       preview: tbPreview("withFloating", S.withFloating, 36, 8),
-      x: 230,
+      x: 300,
     },
     {
       label: "closest",
       makeExpr: (): Expr => ({ type: "closest", childIds: [] }),
       preview: tbPreview("closest", S.closest),
-      x: 310,
+      x: 390,
     },
     {
       label: "wsr",
@@ -651,7 +670,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         radius: 15,
       }),
       preview: tbPreview("withSnapRadius", S.wsr, 42, 8),
-      x: 410,
+      x: 490,
     },
   ];
 
@@ -692,6 +711,8 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         return renderClosestBlock(nodeId, node.expr);
       case "withFloating":
         return renderWithFloatingBlock(nodeId, node.expr);
+      case "fixed":
+        return renderFixedBlock(nodeId, node.expr);
       default:
         return null;
     }
@@ -710,6 +731,31 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             renderDiamond(cn.expr.label),
           );
         })}
+      </g>
+    );
+  }
+
+  function renderFixedBlock(_parentId: string, expr: FixedExpr) {
+    const w = FXD_W;
+    const h = btwH();
+    const pathD =
+      pRoundedTop(w, h) +
+      pVNotch(w / 2, BTW_NOTCH_HW, BTW_NOTCH_D, h) +
+      pCloseRounded(h);
+    return (
+      <g>
+        {blockHeader(pathD, w, "fixed", S.fixed)}
+        {expr.childId &&
+          state.nodes[expr.childId] &&
+          (() => {
+            const cn = state.nodes[expr.childId!];
+            if (cn.expr.type !== "state") return null;
+            return renderSnappedChild(
+              expr.childId!,
+              { x: w / 2, y: h - BTW_NOTCH_D + DIAMOND_R },
+              renderDiamond(cn.expr.label),
+            );
+          })()}
       </g>
     );
   }
@@ -1032,6 +1078,7 @@ export default demo(
       "d.switchToStateAndFollow",
       "d.between",
       "d.vary [w/constraint]",
+      "d.fixed",
       "d.closest",
       "spec.withFloating",
       "spec.whenFar",
