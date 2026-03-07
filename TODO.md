@@ -15,3 +15,5 @@
 - names...
   - "drawer" -> "engine"?
   - eliminate other "data-"s?
+
+- would be nice if withFloating could work on an un-id'd element

@@ -1,5 +1,11 @@
+import { useMemo, useState } from "react";
 import { demo } from "../demo";
-import { DemoDraggable } from "../demo/ui";
+import {
+  ConfigCheckbox,
+  ConfigPanel,
+  DemoDraggable,
+  DemoWithConfig,
+} from "../demo/ui";
 import { Draggable } from "../draggable";
 import { translate } from "../svgx/helpers";
 
@@ -19,46 +25,66 @@ const COLOR = {
   b: "#3b82f6",
 };
 
-const draggable: Draggable<State> = ({ state, d }) => (
-  <g transform={translate(60, 30)}>
-    {/* Target dots */}
-    {(["r", "g", "b"] as const).map((name) => (
+const makeDraggable = (useFloating: boolean): Draggable<State> => {
+  const states = [{ name: "r" }, { name: "g" }, { name: "b" }] as const;
+  return ({ state, d }) => (
+    <g transform={translate(60, 30)}>
+      {/* Target dots */}
+      {(["r", "g", "b"] as const).map((name) => (
+        <circle
+          transform={translate(POS[name].x, POS[name].y)}
+          r={16}
+          fill={COLOR[name]}
+          opacity={0.25}
+        />
+      ))}
+
+      {/* Draggable knob */}
       <circle
-        transform={translate(POS[name].x, POS[name].y)}
+        id="knob"
+        transform={translate(POS[state.name].x, POS[state.name].y)}
         r={16}
-        fill={COLOR[name]}
-        opacity={0.25}
+        fill={COLOR[state.name]}
+        stroke="white"
+        strokeWidth={3}
+        filter="url(#shadow)"
+        dragology={() => {
+          const spec = d.between(...states);
+          return useFloating ? spec.withFloating() : spec;
+        }}
       />
-    ))}
 
-    {/* Draggable knob */}
-    <circle
-      transform={translate(POS[state.name].x, POS[state.name].y)}
-      r={16}
-      fill={COLOR[state.name]}
-      stroke="white"
-      strokeWidth={3}
-      filter="url(#shadow)"
-      dragology={() => d.between({ name: "r" }, { name: "g" }, { name: "b" })}
-    />
-
-    {/* Drop-shadow filter */}
-    <defs>
-      <filter id="shadow" x="-100%" y="-100%" width="300%" height="300%">
-        <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.2" />
-      </filter>
-    </defs>
-  </g>
-);
+      {/* Drop-shadow filter */}
+      <defs>
+        <filter id="shadow" x="-100%" y="-100%" width="300%" height="300%">
+          <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.2" />
+        </filter>
+      </defs>
+    </g>
+  );
+};
 
 export default demo(
-  () => (
-    <DemoDraggable
-      draggable={draggable}
-      initialState={initialState}
-      width={200}
-      height={200}
-    />
-  ),
+  () => {
+    const [useFloating, setUseFloating] = useState(false);
+    const draggable = useMemo(() => makeDraggable(useFloating), [useFloating]);
+    return (
+      <DemoWithConfig>
+        <DemoDraggable
+          draggable={draggable}
+          initialState={initialState}
+          width={200}
+          height={200}
+        />
+        <ConfigPanel>
+          <ConfigCheckbox
+            label="Use withFloating"
+            value={useFloating}
+            onChange={setUseFloating}
+          />
+        </ConfigPanel>
+      </DemoWithConfig>
+    );
+  },
   { tags: ["d.between"] },
 );
