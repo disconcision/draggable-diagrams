@@ -19,19 +19,21 @@ type WithSnapRadiusExpr = {
 type ClosestExpr = { type: "closest"; childIds: string[] };
 type WithFloatingExpr = { type: "withFloating"; childId: string | null };
 type FixedExpr = { type: "fixed"; childId: string | null };
+type ActiveSpecExpr = { type: "activeSpec"; childId: string | null };
 type Expr =
   | StateExpr
   | BetweenExpr
   | WithSnapRadiusExpr
   | ClosestExpr
   | WithFloatingExpr
-  | FixedExpr;
+  | FixedExpr
+  | ActiveSpecExpr;
 
 type CanvasNode = { expr: Expr; x: number; y: number };
 type DotLabel = "A" | "B" | "C";
+const ACTIVE_SPEC_ID = "active-spec";
 type State = {
   nodes: Record<string, CanvasNode>;
-  activeSpecId: string | null;
   previewDot: DotLabel;
 };
 
@@ -118,6 +120,7 @@ function exprSlotKind(e: Expr): "state" | "spec" | null {
     case "closest":
     case "withSnapRadius":
     case "withFloating":
+    case "activeSpec":
       return "spec";
     default:
       return null;
@@ -155,11 +158,6 @@ function findParent(state: State, nodeId: string) {
 
 function detach(state: State, nodeId: string): State {
   return produce(state, (draft) => {
-    if (draft.activeSpecId === nodeId) {
-      draft.activeSpecId = null;
-      draft.nodes[nodeId].x = 0;
-      draft.nodes[nodeId].y = TOOLBAR_H;
-    }
     const parent = findParent(state, nodeId);
     if (parent) {
       const pn = state.nodes[parent.parentId];
@@ -222,35 +220,11 @@ function nodeDrag(
       }
     }
   }
-  // Spec blocks also snap into the active spec slot
-  if (myKind === "spec" && !base.activeSpecId) {
-    snaps.push(
-      produce(base, (draft) => {
-        draft.activeSpecId = nid;
-      }),
-    );
-  }
-  // States can snap into the active spec slot via a fixed adapter
-  if (myKind === "state" && !base.activeSpecId) {
-    snaps.push(
-      produce(base, (draft) => {
-        const fixedId = makeId();
-        draft.nodes[fixedId] = {
-          expr: { type: "fixed", childId: nid },
-          x: 0,
-          y: TOOLBAR_H,
-        };
-        draft.activeSpecId = fixedId;
-      }),
-    );
-  }
 
   // Delete state: remove node and all its descendants
   const idsToDelete = collectDescendants(base.nodes, nid);
   const deleted = produce(base, (draft) => {
     for (const id of idsToDelete) delete draft.nodes[id];
-    if (draft.activeSpecId && idsToDelete.includes(draft.activeSpecId))
-      draft.activeSpecId = null;
   });
 
   const free = d.vary(base, [
@@ -272,8 +246,13 @@ function nodeDrag(
 // ─── Initial State ───
 
 const initialState: State = {
-  nodes: {},
-  activeSpecId: null,
+  nodes: {
+    [ACTIVE_SPEC_ID]: {
+      expr: { type: "activeSpec", childId: null },
+      x: 0,
+      y: TOOLBAR_H,
+    },
+  },
   previewDot: "A",
 };
 
@@ -399,6 +378,10 @@ function compileExpr(
       if (cn.expr.type !== "state") return null;
       return d.fixed({ ...state, previewDot: cn.expr.label });
     }
+    case "activeSpec": {
+      if (!expr.childId) return null;
+      return compileExpr(d, state, expr.childId);
+    }
     default:
       return null;
   }
@@ -407,11 +390,10 @@ function compileExpr(
 // ─── Draggable ───
 
 const draggable: Draggable<State> = ({ state, d, draggedId }) => {
-  // Collect snapped IDs
-  const snappedIds = new Set<string>();
+  // Collect snapped IDs (children of other nodes + the permanent active-spec node)
+  const snappedIds = new Set<string>([ACTIVE_SPEC_ID]);
   for (const n of Object.values(state.nodes))
     for (const cid of exprChildren(n.expr)) snappedIds.add(cid);
-  if (state.activeSpecId) snappedIds.add(state.activeSpecId);
 
   // ── Toolbar defs ──
 
@@ -771,14 +753,19 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     );
   }
 
+  const activeSpecNode = state.nodes[ACTIVE_SPEC_ID];
+  const activeSpecExpr = activeSpecNode.expr as ActiveSpecExpr;
   const previewDragSpec =
-    state.activeSpecId !== null && compileExpr(d, state, state.activeSpecId);
+    activeSpecExpr.childId !== null && compileExpr(d, state, ACTIVE_SPEC_ID);
 
   // ── Active spec slot ──
 
   const activeChild =
-    state.activeSpecId && state.nodes[state.activeSpecId]
-      ? renderSpecBlock(state.activeSpecId, state.nodes[state.activeSpecId])
+    activeSpecExpr.childId && state.nodes[activeSpecExpr.childId]
+      ? renderSpecBlock(
+          activeSpecExpr.childId,
+          state.nodes[activeSpecExpr.childId],
+        )
       : null;
   const asNHW = activeChild ? activeChild.w / 2 : DEFAULT_NHW;
   const asW = Math.max(120, asNHW * 2 + SLOT_PAD * 2);
@@ -872,7 +859,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         {blockHeader(asPathD, asW, "active spec", S.activeSpec)}
         {activeChild &&
           renderSnappedChild(
-            state.activeSpecId!,
+            activeSpecExpr.childId!,
             { x: asW / 2 - activeChild.w / 2, y: asH - NOTCH_D },
             activeChild.content,
           )}
