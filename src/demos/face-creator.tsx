@@ -2,41 +2,41 @@ import { demo } from "../demo";
 import { DemoDraggable, DemoNotes } from "../demo/ui";
 import { Draggable } from "../draggable";
 import { lessThan, moreThan } from "../DragSpec";
+import { PathIn } from "../paths";
 import { translate } from "../svgx/helpers";
 
-// Face dimensions
+// Face dimensions (hardcoded — candidates for future state)
 const FACE_CX = 200;
 const FACE_CY = 180;
 const FACE_R = 120;
 
-// Eye layout (horizontal offset from center is fixed; vertical is state)
-const EYE_DX = 40;
 const EYE_R = 12;
 const EYE_MARGIN = 8;
-
 const FACE_MARGIN = 10;
+const MIN_EYE_SPACING = EYE_R + 5;
 
 type State = {
-  // Eye y-position (will be draggable later)
   eyeY: number;
-  // Mouth endpoints: symmetric around FACE_CX
-  mouthDx: number; // half-width (distance from center to each endpoint)
-  mouthEy: number; // y position of both endpoints
-  // Control point offsets relative to their respective endpoint
-  cp1dx: number; // cp1 offset from left endpoint
+  eyeDx: number;
+  mouthDx: number;
+  mouthEy: number;
+  cp1dx: number;
   cp1dy: number;
-  cp2dx: number; // cp2 offset from right endpoint
+  cp2dx: number;
   cp2dy: number;
+  pinned: { eyes: boolean; mouth: boolean };
 };
 
 const initialState: State = {
   eyeY: FACE_CY - 25,
+  eyeDx: 40,
   mouthDx: 50,
   mouthEy: FACE_CY + 40,
   cp1dx: 20,
   cp1dy: 30,
   cp2dx: -20,
   cp2dy: 30,
+  pinned: { eyes: false, mouth: false },
 };
 
 // Derived positions
@@ -55,10 +55,10 @@ function cp2(s: State) {
   return { x: mr.x + s.cp2dx, y: mr.y + s.cp2dy };
 }
 function leftEye(s: State) {
-  return { x: FACE_CX - EYE_DX, y: s.eyeY };
+  return { x: FACE_CX - s.eyeDx, y: s.eyeY };
 }
 function rightEye(s: State) {
-  return { x: FACE_CX + EYE_DX, y: s.eyeY };
+  return { x: FACE_CX + s.eyeDx, y: s.eyeY };
 }
 
 function mouthPath(s: State): string {
@@ -98,10 +98,27 @@ function dist(
 
 const faceCenter = { x: FACE_CX, y: FACE_CY };
 
-function mouthCurveConstraints(s: State): number[] {
+function allConstraints(s: State): number[] {
   const results: number[] = [];
   const le = leftEye(s);
   const re = rightEye(s);
+  const ml = mouthLeft(s);
+  const mr = mouthRight(s);
+
+  // Eyes inside face
+  results.push(lessThan(dist(le, faceCenter), FACE_R - FACE_MARGIN));
+  results.push(lessThan(dist(re, faceCenter), FACE_R - FACE_MARGIN));
+  // Eye minimum spacing
+  results.push(moreThan(s.eyeDx, MIN_EYE_SPACING));
+  // Endpoints inside face
+  results.push(lessThan(dist(ml, faceCenter), FACE_R - FACE_MARGIN));
+  results.push(lessThan(dist(mr, faceCenter), FACE_R - FACE_MARGIN));
+  // Eyes above mouth
+  results.push(lessThan(s.eyeY, s.mouthEy));
+  // Mouth minimum width
+  results.push(moreThan(s.mouthDx, 10));
+
+  // Curve point constraints
   const N = 8;
   for (let i = 0; i <= N; i++) {
     const t = i / N;
@@ -120,46 +137,6 @@ function mouthCurveConstraints(s: State): number[] {
   return results;
 }
 
-function endpointConstraints(s: State): number[] {
-  const results: number[] = [];
-  const ml = mouthLeft(s);
-  const mr = mouthRight(s);
-  // Endpoints inside face
-  results.push(lessThan(dist(ml, faceCenter), FACE_R - FACE_MARGIN));
-  results.push(lessThan(dist(mr, faceCenter), FACE_R - FACE_MARGIN));
-  // Endpoints below eye line
-  results.push(moreThan(s.mouthEy, s.eyeY));
-  // Mouth must have positive width
-  results.push(moreThan(s.mouthDx, 10));
-  // Also enforce curve constraints (moving endpoints can push curve out)
-  return [...results, ...mouthCurveConstraints(s)];
-}
-
-// Pin the far CP offsets based on which side of the curve is grabbed
-function varyOptsForT(t: number) {
-  const pinCp2 = (s: State) => [s.cp2dx, s.cp2dy];
-  const pinCp1 = (s: State) => [s.cp1dx, s.cp1dy];
-
-  if (t < 0.4) {
-    return {
-      paramPaths: [["cp1dx"], ["cp1dy"]] as const,
-      constraint: mouthCurveConstraints,
-      pin: pinCp2,
-    };
-  } else if (t > 0.6) {
-    return {
-      paramPaths: [["cp2dx"], ["cp2dy"]] as const,
-      constraint: mouthCurveConstraints,
-      pin: pinCp1,
-    };
-  } else {
-    return {
-      paramPaths: [["cp1dx"], ["cp1dy"], ["cp2dx"], ["cp2dy"]] as const,
-      constraint: mouthCurveConstraints,
-    };
-  }
-}
-
 const CURVE_SAMPLES = 11;
 const tValues = Array.from(
   { length: CURVE_SAMPLES },
@@ -167,12 +144,39 @@ const tValues = Array.from(
 );
 
 const ENDPOINT_R = 6;
+const PIN_R = 5;
+const PIN_X = FACE_CX + FACE_R + 18;
 
 const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   const ml = mouthLeft(state);
   const mr = mouthRight(state);
   const le = leftEye(state);
   const re = rightEye(state);
+  const eyesPinned = state.pinned.eyes;
+  const mouthPinned = state.pinned.mouth;
+
+  function eyeDragology() {
+    const paths: PathIn<State, number>[] = [["eyeY"], ["eyeDx"]];
+    if (!mouthPinned) paths.push(["mouthEy"]);
+    return d.vary(state, paths, { constraint: allConstraints });
+  }
+
+  function endpointDragology() {
+    const paths: PathIn<State, number>[] = [["mouthDx"], ["mouthEy"]];
+    if (!eyesPinned) paths.push(["eyeY"]);
+    return d.vary(state, paths, { constraint: allConstraints });
+  }
+
+  function curveDragology(t: number) {
+    const paths: PathIn<State, number>[] =
+      t < 0.4
+        ? [["cp1dx"], ["cp1dy"]]
+        : t > 0.6
+          ? [["cp2dx"], ["cp2dy"]]
+          : [["cp1dx"], ["cp1dy"], ["cp2dx"], ["cp2dy"]];
+    if (!eyesPinned) paths.push(["eyeY"]);
+    return d.vary(state, paths, { constraint: allConstraints });
+  }
 
   return (
     <g>
@@ -188,24 +192,22 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         data-z-index={0}
       />
 
-      {/* Left eye */}
+      {/* Eyes */}
       <circle
         id="left-eye"
-        cx={le.x}
-        cy={le.y}
+        transform={translate(le.x, le.y)}
         r={EYE_R}
         fill="#333"
         data-z-index={1}
+        dragology={eyeDragology}
       />
-
-      {/* Right eye */}
       <circle
         id="right-eye"
-        cx={re.x}
-        cy={re.y}
+        transform={translate(re.x, re.y)}
         r={EYE_R}
         fill="#333"
         data-z-index={1}
+        dragology={eyeDragology}
       />
 
       {/* Mouth curve */}
@@ -225,7 +227,6 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         const pt = evalMouthBezier(state, t);
         const id = `mouth-${t}`;
         const isDragged = draggedId === id;
-        const opts = varyOptsForT(t);
         return (
           <circle
             id={id}
@@ -233,12 +234,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             r={isDragged ? 8 : 14}
             fill={isDragged ? "rgba(192, 57, 43, 0.4)" : "transparent"}
             data-z-index={2}
-            dragology={() =>
-              d.vary(state, opts.paramPaths as any, {
-                constraint: opts.constraint,
-                pin: "pin" in opts ? opts.pin : undefined,
-              })
-            }
+            dragology={() => curveDragology(t)}
           />
         );
       })}
@@ -252,12 +248,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         stroke="#7f1d1d"
         strokeWidth={1.5}
         data-z-index={3}
-        dragology={() =>
-          d.vary(state, [["mouthDx"], ["mouthEy"]], {
-            constraint: endpointConstraints,
-            pin: (s) => [s.cp1dx, s.cp1dy, s.cp2dx, s.cp2dy],
-          })
-        }
+        dragology={endpointDragology}
       />
       <circle
         id="mouth-endpoint-right"
@@ -267,13 +258,60 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         stroke="#7f1d1d"
         strokeWidth={1.5}
         data-z-index={3}
-        dragology={() =>
-          d.vary(state, [["mouthDx"], ["mouthEy"]], {
-            constraint: endpointConstraints,
-            pin: (s) => [s.cp1dx, s.cp1dy, s.cp2dx, s.cp2dy],
-          })
-        }
+        dragology={endpointDragology}
       />
+
+      {/* Pin toggles — always render both circle and line, toggle opacity */}
+      <g id="pin-eyes" data-z-index={4}>
+        <circle
+          transform={translate(PIN_X, state.eyeY)}
+          r={PIN_R}
+          fill={eyesPinned ? "#666" : "transparent"}
+          stroke={eyesPinned ? "#666" : "#ccc"}
+          strokeWidth={1.5}
+          dragology={() =>
+            d.fixed({
+              ...state,
+              pinned: { ...state.pinned, eyes: !eyesPinned },
+            })
+          }
+        />
+        <line
+          x1={PIN_X}
+          y1={state.eyeY - PIN_R + 1}
+          x2={PIN_X}
+          y2={state.eyeY + PIN_R + 3}
+          stroke="#666"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          opacity={eyesPinned ? 1 : 0}
+        />
+      </g>
+      <g id="pin-mouth" data-z-index={4}>
+        <circle
+          transform={translate(PIN_X, state.mouthEy)}
+          r={PIN_R}
+          fill={mouthPinned ? "#666" : "transparent"}
+          stroke={mouthPinned ? "#666" : "#ccc"}
+          strokeWidth={1.5}
+          dragology={() =>
+            d.fixed({
+              ...state,
+              pinned: { ...state.pinned, mouth: !mouthPinned },
+            })
+          }
+        />
+        <line
+          x1={PIN_X}
+          y1={state.mouthEy - PIN_R + 1}
+          x2={PIN_X}
+          y2={state.mouthEy + PIN_R + 3}
+          stroke="#666"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          opacity={mouthPinned ? 1 : 0}
+        />
+      </g>
     </g>
   );
 };
@@ -282,8 +320,10 @@ export default demo(
   () => (
     <div>
       <DemoNotes>
-        Drag anywhere on the mouth to reshape it. Drag the endpoint dots to
-        widen, narrow, or reposition the mouth (endpoints move symmetrically).
+        Drag eyes to move them vertically or adjust spacing. Drag anywhere on the
+        mouth to reshape it, or drag endpoint dots to reposition. Unpinned
+        features get pushed out of the way. Click the indicators on the right to
+        pin/unpin.
       </DemoNotes>
       <DemoDraggable
         draggable={draggable}
