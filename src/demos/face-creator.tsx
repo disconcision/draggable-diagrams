@@ -384,8 +384,8 @@ function faceShapeConstraints(s: State): number[] {
   for (let i = 0; i < n; i++) {
     let diff = angles[(i + 1) % n] - angles[i];
     if (diff < -Math.PI) diff += 2 * Math.PI;
-    // Each angular step must be positive (clockwise in screen coords)
-    results.push(moreThan(diff, 0));
+    // Each step must be at least 25% of uniform spacing (prevents sharp pinches)
+    results.push(moreThan(diff, (2 * Math.PI) / n * 0.25));
   }
   return results;
 }
@@ -432,6 +432,51 @@ function clampEyesAboveCurve(s: State): State {
     return { ...s, eyeY: minEyeY };
   }
   return s;
+}
+
+// Expand face radii so a point fits inside (instead of clamping the point).
+// Decomposes the deficit into horizontal/vertical and expands the relevant radii.
+function expandFaceForPoint(
+  s: State,
+  point: { x: number; y: number },
+  margin: number,
+): State {
+  const samples = sampleFaceOutline(s);
+  const dx = point.x - FACE_CX;
+  const dy = point.y - FACE_CY;
+  const pointDist = Math.sqrt(dx * dx + dy * dy);
+  if (pointDist === 0) return s;
+  const angle = Math.atan2(dy, dx);
+  const maxDist = faceRadiusAtAngle(samples, angle) - margin;
+  if (pointDist <= maxDist) return s;
+
+  const deficit = pointDist - maxDist;
+  const cosA = Math.abs(Math.cos(angle));
+  const sinA = Math.abs(Math.sin(angle));
+
+  return {
+    ...s,
+    faceRx: s.faceRx + deficit * cosA,
+    faceRyTop: dy < 0 ? s.faceRyTop + deficit * sinA : s.faceRyTop,
+    faceRyBot: dy > 0 ? s.faceRyBot + deficit * sinA : s.faceRyBot,
+  };
+}
+
+// Expand face to contain all feature points.
+function expandFaceForFeatures(s: State): State {
+  let result = s;
+  result = expandFaceForPoint(result, leftEye(result), FACE_MARGIN);
+  result = expandFaceForPoint(result, rightEye(result), FACE_MARGIN);
+  result = expandFaceForPoint(result, mouthLeft(result), FACE_MARGIN);
+  result = expandFaceForPoint(result, mouthRight(result), FACE_MARGIN);
+  for (let i = 0; i <= 8; i++) {
+    result = expandFaceForPoint(
+      result,
+      evalMouthBezier(result, i / 8),
+      FACE_MARGIN,
+    );
+  }
+  return result;
 }
 
 function clampInsideFace(s: State): State {
@@ -601,6 +646,7 @@ function makeDraggable(
           };
         }
         if (eyesAboveMouth) result = clampEyesAboveCurve(result);
+        result = expandFaceForFeatures(result);
         return clampInsideFace(result);
       });
     }
@@ -632,6 +678,7 @@ function makeDraggable(
             cp2dy: origCp2dy * vyScale,
           };
         }
+        result = expandFaceForFeatures(result);
         return clampInsideFace(result);
       });
     }
@@ -647,6 +694,7 @@ function makeDraggable(
       return spec.during((s) => {
         let result = eyesPinned ? s : pushEyesAway(s);
         if (eyesAboveMouth) result = clampEyesAboveCurve(result);
+        result = expandFaceForFeatures(result);
         return clampInsideFace(result);
       });
     }
