@@ -193,6 +193,49 @@ function clampEyesAboveCurve(s: State): State {
   return s;
 }
 
+// Clamp all features to stay inside the face circle.
+// Run as the last step in every .during() to enforce the invariant.
+function clampInsideFace(s: State): State {
+  const maxR = FACE_R - FACE_MARGIN;
+  let result = s;
+
+  // Clamp eyes: ensure both eyes are inside the circle
+  const leDist = dist(leftEye(result), faceCenter);
+  const reDist = dist(rightEye(result), faceCenter);
+  if (leDist > maxR || reDist > maxR) {
+    // Shrink eyeDx if eyes are too wide for this eyeY
+    const dy = result.eyeY - FACE_CY;
+    const maxDx = Math.sqrt(Math.max(0, maxR ** 2 - dy ** 2));
+    let newEyeDx = Math.min(result.eyeDx, maxDx);
+    newEyeDx = Math.max(newEyeDx, MIN_EYE_SPACING);
+    // If still outside, adjust eyeY toward center
+    let newEyeY = result.eyeY;
+    if (newEyeDx ** 2 + dy ** 2 > maxR ** 2) {
+      const maxDy = Math.sqrt(Math.max(0, maxR ** 2 - newEyeDx ** 2));
+      newEyeY = FACE_CY + Math.sign(dy) * Math.min(Math.abs(dy), maxDy);
+    }
+    result = { ...result, eyeY: newEyeY, eyeDx: newEyeDx };
+  }
+
+  // Clamp mouth endpoints: ensure both endpoints are inside the circle
+  const ml = mouthLeft(result);
+  const mr = mouthRight(result);
+  if (dist(ml, faceCenter) > maxR || dist(mr, faceCenter) > maxR) {
+    const dy = result.mouthEy - FACE_CY;
+    const maxDx = Math.sqrt(Math.max(0, maxR ** 2 - dy ** 2));
+    let newMouthDx = Math.min(result.mouthDx, maxDx);
+    newMouthDx = Math.max(newMouthDx, 10);
+    let newMouthEy = result.mouthEy;
+    if (newMouthDx ** 2 + dy ** 2 > maxR ** 2) {
+      const maxDy = Math.sqrt(Math.max(0, maxR ** 2 - newMouthDx ** 2));
+      newMouthEy = FACE_CY + Math.sign(dy) * Math.min(Math.abs(dy), maxDy);
+    }
+    result = { ...result, mouthEy: newMouthEy, mouthDx: newMouthDx };
+  }
+
+  return result;
+}
+
 // Deterministic push: shift mouthEy or eyeY to maintain minimum
 // eye-to-curve distance. Iterates a few times since shifting mouthEy
 // moves the curve points.
@@ -311,9 +354,8 @@ function makeDraggable(
             cp2dy: origCp2dy * scale,
           };
         }
-        // Safety clamp after push/scale
         if (eyesAboveMouth) result = clampEyesAboveCurve(result);
-        return result;
+        return clampInsideFace(result);
       });
     }
 
@@ -330,19 +372,21 @@ function makeDraggable(
       return spec.during((s) => {
         let result = eyesPinned ? s : pushEyesAway(s);
         if (eyesAboveMouth) result = clampEyesAboveCurve(result);
-        if (!scaleCurve) return result;
-        const dxScale = origDx > 0 ? result.mouthDx / origDx : 1;
-        const faceBottom = FACE_CY + FACE_R - FACE_MARGIN;
-        const origSpace = faceBottom - origEy;
-        const newSpace = faceBottom - result.mouthEy;
-        const vyScale = origSpace > 0 ? newSpace / origSpace : 1;
-        return {
-          ...result,
-          cp1dx: origCp1dx * dxScale,
-          cp2dx: origCp2dx * dxScale,
-          cp1dy: origCp1dy * vyScale,
-          cp2dy: origCp2dy * vyScale,
-        };
+        if (scaleCurve) {
+          const dxScale = origDx > 0 ? result.mouthDx / origDx : 1;
+          const faceBottom = FACE_CY + FACE_R - FACE_MARGIN;
+          const origSpace = faceBottom - origEy;
+          const newSpace = faceBottom - result.mouthEy;
+          const vyScale = origSpace > 0 ? newSpace / origSpace : 1;
+          result = {
+            ...result,
+            cp1dx: origCp1dx * dxScale,
+            cp2dx: origCp2dx * dxScale,
+            cp1dy: origCp1dy * vyScale,
+            cp2dy: origCp2dy * vyScale,
+          };
+        }
+        return clampInsideFace(result);
       });
     }
 
@@ -354,14 +398,11 @@ function makeDraggable(
             ? [["cp2dx"], ["cp2dy"]]
             : [["cp1dx"], ["cp1dy"], ["cp2dx"], ["cp2dy"]];
       const spec = d.vary(state, paths, { constraint: shapeConstraints });
-      if (!eyesPinned || eyesAboveMouth) {
-        return spec.during((s) => {
-          let result = eyesPinned ? s : pushEyesAway(s);
-          if (eyesAboveMouth) result = clampEyesAboveCurve(result);
-          return result;
-        });
-      }
-      return spec;
+      return spec.during((s) => {
+        let result = eyesPinned ? s : pushEyesAway(s);
+        if (eyesAboveMouth) result = clampEyesAboveCurve(result);
+        return clampInsideFace(result);
+      });
     }
 
     return (
