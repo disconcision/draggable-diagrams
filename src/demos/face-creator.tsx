@@ -12,19 +12,18 @@ import { lessThan, moreThan } from "../DragSpec";
 import { PathIn } from "../paths";
 import { translate } from "../svgx/helpers";
 
-// Face dimensions (hardcoded — candidates for future state)
+// Face center (fixed)
 const FACE_CX = 200;
 const FACE_CY = 180;
-const FACE_R = 120;
+const FACE_R = 120; // default radius
 
 const EYE_R = 12;
 const FACE_STROKE = 3;
 const MOUTH_STROKE = 4;
-// Eyes must stay fully inside face edge (accounting for radii and strokes)
 const FACE_MARGIN = EYE_R + FACE_STROKE / 2 + 2;
-// Mouth curve must clear eyes (eye radius + half mouth stroke + gap)
 const EYE_MARGIN = EYE_R + MOUTH_STROKE / 2 + 4;
 const MIN_EYE_SPACING = EYE_R + 5;
+
 
 type State = {
   eyeY: number;
@@ -36,6 +35,12 @@ type State = {
   cp2dx: number;
   cp2dy: number;
   pinned: { eyes: boolean; mouth: boolean };
+  // Face shape
+  faceRx: number;
+  faceRyTop: number;
+  faceRyBot: number;
+  faceBulgeTR: number;
+  faceBulgeBR: number;
 };
 
 const initialState: State = {
@@ -48,9 +53,210 @@ const initialState: State = {
   cp2dx: -20,
   cp2dy: 30,
   pinned: { eyes: false, mouth: false },
+  faceRx: FACE_R,
+  faceRyTop: FACE_R,
+  faceRyBot: FACE_R,
+  faceBulgeTR: 0,
+  faceBulgeBR: 0,
 };
 
-// Derived positions
+// ── Face outline geometry ──────────────────────────────────────────
+
+type BezierSeg = {
+  p0: { x: number; y: number };
+  cp1: { x: number; y: number };
+  cp2: { x: number; y: number };
+  p3: { x: number; y: number };
+};
+
+function evalBezier(seg: BezierSeg, t: number): { x: number; y: number } {
+  const mt = 1 - t;
+  return {
+    x:
+      mt ** 3 * seg.p0.x +
+      3 * mt ** 2 * t * seg.cp1.x +
+      3 * mt * t ** 2 * seg.cp2.x +
+      t ** 3 * seg.p3.x,
+    y:
+      mt ** 3 * seg.p0.y +
+      3 * mt ** 2 * t * seg.cp1.y +
+      3 * mt * t ** 2 * seg.cp2.y +
+      t ** 3 * seg.p3.y,
+  };
+}
+
+// Compute 4 Bezier segments for the face outline (relative to FACE_CX/CY).
+// Bilateral symmetry: left segments mirror right.
+function faceSegments(s: State): BezierSeg[] {
+  const { faceRx: rx, faceRyTop: ryT, faceRyBot: ryB } = s;
+  const bTR = s.faceBulgeTR;
+  const bBR = s.faceBulgeBR;
+
+  // Default midpoints (on the ellipse at 45 degrees)
+  const mid45 = 1 / Math.SQRT2;
+
+  // Top-right: top (0, -ryT) → right (rx, 0)
+  // Desired midpoint = default + bulge along radial direction
+  const trMidDef = { x: rx * mid45, y: -ryT * mid45 };
+  const trMidR = Math.sqrt(trMidDef.x ** 2 + trMidDef.y ** 2);
+  const trDir = { x: trMidDef.x / trMidR, y: trMidDef.y / trMidR };
+  const trMid = {
+    x: trMidDef.x + bTR * trDir.x,
+    y: trMidDef.y + bTR * trDir.y,
+  };
+  // Solve for CPs from midpoint (t=0.5):
+  // Pmid.x = 0.375*cp1x + 0.5*rx  →  cp1x = (Pmid.x - 0.5*rx) / 0.375
+  // Pmid.y = -0.5*ryT + 0.375*cp2y  →  cp2y = (Pmid.y + 0.5*ryT) / 0.375
+  const trCP1x = (trMid.x - 0.5 * rx) / 0.375;
+  const trCP2y = (trMid.y + 0.5 * ryT) / 0.375;
+
+  // Bottom-right: right (rx, 0) → bottom (0, ryB)
+  const brMidDef = { x: rx * mid45, y: ryB * mid45 };
+  const brMidR = Math.sqrt(brMidDef.x ** 2 + brMidDef.y ** 2);
+  const brDir = { x: brMidDef.x / brMidR, y: brMidDef.y / brMidR };
+  const brMid = {
+    x: brMidDef.x + bBR * brDir.x,
+    y: brMidDef.y + bBR * brDir.y,
+  };
+  // Pmid.x = 0.5*rx + 0.375*cp2x  →  cp2x = (Pmid.x - 0.5*rx) / 0.375
+  // Pmid.y = 0.375*cp1y + 0.5*ryB  →  cp1y = (Pmid.y - 0.5*ryB) / 0.375
+  const brCP1y = (brMid.y - 0.5 * ryB) / 0.375;
+  const brCP2x = (brMid.x - 0.5 * rx) / 0.375;
+
+  const cx = FACE_CX;
+  const cy = FACE_CY;
+
+  return [
+    // Top-right
+    {
+      p0: { x: cx, y: cy - ryT },
+      cp1: { x: cx + trCP1x, y: cy - ryT },
+      cp2: { x: cx + rx, y: cy + trCP2y },
+      p3: { x: cx + rx, y: cy },
+    },
+    // Bottom-right
+    {
+      p0: { x: cx + rx, y: cy },
+      cp1: { x: cx + rx, y: cy + brCP1y },
+      cp2: { x: cx + brCP2x, y: cy + ryB },
+      p3: { x: cx, y: cy + ryB },
+    },
+    // Bottom-left (mirror of bottom-right)
+    {
+      p0: { x: cx, y: cy + ryB },
+      cp1: { x: cx - brCP2x, y: cy + ryB },
+      cp2: { x: cx - rx, y: cy + brCP1y },
+      p3: { x: cx - rx, y: cy },
+    },
+    // Top-left (mirror of top-right)
+    {
+      p0: { x: cx - rx, y: cy },
+      cp1: { x: cx - rx, y: cy + trCP2y },
+      cp2: { x: cx - trCP1x, y: cy - ryT },
+      p3: { x: cx, y: cy - ryT },
+    },
+  ];
+}
+
+function faceSvgPath(s: State): string {
+  const segs = faceSegments(s);
+  let d = `M ${segs[0].p0.x} ${segs[0].p0.y}`;
+  for (const seg of segs) {
+    d += ` C ${seg.cp1.x} ${seg.cp1.y}, ${seg.cp2.x} ${seg.cp2.y}, ${seg.p3.x} ${seg.p3.y}`;
+  }
+  d += " Z";
+  return d;
+}
+
+// Sample the face outline and build a radial lookup (angle → radius from center).
+// Returns samples sorted by angle in [-π, π).
+type FaceSample = { x: number; y: number; angle: number; radius: number };
+
+function sampleFaceOutline(
+  s: State,
+  pointsPerSegment: number = 16,
+): FaceSample[] {
+  const segs = faceSegments(s);
+  const samples: FaceSample[] = [];
+  for (const seg of segs) {
+    for (let i = 0; i < pointsPerSegment; i++) {
+      const t = i / pointsPerSegment;
+      const pt = evalBezier(seg, t);
+      const dx = pt.x - FACE_CX;
+      const dy = pt.y - FACE_CY;
+      samples.push({
+        x: pt.x,
+        y: pt.y,
+        angle: Math.atan2(dy, dx),
+        radius: Math.sqrt(dx * dx + dy * dy),
+      });
+    }
+  }
+  // Sort by angle for binary search
+  samples.sort((a, b) => a.angle - b.angle);
+  return samples;
+}
+
+// Get the face radius at a given angle by interpolating between samples.
+function faceRadiusAtAngle(samples: FaceSample[], angle: number): number {
+  const n = samples.length;
+  // Binary search for the first sample with angle >= target
+  let lo = 0;
+  let hi = n;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (samples[mid].angle < angle) lo = mid + 1;
+    else hi = mid;
+  }
+  const i1 = lo % n;
+  const i0 = (i1 - 1 + n) % n;
+  const a0 = samples[i0].angle;
+  const a1 = samples[i1].angle;
+  // Handle wrap-around
+  let span = a1 - a0;
+  let offset = angle - a0;
+  if (span <= 0) span += 2 * Math.PI;
+  if (offset < 0) offset += 2 * Math.PI;
+  const t = span > 0 ? offset / span : 0;
+  return samples[i0].radius + t * (samples[i1].radius - samples[i0].radius);
+}
+
+// Constraint-compatible: returns ≤ 0 if point is inside face (with margin), > 0 if outside.
+function faceContains(
+  samples: FaceSample[],
+  point: { x: number; y: number },
+  margin: number,
+): number {
+  const dx = point.x - FACE_CX;
+  const dy = point.y - FACE_CY;
+  const pointDist = Math.sqrt(dx * dx + dy * dy);
+  const angle = Math.atan2(dy, dx);
+  const maxDist = faceRadiusAtAngle(samples, angle) - margin;
+  return pointDist - maxDist; // ≤ 0 when inside
+}
+
+// Clamp a point to be inside the face outline (with margin).
+// Pushes the point toward the center along the radial direction.
+function clampPointInsideFace(
+  samples: FaceSample[],
+  point: { x: number; y: number },
+  margin: number,
+): { x: number; y: number } {
+  const dx = point.x - FACE_CX;
+  const dy = point.y - FACE_CY;
+  const pointDist = Math.sqrt(dx * dx + dy * dy);
+  if (pointDist === 0) return point;
+  const angle = Math.atan2(dy, dx);
+  const maxDist = faceRadiusAtAngle(samples, angle) - margin;
+  if (pointDist <= maxDist) return point;
+  return {
+    x: FACE_CX + (dx / pointDist) * maxDist,
+    y: FACE_CY + (dy / pointDist) * maxDist,
+  };
+}
+
+// ── Mouth / eye positions ──────────────────────────────────────────
+
 function mouthLeft(s: State) {
   return { x: FACE_CX - s.mouthDx, y: s.mouthEy };
 }
@@ -88,15 +294,15 @@ function evalMouthBezier(s: State, t: number): { x: number; y: number } {
   const mt = 1 - t;
   return {
     x:
-      mt * mt * mt * p0.x +
-      3 * mt * mt * t * p1.x +
-      3 * mt * t * t * p2.x +
-      t * t * t * p3.x,
+      mt ** 3 * p0.x +
+      3 * mt ** 2 * t * p1.x +
+      3 * mt * t ** 2 * p2.x +
+      t ** 3 * p3.x,
     y:
-      mt * mt * mt * p0.y +
-      3 * mt * mt * t * p1.y +
-      3 * mt * t * t * p2.y +
-      t * t * t * p3.y,
+      mt ** 3 * p0.y +
+      3 * mt ** 2 * t * p1.y +
+      3 * mt * t ** 2 * p2.y +
+      t ** 3 * p3.y,
   };
 }
 
@@ -107,24 +313,21 @@ function dist(
   return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 }
 
-const faceCenter = { x: FACE_CX, y: FACE_CY };
+// ── Constraints ────────────────────────────────────────────────────
 
-// Shape constraints: everything EXCEPT eye-mouth distance.
-// Used by all drags so the eye can "pass through" the mouth in COBYLA's
-// solution, then .during() pushes the other feature away.
 function shapeConstraints(s: State): number[] {
   const results: number[] = [];
+  const samples = sampleFaceOutline(s);
   const ml = mouthLeft(s);
   const mr = mouthRight(s);
 
-  results.push(lessThan(dist(leftEye(s), faceCenter), FACE_R - FACE_MARGIN));
-  results.push(lessThan(dist(rightEye(s), faceCenter), FACE_R - FACE_MARGIN));
+  results.push(faceContains(samples, leftEye(s), FACE_MARGIN));
+  results.push(faceContains(samples, rightEye(s), FACE_MARGIN));
   results.push(moreThan(s.eyeDx, MIN_EYE_SPACING));
-  results.push(lessThan(dist(ml, faceCenter), FACE_R - FACE_MARGIN));
-  results.push(lessThan(dist(mr, faceCenter), FACE_R - FACE_MARGIN));
+  results.push(faceContains(samples, ml, FACE_MARGIN));
+  results.push(faceContains(samples, mr, FACE_MARGIN));
   results.push(moreThan(s.mouthDx, 10));
 
-  // CP offset magnitude limit (prevents sharp cusps)
   const MAX_CP_OFFSET = 100;
   results.push(
     lessThan(Math.sqrt(s.cp1dx ** 2 + s.cp1dy ** 2), MAX_CP_OFFSET),
@@ -136,19 +339,24 @@ function shapeConstraints(s: State): number[] {
   const N = 8;
   for (let i = 0; i <= N; i++) {
     const pt = evalMouthBezier(s, i / N);
-    results.push(lessThan(dist(pt, faceCenter), FACE_R - FACE_MARGIN));
+    results.push(faceContains(samples, pt, FACE_MARGIN));
   }
   for (let i = 0; i < N; i++) {
     const pt1 = evalMouthBezier(s, i / N);
     const pt2 = evalMouthBezier(s, (i + 1) / N);
     results.push(lessThan(pt1.x, pt2.x));
   }
+
+  // Face shape constraints: radii must be positive and not too small
+  results.push(moreThan(s.faceRx, 40));
+  results.push(moreThan(s.faceRyTop, 40));
+  results.push(moreThan(s.faceRyBot, 40));
+
   return results;
 }
 
-// Push mouth down until all curve points near the eyes are below them.
-// Uses vertical ordering (not Euclidean distance), so the push grows
-// monotonically as eyes go lower.
+// ── Push / clamp helpers ───────────────────────────────────────────
+
 function pushMouthBelowEyes(s: State): State {
   let result = s;
   for (let iter = 0; iter < 3; iter++) {
@@ -171,7 +379,6 @@ function pushMouthBelowEyes(s: State): State {
   return result;
 }
 
-// Clamp eyeY so eyes stay above curve points that are horizontally close.
 function clampEyesAboveCurve(s: State): State {
   const le = leftEye(s);
   const re = rightEye(s);
@@ -182,7 +389,6 @@ function clampEyesAboveCurve(s: State): State {
     for (const eye of [le, re]) {
       const hDist = Math.abs(pt.x - eye.x);
       if (hDist < threshold) {
-        // Eye must be above this point (lower y value)
         minEyeY = Math.min(minEyeY, pt.y - EYE_MARGIN);
       }
     }
@@ -193,52 +399,51 @@ function clampEyesAboveCurve(s: State): State {
   return s;
 }
 
-// Clamp all features to stay inside the face circle.
-// Run as the last step in every .during() to enforce the invariant.
 function clampInsideFace(s: State): State {
-  const maxR = FACE_R - FACE_MARGIN;
+  const samples = sampleFaceOutline(s);
   let result = s;
 
-  // Clamp eyes: ensure both eyes are inside the circle
-  const leDist = dist(leftEye(result), faceCenter);
-  const reDist = dist(rightEye(result), faceCenter);
-  if (leDist > maxR || reDist > maxR) {
-    // Shrink eyeDx if eyes are too wide for this eyeY
-    const dy = result.eyeY - FACE_CY;
-    const maxDx = Math.sqrt(Math.max(0, maxR ** 2 - dy ** 2));
-    let newEyeDx = Math.min(result.eyeDx, maxDx);
-    newEyeDx = Math.max(newEyeDx, MIN_EYE_SPACING);
-    // If still outside, adjust eyeY toward center
-    let newEyeY = result.eyeY;
-    if (newEyeDx ** 2 + dy ** 2 > maxR ** 2) {
-      const maxDy = Math.sqrt(Math.max(0, maxR ** 2 - newEyeDx ** 2));
-      newEyeY = FACE_CY + Math.sign(dy) * Math.min(Math.abs(dy), maxDy);
-    }
+  // Clamp eyes
+  const le = leftEye(result);
+  const re = rightEye(result);
+  const clampedLE = clampPointInsideFace(samples, le, FACE_MARGIN);
+  const clampedRE = clampPointInsideFace(samples, re, FACE_MARGIN);
+  if (clampedLE.x !== le.x || clampedLE.y !== le.y ||
+      clampedRE.x !== re.x || clampedRE.y !== re.y) {
+    // Use the more restrictive of the two eyes
+    const newEyeY = Math.min(clampedLE.y, clampedRE.y);
+    // For eyeDx, take the minimum distance from center
+    const newEyeDx = Math.max(
+      MIN_EYE_SPACING,
+      Math.min(
+        Math.abs(clampedLE.x - FACE_CX),
+        Math.abs(clampedRE.x - FACE_CX),
+      ),
+    );
     result = { ...result, eyeY: newEyeY, eyeDx: newEyeDx };
   }
 
-  // Clamp mouth endpoints: ensure both endpoints are inside the circle
+  // Clamp mouth endpoints
   const ml = mouthLeft(result);
   const mr = mouthRight(result);
-  if (dist(ml, faceCenter) > maxR || dist(mr, faceCenter) > maxR) {
-    const dy = result.mouthEy - FACE_CY;
-    const maxDx = Math.sqrt(Math.max(0, maxR ** 2 - dy ** 2));
-    let newMouthDx = Math.min(result.mouthDx, maxDx);
-    newMouthDx = Math.max(newMouthDx, 10);
-    let newMouthEy = result.mouthEy;
-    if (newMouthDx ** 2 + dy ** 2 > maxR ** 2) {
-      const maxDy = Math.sqrt(Math.max(0, maxR ** 2 - newMouthDx ** 2));
-      newMouthEy = FACE_CY + Math.sign(dy) * Math.min(Math.abs(dy), maxDy);
-    }
+  const clampedML = clampPointInsideFace(samples, ml, FACE_MARGIN);
+  const clampedMR = clampPointInsideFace(samples, mr, FACE_MARGIN);
+  if (clampedML.x !== ml.x || clampedML.y !== ml.y ||
+      clampedMR.x !== mr.x || clampedMR.y !== mr.y) {
+    const newMouthEy = Math.max(clampedML.y, clampedMR.y);
+    const newMouthDx = Math.max(
+      10,
+      Math.min(
+        Math.abs(clampedML.x - FACE_CX),
+        Math.abs(clampedMR.x - FACE_CX),
+      ),
+    );
     result = { ...result, mouthEy: newMouthEy, mouthDx: newMouthDx };
   }
 
   return result;
 }
 
-// Deterministic push: shift mouthEy or eyeY to maintain minimum
-// eye-to-curve distance. Iterates a few times since shifting mouthEy
-// moves the curve points.
 function pushMouthAway(s: State): State {
   const minDist = EYE_R + EYE_MARGIN;
   let result = s;
@@ -261,17 +466,14 @@ function pushMouthAway(s: State): State {
   return result;
 }
 
-// Bias: 0 = all horizontal (narrow spacing), 1 = all vertical (push up)
 const EYE_PUSH_VERTICAL_BIAS = 0.5;
 
 function pushEyesAway(s: State): State {
   const minDist = EYE_R + EYE_MARGIN;
-  const maxR = FACE_R - FACE_MARGIN;
   let result = s;
   for (let iter = 0; iter < 3; iter++) {
     const le = leftEye(result);
     const re = rightEye(result);
-    // Sum directional push vectors from all violations
     let totalPushY = 0;
     let totalPushDx = 0;
     for (let i = 0; i <= 8; i++) {
@@ -290,18 +492,16 @@ function pushEyesAway(s: State): State {
     }
     const mag = Math.sqrt(totalPushY ** 2 + totalPushDx ** 2);
     if (mag < 0.1) break;
-    // Apply bias to split push between vertical and horizontal
     const pushY = totalPushY * EYE_PUSH_VERTICAL_BIAS;
     const pushDx = totalPushDx * (1 - EYE_PUSH_VERTICAL_BIAS);
-    let newEyeY = result.eyeY + pushY;
-    let newEyeDx = Math.max(MIN_EYE_SPACING, result.eyeDx + pushDx);
-    // Clamp so eyes stay inside face circle
-    const maxDy = Math.sqrt(Math.max(0, maxR ** 2 - newEyeDx ** 2));
-    newEyeY = Math.max(newEyeY, FACE_CY - maxDy);
+    const newEyeY = result.eyeY + pushY;
+    const newEyeDx = Math.max(MIN_EYE_SPACING, result.eyeDx + pushDx);
     result = { ...result, eyeY: newEyeY, eyeDx: newEyeDx };
   }
   return result;
 }
+
+// ── Rendering ──────────────────────────────────────────────────────
 
 const CURVE_SAMPLES = 11;
 const tValues = Array.from(
@@ -311,7 +511,7 @@ const tValues = Array.from(
 
 const ENDPOINT_R = 6;
 const PIN_R = 5;
-const PIN_X = FACE_CX + FACE_R + 18;
+const FACE_HANDLE_R = 5;
 
 function makeDraggable(
   scaleCurve: boolean,
@@ -325,6 +525,19 @@ function makeDraggable(
     const eyesPinned = state.pinned.eyes;
     const mouthPinned = state.pinned.mouth;
 
+    // Face outline junction points (for handles)
+    const faceTop = { x: FACE_CX, y: FACE_CY - state.faceRyTop };
+    const faceRight = { x: FACE_CX + state.faceRx, y: FACE_CY };
+    const faceBottom = { x: FACE_CX, y: FACE_CY + state.faceRyBot };
+
+    // Midpoints of each arc (for bulge handles)
+    const segs = faceSegments(state);
+    const trMid = evalBezier(segs[0], 0.5);
+    const brMid = evalBezier(segs[1], 0.5);
+
+    // Pin indicator x position (relative to rightmost face edge)
+    const pinX = FACE_CX + state.faceRx + 18;
+
     function eyeDragology() {
       const spec = d.vary(state, [["eyeY"], ["eyeDx"]], {
         constraint: shapeConstraints,
@@ -334,19 +547,16 @@ function makeDraggable(
       const origCp1dy = state.cp1dy;
       const origCp2dy = state.cp2dy;
       return spec.during((s) => {
-        // Push mouth: vertical-ordering push in "eyes above" mode,
-        // distance-based push otherwise
         let result = s;
         if (!mouthPinned) {
           result = eyesAboveMouth
             ? pushMouthBelowEyes(result)
             : pushMouthAway(result);
         }
-        // Scale CP vertical offsets proportionally when mouth was pushed
         if (result.mouthEy !== origMouthEy) {
-          const faceBottom = FACE_CY + FACE_R - FACE_MARGIN;
-          const origSpace = faceBottom - origMouthEy;
-          const newSpace = faceBottom - result.mouthEy;
+          const fb = FACE_CY + state.faceRyBot - FACE_MARGIN;
+          const origSpace = fb - origMouthEy;
+          const newSpace = fb - result.mouthEy;
           const scale = origSpace > 0 ? newSpace / origSpace : 1;
           result = {
             ...result,
@@ -374,9 +584,9 @@ function makeDraggable(
         if (eyesAboveMouth) result = clampEyesAboveCurve(result);
         if (scaleCurve) {
           const dxScale = origDx > 0 ? result.mouthDx / origDx : 1;
-          const faceBottom = FACE_CY + FACE_R - FACE_MARGIN;
-          const origSpace = faceBottom - origEy;
-          const newSpace = faceBottom - result.mouthEy;
+          const fb = FACE_CY + state.faceRyBot - FACE_MARGIN;
+          const origSpace = fb - origEy;
+          const newSpace = fb - result.mouthEy;
           const vyScale = origSpace > 0 ? newSpace / origSpace : 1;
           result = {
             ...result,
@@ -405,18 +615,86 @@ function makeDraggable(
       });
     }
 
+    function faceTopDragology() {
+      return d.vary(state, [["faceRyTop"]], { constraint: shapeConstraints });
+    }
+    function faceRightDragology() {
+      return d.vary(state, [["faceRx"]], { constraint: shapeConstraints });
+    }
+    function faceBottomDragology() {
+      return d.vary(state, [["faceRyBot"]], { constraint: shapeConstraints });
+    }
+    function faceBulgeTRDragology() {
+      return d.vary(state, [["faceBulgeTR"]], { constraint: shapeConstraints });
+    }
+    function faceBulgeBRDragology() {
+      return d.vary(state, [["faceBulgeBR"]], { constraint: shapeConstraints });
+    }
+
     return (
       <g>
         {/* Face outline */}
-        <circle
+        <path
           id="face"
-          cx={FACE_CX}
-          cy={FACE_CY}
-          r={FACE_R}
+          d={faceSvgPath(state)}
           fill="#ffe0b2"
           stroke="#e6a756"
-          strokeWidth={3}
+          strokeWidth={FACE_STROKE}
           data-z-index={0}
+        />
+
+        {/* Face shape handles — junction points */}
+        <circle
+          id="face-top"
+          transform={translate(faceTop.x, faceTop.y)}
+          r={FACE_HANDLE_R}
+          fill={draggedId === "face-top" ? "#e6a756" : "transparent"}
+          stroke="#e6a756"
+          strokeWidth={1}
+          data-z-index={5}
+          dragology={faceTopDragology}
+        />
+        <circle
+          id="face-right"
+          transform={translate(faceRight.x, faceRight.y)}
+          r={FACE_HANDLE_R}
+          fill={draggedId === "face-right" ? "#e6a756" : "transparent"}
+          stroke="#e6a756"
+          strokeWidth={1}
+          data-z-index={5}
+          dragology={faceRightDragology}
+        />
+        <circle
+          id="face-bottom"
+          transform={translate(faceBottom.x, faceBottom.y)}
+          r={FACE_HANDLE_R}
+          fill={draggedId === "face-bottom" ? "#e6a756" : "transparent"}
+          stroke="#e6a756"
+          strokeWidth={1}
+          data-z-index={5}
+          dragology={faceBottomDragology}
+        />
+
+        {/* Face shape handles — arc midpoints for bulge */}
+        <circle
+          id="face-bulge-tr"
+          transform={translate(trMid.x, trMid.y)}
+          r={FACE_HANDLE_R}
+          fill={draggedId === "face-bulge-tr" ? "#e6a756" : "transparent"}
+          stroke="#e6a756"
+          strokeWidth={1}
+          data-z-index={5}
+          dragology={faceBulgeTRDragology}
+        />
+        <circle
+          id="face-bulge-br"
+          transform={translate(brMid.x, brMid.y)}
+          r={FACE_HANDLE_R}
+          fill={draggedId === "face-bulge-br" ? "#e6a756" : "transparent"}
+          stroke="#e6a756"
+          strokeWidth={1}
+          data-z-index={5}
+          dragology={faceBulgeBRDragology}
         />
 
         {/* Eyes */}
@@ -491,7 +769,7 @@ function makeDraggable(
         {/* Pin toggles */}
         <g id="pin-eyes" data-z-index={4}>
           <circle
-            transform={translate(PIN_X, state.eyeY)}
+            transform={translate(pinX, state.eyeY)}
             r={PIN_R}
             fill={eyesPinned ? "#666" : "transparent"}
             stroke={eyesPinned ? "#666" : "#ccc"}
@@ -504,9 +782,9 @@ function makeDraggable(
             }
           />
           <line
-            x1={PIN_X}
+            x1={pinX}
             y1={state.eyeY - PIN_R + 1}
-            x2={PIN_X}
+            x2={pinX}
             y2={state.eyeY + PIN_R + 3}
             stroke="#666"
             strokeWidth={1.5}
@@ -516,7 +794,7 @@ function makeDraggable(
         </g>
         <g id="pin-mouth" data-z-index={4}>
           <circle
-            transform={translate(PIN_X, state.mouthEy)}
+            transform={translate(pinX, state.mouthEy)}
             r={PIN_R}
             fill={mouthPinned ? "#666" : "transparent"}
             stroke={mouthPinned ? "#666" : "#ccc"}
@@ -529,9 +807,9 @@ function makeDraggable(
             }
           />
           <line
-            x1={PIN_X}
+            x1={pinX}
             y1={state.mouthEy - PIN_R + 1}
-            x2={PIN_X}
+            x2={pinX}
             y2={state.mouthEy + PIN_R + 3}
             stroke="#666"
             strokeWidth={1.5}
@@ -557,8 +835,8 @@ export default demo(
         <div>
           <DemoNotes>
             Drag eyes to move/space them. Drag the mouth curve or endpoints.
-            Unpinned features get pushed. Click indicators on the right to
-            pin/unpin.
+            Drag the face outline handles to reshape. Unpinned features get
+            pushed. Click indicators on the right to pin/unpin.
           </DemoNotes>
           <DemoDraggable
             draggable={draggable}
