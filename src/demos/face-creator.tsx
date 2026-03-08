@@ -221,6 +221,20 @@ function faceRadiusAtAngle(samples: FaceSample[], angle: number): number {
   return samples[i0].radius + t * (samples[i1].radius - samples[i0].radius);
 }
 
+// Constraint-compatible: returns ≤ 0 if point is inside face (with margin), > 0 if outside.
+function faceContains(
+  samples: FaceSample[],
+  point: { x: number; y: number },
+  margin: number,
+): number {
+  const dx = point.x - FACE_CX;
+  const dy = point.y - FACE_CY;
+  const pointDist = Math.sqrt(dx * dx + dy * dy);
+  const angle = Math.atan2(dy, dx);
+  const maxDist = faceRadiusAtAngle(samples, angle) - margin;
+  return pointDist - maxDist;
+}
+
 // Clamp a point to be inside the face outline (with margin).
 // Pushes the point toward the center along the radial direction.
 function clampPointInsideFace(
@@ -322,6 +336,24 @@ function featureConstraints(s: State): number[] {
     const pt1 = evalMouthBezier(s, i / N);
     const pt2 = evalMouthBezier(s, (i + 1) / N);
     results.push(lessThan(pt1.x, pt2.x));
+  }
+
+  return results;
+}
+
+// Feature constraints + inside-face checks for all features and mouth curve.
+function featureConstraintsWithFace(s: State): number[] {
+  const results = featureConstraints(s);
+  const samples = sampleFaceOutline(s);
+
+  results.push(faceContains(samples, leftEye(s), FACE_MARGIN));
+  results.push(faceContains(samples, rightEye(s), FACE_MARGIN));
+  results.push(faceContains(samples, mouthLeft(s), FACE_MARGIN));
+  results.push(faceContains(samples, mouthRight(s), FACE_MARGIN));
+
+  const N = 8;
+  for (let i = 0; i <= N; i++) {
+    results.push(faceContains(samples, evalMouthBezier(s, i / N), FACE_MARGIN));
   }
 
   return results;
@@ -451,46 +483,52 @@ function expandFaceForFeatures(s: State): State {
   return result;
 }
 
-function clampInsideFace(s: State): State {
+function clampInsideFace(
+  s: State,
+  skipEyes: boolean = false,
+  skipMouth: boolean = false,
+): State {
   const samples = sampleFaceOutline(s);
   let result = s;
 
   // Clamp eyes
-  const le = leftEye(result);
-  const re = rightEye(result);
-  const clampedLE = clampPointInsideFace(samples, le, FACE_MARGIN);
-  const clampedRE = clampPointInsideFace(samples, re, FACE_MARGIN);
-  if (clampedLE.x !== le.x || clampedLE.y !== le.y ||
-      clampedRE.x !== re.x || clampedRE.y !== re.y) {
-    // Use the more restrictive of the two eyes
-    const newEyeY = Math.min(clampedLE.y, clampedRE.y);
-    // For eyeDx, take the minimum distance from center
-    const newEyeDx = Math.max(
-      MIN_EYE_SPACING,
-      Math.min(
-        Math.abs(clampedLE.x - FACE_CX),
-        Math.abs(clampedRE.x - FACE_CX),
-      ),
-    );
-    result = { ...result, eyeY: newEyeY, eyeDx: newEyeDx };
+  if (!skipEyes) {
+    const le = leftEye(result);
+    const re = rightEye(result);
+    const clampedLE = clampPointInsideFace(samples, le, FACE_MARGIN);
+    const clampedRE = clampPointInsideFace(samples, re, FACE_MARGIN);
+    if (clampedLE.x !== le.x || clampedLE.y !== le.y ||
+        clampedRE.x !== re.x || clampedRE.y !== re.y) {
+      const newEyeY = Math.min(clampedLE.y, clampedRE.y);
+      const newEyeDx = Math.max(
+        MIN_EYE_SPACING,
+        Math.min(
+          Math.abs(clampedLE.x - FACE_CX),
+          Math.abs(clampedRE.x - FACE_CX),
+        ),
+      );
+      result = { ...result, eyeY: newEyeY, eyeDx: newEyeDx };
+    }
   }
 
   // Clamp mouth endpoints
-  const ml = mouthLeft(result);
-  const mr = mouthRight(result);
-  const clampedML = clampPointInsideFace(samples, ml, FACE_MARGIN);
-  const clampedMR = clampPointInsideFace(samples, mr, FACE_MARGIN);
-  if (clampedML.x !== ml.x || clampedML.y !== ml.y ||
-      clampedMR.x !== mr.x || clampedMR.y !== mr.y) {
-    const newMouthEy = Math.max(clampedML.y, clampedMR.y);
-    const newMouthDx = Math.max(
-      10,
-      Math.min(
-        Math.abs(clampedML.x - FACE_CX),
-        Math.abs(clampedMR.x - FACE_CX),
-      ),
-    );
-    result = { ...result, mouthEy: newMouthEy, mouthDx: newMouthDx };
+  if (!skipMouth) {
+    const ml = mouthLeft(result);
+    const mr = mouthRight(result);
+    const clampedML = clampPointInsideFace(samples, ml, FACE_MARGIN);
+    const clampedMR = clampPointInsideFace(samples, mr, FACE_MARGIN);
+    if (clampedML.x !== ml.x || clampedML.y !== ml.y ||
+        clampedMR.x !== mr.x || clampedMR.y !== mr.y) {
+      const newMouthEy = Math.max(clampedML.y, clampedMR.y);
+      const newMouthDx = Math.max(
+        10,
+        Math.min(
+          Math.abs(clampedML.x - FACE_CX),
+          Math.abs(clampedMR.x - FACE_CX),
+        ),
+      );
+      result = { ...result, mouthEy: newMouthEy, mouthDx: newMouthDx };
+    }
   }
 
   return result;
@@ -587,12 +625,18 @@ function makeDraggable(
 
     const segs = faceSegments(state);
 
+    // When expandFace is off, COBYLA keeps features inside face.
+    // When on, features can go outside and .during() expands the face.
+    const featureConstraint = expandFace
+      ? featureConstraints
+      : featureConstraintsWithFace;
+
     // Pin indicator x position (relative to rightmost face edge)
     const pinX = FACE_CX + state.faceRx + 18;
 
     function eyeDragology() {
       const spec = d.vary(state, [["eyeY"], ["eyeDx"]], {
-        constraint: featureConstraints,
+        constraint: featureConstraint,
       });
       if (mouthPinned && !eyesAboveMouth) return spec;
       const origMouthEy = state.mouthEy;
@@ -624,7 +668,7 @@ function makeDraggable(
 
     function endpointDragology() {
       const spec = d.vary(state, [["mouthDx"], ["mouthEy"]], {
-        constraint: featureConstraints,
+        constraint: featureConstraint,
       });
       const origDx = state.mouthDx;
       const origEy = state.mouthEy;
@@ -661,7 +705,7 @@ function makeDraggable(
           : t > 0.6
             ? [["cp2dx"], ["cp2dy"]]
             : [["cp1dx"], ["cp1dy"], ["cp2dx"], ["cp2dy"]];
-      const spec = d.vary(state, paths, { constraint: featureConstraints });
+      const spec = d.vary(state, paths, { constraint: featureConstraint });
       return spec.during((s) => {
         let result = eyesPinned ? s : pushEyesAway(s);
         if (eyesAboveMouth) result = clampEyesAboveCurve(result);
@@ -671,8 +715,25 @@ function makeDraggable(
     }
 
     function faceConstraint(s: State): number[] {
-      const base = faceOnlyConstraints(s);
-      return constrainFaceShape ? [...base, ...faceShapeConstraints(s)] : base;
+      const results = faceOnlyConstraints(s);
+      if (constrainFaceShape) results.push(...faceShapeConstraints(s));
+      // Pinned features block the face from shrinking past them
+      const samples = sampleFaceOutline(s);
+      if (eyesPinned) {
+        results.push(faceContains(samples, leftEye(s), FACE_MARGIN));
+        results.push(faceContains(samples, rightEye(s), FACE_MARGIN));
+      }
+      if (mouthPinned) {
+        results.push(faceContains(samples, mouthLeft(s), FACE_MARGIN));
+        results.push(faceContains(samples, mouthRight(s), FACE_MARGIN));
+        const N = 8;
+        for (let i = 0; i <= N; i++) {
+          results.push(
+            faceContains(samples, evalMouthBezier(s, i / N), FACE_MARGIN),
+          );
+        }
+      }
+      return results;
     }
 
     function faceDuring(s: State): State {
@@ -690,7 +751,8 @@ function makeDraggable(
         result = pushEyesAway(result);
       }
       if (eyesAboveMouth) result = clampEyesAboveCurve(result);
-      return clampInsideFace(result);
+      // Only clamp unpinned features — pinned ones are held by COBYLA constraints
+      return clampInsideFace(result, eyesPinned, mouthPinned);
     }
 
     // Face perimeter: pin-by-t selects which param to vary per segment.
