@@ -569,6 +569,7 @@ function makeDraggable(
   scaleCurve: boolean,
   eyesAboveMouth: boolean,
   constrainFaceShape: boolean,
+  expandFace: boolean,
 ): Draggable<State> {
   return ({ state, d, draggedId }) => {
     const ml = mouthLeft(state);
@@ -618,7 +619,7 @@ function makeDraggable(
           };
         }
         if (eyesAboveMouth) result = clampEyesAboveCurve(result);
-        result = expandFaceForFeatures(result);
+        if (expandFace) result = expandFaceForFeatures(result);
         return clampInsideFace(result);
       });
     }
@@ -650,7 +651,7 @@ function makeDraggable(
             cp2dy: origCp2dy * vyScale,
           };
         }
-        result = expandFaceForFeatures(result);
+        if (expandFace) result = expandFaceForFeatures(result);
         return clampInsideFace(result);
       });
     }
@@ -666,7 +667,7 @@ function makeDraggable(
       return spec.during((s) => {
         let result = eyesPinned ? s : pushEyesAway(s);
         if (eyesAboveMouth) result = clampEyesAboveCurve(result);
-        result = expandFaceForFeatures(result);
+        if (expandFace) result = expandFaceForFeatures(result);
         return clampInsideFace(result);
       });
     }
@@ -916,9 +917,16 @@ export default demo(
     const [scaleCurve, setScaleCurve] = useState(false);
     const [eyesAboveMouth, setEyesAboveMouth] = useState(false);
     const [constrainFaceShape, setConstrainFaceShape] = useState(false);
+    const [expandFace, setExpandFace] = useState(false);
     const draggable = useMemo(
-      () => makeDraggable(scaleCurve, eyesAboveMouth, constrainFaceShape),
-      [scaleCurve, eyesAboveMouth, constrainFaceShape],
+      () =>
+        makeDraggable(
+          scaleCurve,
+          eyesAboveMouth,
+          constrainFaceShape,
+          expandFace,
+        ),
+      [scaleCurve, eyesAboveMouth, constrainFaceShape, expandFace],
     );
     return (
       <DemoWithConfig>
@@ -947,9 +955,14 @@ export default demo(
             onChange={setEyesAboveMouth}
           />
           <ConfigCheckbox
-            label="Prevent face cusps"
+            label="Enable making mode"
             value={constrainFaceShape}
             onChange={setConstrainFaceShape}
+          />
+          <ConfigCheckbox
+            label="Elastic face"
+            value={expandFace}
+            onChange={setExpandFace}
           />
         </ConfigPanel>
       </DemoWithConfig>
