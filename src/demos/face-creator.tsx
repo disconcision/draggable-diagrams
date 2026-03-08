@@ -1004,5 +1004,5 @@ export default demo(
       </DemoWithConfig>
     );
   },
-  { tags: ["d.vary"] },
+  { tags: ["d.vary [w/constraint]", "spec.during", "d.fixed"] },
 );
