@@ -1,12 +1,5 @@
-import { useMemo, useState } from "react";
 import { demo } from "../demo";
-import {
-  ConfigPanel,
-  ConfigSelect,
-  DemoDraggable,
-  DemoNotes,
-  DemoWithConfig,
-} from "../demo/ui";
+import { DemoDraggable, DemoNotes } from "../demo/ui";
 import { Draggable } from "../draggable";
 import { lessThan, moreThan } from "../DragSpec";
 import { PathIn } from "../paths";
@@ -24,14 +17,7 @@ const MOUTH_STROKE = 4;
 const FACE_MARGIN = EYE_R + FACE_STROKE / 2 + 2;
 // Mouth curve must clear eyes (eye radius + half mouth stroke + gap)
 const EYE_MARGIN = EYE_R + MOUTH_STROKE / 2 + 4;
-// Minimum gap between eye line and mouth endpoints
-const EYE_MOUTH_GAP = EYE_R + MOUTH_STROKE / 2 + 4;
 const MIN_EYE_SPACING = EYE_R + 5;
-
-// The lowest the mouth can go (face bottom minus margin)
-const FACE_BOTTOM = FACE_CY + FACE_R - FACE_MARGIN;
-
-type CouplingMode = "none" | "free" | "coupled";
 
 type State = {
   eyeY: number;
@@ -116,15 +102,16 @@ function dist(
 
 const faceCenter = { x: FACE_CX, y: FACE_CY };
 
-function allConstraints(s: State): number[] {
+// Shape constraints: everything EXCEPT eye-mouth distance.
+// Used by all drags so the eye can "pass through" the mouth in COBYLA's
+// solution, then .during() pushes the other feature away.
+function shapeConstraints(s: State): number[] {
   const results: number[] = [];
-  const le = leftEye(s);
-  const re = rightEye(s);
   const ml = mouthLeft(s);
   const mr = mouthRight(s);
 
-  results.push(lessThan(dist(le, faceCenter), FACE_R - FACE_MARGIN));
-  results.push(lessThan(dist(re, faceCenter), FACE_R - FACE_MARGIN));
+  results.push(lessThan(dist(leftEye(s), faceCenter), FACE_R - FACE_MARGIN));
+  results.push(lessThan(dist(rightEye(s), faceCenter), FACE_R - FACE_MARGIN));
   results.push(moreThan(s.eyeDx, MIN_EYE_SPACING));
   results.push(lessThan(dist(ml, faceCenter), FACE_R - FACE_MARGIN));
   results.push(lessThan(dist(mr, faceCenter), FACE_R - FACE_MARGIN));
@@ -141,11 +128,8 @@ function allConstraints(s: State): number[] {
 
   const N = 8;
   for (let i = 0; i <= N; i++) {
-    const t = i / N;
-    const pt = evalMouthBezier(s, t);
+    const pt = evalMouthBezier(s, i / N);
     results.push(lessThan(dist(pt, faceCenter), FACE_R - FACE_MARGIN));
-    results.push(moreThan(dist(pt, le), EYE_R + EYE_MARGIN));
-    results.push(moreThan(dist(pt, re), EYE_R + EYE_MARGIN));
   }
   for (let i = 0; i < N; i++) {
     const pt1 = evalMouthBezier(s, i / N);
@@ -153,6 +137,73 @@ function allConstraints(s: State): number[] {
     results.push(lessThan(pt1.x, pt2.x));
   }
   return results;
+}
+
+// Deterministic push: shift mouthEy or eyeY to maintain minimum
+// eye-to-curve distance. Iterates a few times since shifting mouthEy
+// moves the curve points.
+function pushMouthAway(s: State): State {
+  const minDist = EYE_R + EYE_MARGIN;
+  let result = s;
+  for (let iter = 0; iter < 3; iter++) {
+    const le = leftEye(result);
+    const re = rightEye(result);
+    let maxPush = 0;
+    for (let i = 0; i <= 8; i++) {
+      const pt = evalMouthBezier(result, i / 8);
+      for (const eye of [le, re]) {
+        const d = dist(pt, eye);
+        if (d < minDist) {
+          maxPush = Math.max(maxPush, minDist - d);
+        }
+      }
+    }
+    if (maxPush <= 0) break;
+    result = { ...result, mouthEy: result.mouthEy + maxPush };
+  }
+  return result;
+}
+
+// Bias: 0 = all horizontal (narrow spacing), 1 = all vertical (push up)
+const EYE_PUSH_VERTICAL_BIAS = 0.5;
+
+function pushEyesAway(s: State): State {
+  const minDist = EYE_R + EYE_MARGIN;
+  const maxR = FACE_R - FACE_MARGIN;
+  let result = s;
+  for (let iter = 0; iter < 3; iter++) {
+    const le = leftEye(result);
+    const re = rightEye(result);
+    // Sum directional push vectors from all violations
+    let totalPushY = 0;
+    let totalPushDx = 0;
+    for (let i = 0; i <= 8; i++) {
+      const pt = evalMouthBezier(result, i / 8);
+      for (const eye of [le, re]) {
+        const d = dist(pt, eye);
+        if (d < minDist && d > 0) {
+          const deficit = minDist - d;
+          const dirX = (eye.x - pt.x) / d;
+          const dirY = (eye.y - pt.y) / d;
+          totalPushY += dirY * deficit;
+          const isLeftEye = eye.x < FACE_CX;
+          totalPushDx += (isLeftEye ? -dirX : dirX) * deficit;
+        }
+      }
+    }
+    const mag = Math.sqrt(totalPushY ** 2 + totalPushDx ** 2);
+    if (mag < 0.1) break;
+    // Apply bias to split push between vertical and horizontal
+    const pushY = totalPushY * EYE_PUSH_VERTICAL_BIAS;
+    const pushDx = totalPushDx * (1 - EYE_PUSH_VERTICAL_BIAS);
+    let newEyeY = result.eyeY + pushY;
+    let newEyeDx = Math.max(MIN_EYE_SPACING, result.eyeDx + pushDx);
+    // Clamp so eyes stay inside face circle
+    const maxDy = Math.sqrt(Math.max(0, maxR ** 2 - newEyeDx ** 2));
+    newEyeY = Math.max(newEyeY, FACE_CY - maxDy);
+    result = { ...result, eyeY: newEyeY, eyeDx: newEyeDx };
+  }
+  return result;
 }
 
 const CURVE_SAMPLES = 11;
@@ -165,8 +216,7 @@ const ENDPOINT_R = 6;
 const PIN_R = 5;
 const PIN_X = FACE_CX + FACE_R + 18;
 
-function makeDraggable(couplingMode: CouplingMode): Draggable<State> {
-  return ({ state, d, draggedId }) => {
+const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     const ml = mouthLeft(state);
     const mr = mouthRight(state);
     const le = leftEye(state);
@@ -175,33 +225,34 @@ function makeDraggable(couplingMode: CouplingMode): Draggable<State> {
     const mouthPinned = state.pinned.mouth;
 
     function eyeDragology() {
-      const paths: PathIn<State, number>[] = [["eyeY"], ["eyeDx"]];
-      if (!mouthPinned) {
-        paths.push(["mouthEy"]);
-        // "free": COBYLA also varies CP offsets (may drift)
-        if (couplingMode === "free") {
-          paths.push(["cp1dx"], ["cp1dy"], ["cp2dx"], ["cp2dy"]);
-        }
-      }
-      const spec = d.vary(state, paths, { constraint: allConstraints });
-      // "coupled": deterministic scaling — CP offsets scale with available space
-      if (couplingMode === "coupled" && !mouthPinned) {
-        const origSpace = FACE_BOTTOM - state.mouthEy;
-        const origCp1dy = state.cp1dy;
-        const origCp2dy = state.cp2dy;
-        return spec.during((s) => {
-          const newSpace = FACE_BOTTOM - s.mouthEy;
-          const scale = origSpace > 0 ? newSpace / origSpace : 1;
-          return { ...s, cp1dy: origCp1dy * scale, cp2dy: origCp2dy * scale };
-        });
-      }
-      return spec;
+      const spec = d.vary(state, [["eyeY"], ["eyeDx"]], {
+        constraint: shapeConstraints,
+      });
+      if (mouthPinned) return spec;
+      const origMouthEy = state.mouthEy;
+      const origCp1dy = state.cp1dy;
+      const origCp2dy = state.cp2dy;
+      return spec.during((s) => {
+        const pushed = pushMouthAway(s);
+        // Scale CP vertical offsets proportionally when mouth was pushed
+        if (pushed.mouthEy === origMouthEy) return pushed;
+        const faceBottom = FACE_CY + FACE_R - FACE_MARGIN;
+        const origSpace = faceBottom - origMouthEy;
+        const newSpace = faceBottom - pushed.mouthEy;
+        const scale = origSpace > 0 ? newSpace / origSpace : 1;
+        return {
+          ...pushed,
+          cp1dy: origCp1dy * scale,
+          cp2dy: origCp2dy * scale,
+        };
+      });
     }
 
     function endpointDragology() {
-      const paths: PathIn<State, number>[] = [["mouthDx"], ["mouthEy"]];
-      if (!eyesPinned) paths.push(["eyeY"]);
-      return d.vary(state, paths, { constraint: allConstraints });
+      const spec = d.vary(state, [["mouthDx"], ["mouthEy"]], {
+        constraint: shapeConstraints,
+      });
+      return state.pinned.eyes ? spec : spec.during(pushEyesAway);
     }
 
     function curveDragology(t: number) {
@@ -211,8 +262,8 @@ function makeDraggable(couplingMode: CouplingMode): Draggable<State> {
           : t > 0.6
             ? [["cp2dx"], ["cp2dy"]]
             : [["cp1dx"], ["cp1dy"], ["cp2dx"], ["cp2dy"]];
-      if (!eyesPinned) paths.push(["eyeY"]);
-      return d.vary(state, paths, { constraint: allConstraints });
+      const spec = d.vary(state, paths, { constraint: shapeConstraints });
+      return state.pinned.eyes ? spec : spec.during(pushEyesAway);
     }
 
     return (
@@ -352,45 +403,22 @@ function makeDraggable(couplingMode: CouplingMode): Draggable<State> {
       </g>
     );
   };
-}
-
-const couplingModes: readonly CouplingMode[] = ["none", "free", "coupled"];
-const couplingLabels: Record<CouplingMode, string> = {
-  none: "None — rigid push only",
-  free: "Free — COBYLA varies curve shape",
-  coupled: "Coupled — curve scales with space",
-};
 
 export default demo(
-  () => {
-    const [couplingMode, setCouplingMode] = useState<CouplingMode>("none");
-    const draggable = useMemo(() => makeDraggable(couplingMode), [couplingMode]);
-    return (
-      <DemoWithConfig>
-        <div>
-          <DemoNotes>
-            Drag eyes to move/space them. Drag the mouth curve or endpoints.
-            Unpinned features get pushed. Click indicators on the right to
-            pin/unpin.
-          </DemoNotes>
-          <DemoDraggable
-            draggable={draggable}
-            initialState={initialState}
-            width={400}
-            height={350}
-          />
-        </div>
-        <ConfigPanel>
-          <ConfigSelect
-            label="Eye→mouth coupling"
-            value={couplingMode}
-            onChange={setCouplingMode}
-            options={couplingModes}
-            stringifyOption={(m) => couplingLabels[m]}
-          />
-        </ConfigPanel>
-      </DemoWithConfig>
-    );
-  },
+  () => (
+    <div>
+      <DemoNotes>
+        Drag eyes to move/space them. Drag the mouth curve or endpoints.
+        Unpinned features get pushed. Click indicators on the right to
+        pin/unpin.
+      </DemoNotes>
+      <DemoDraggable
+        draggable={draggable}
+        initialState={initialState}
+        width={400}
+        height={350}
+      />
+    </div>
+  ),
   { tags: ["d.vary"] },
 );
