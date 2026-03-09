@@ -532,7 +532,8 @@ function processChainNow<T extends object>(
     return null;
 
   const newState = result.dropState;
-  const newDraggedId = result.chainNow.draggedId ?? status.behaviorCtx.draggedId;
+  const newDraggedId =
+    result.chainNow.draggedId ?? status.behaviorCtx.draggedId;
   const content = renderDraggableInertUnlayered(
     status.behaviorCtx.draggable,
     newState,
