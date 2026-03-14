@@ -9,129 +9,86 @@ import { Many, ManyReader, assert, manyToArray } from "./utils";
 
 // # DragSpecData
 
-export type DragSpecData<T> = (
-  | DragSpecFixed<T>
-  | DragSpecWithFloating<T>
-  | DragSpecClosest<T>
-  | DragSpecWhenFar<T>
-  | DragSpecOnDrop<T>
-  | DragSpecVary<T>
-  | DragSpecChangeDistance<T>
-  | DragSpecWithSnapRadius<T>
-  | DragSpecWithDropTransition<T>
-  | DragSpecBetween<T>
-  | DragSpecSwitchToStateAndFollow<T>
-  | DragSpecDropTarget<T>
-  | DragSpecWithBranchTransition<T>
-  | DragSpecWithChaining<T>
-  | DragSpecDuring<T>
-  | DragSpecSubstate<T>
-) & { traceInfo?: unknown };
-
-export type DragSpecFixed<T> = {
-  type: "fixed";
-  state: T;
-};
+export type DragSpecData<T> = {
+  traceInfo?: unknown;
+} & (
+  | { type: "fixed"; state: T }
+  | {
+      type: "with-floating";
+      inner: DragSpecData<T>;
+      ghost: SVGProps<SVGElement> | undefined;
+      tether: ((dist: number) => number) | undefined;
+    }
+  | { type: "closest"; specs: DragSpecData<T>[] }
+  | {
+      type: "when-far";
+      foreground: DragSpecData<T>;
+      background: DragSpecData<T>;
+      distance: number;
+    }
+  | {
+      type: "on-drop";
+      inner: DragSpecData<T>;
+      onDropState: T | ((previewState: T) => T);
+    }
+  | {
+      type: "vary";
+      state: T;
+      paramPaths: PathIn<T, number>[];
+      options: VaryOptions<T>;
+    }
+  | {
+      type: "change-distance";
+      inner: DragSpecData<T>;
+      f: (distance: number) => number;
+    }
+  | {
+      type: "with-snap-radius";
+      inner: DragSpecData<T>;
+      radius: number;
+      transition: Transition | false;
+      chain: boolean;
+    }
+  | {
+      type: "with-drop-transition";
+      inner: DragSpecData<T>;
+      transition: Transition | false;
+    }
+  | { type: "between"; states: T[] }
+  | {
+      type: "switch-to-state-and-follow";
+      state: T;
+      draggedId: string;
+      followSpec?: DragSpec<T>;
+    }
+  | { type: "drop-target"; state: T; targetId: string }
+  | {
+      type: "with-branch-transition";
+      inner: DragSpecData<T>;
+      transition: Transition | false;
+    }
+  | {
+      type: "with-chaining";
+      inner: DragSpecData<T>;
+      chaining: Chaining<T>;
+    }
+  | {
+      type: "during";
+      inner: DragSpecData<T>;
+      duringFn: (state: T) => T;
+    }
+  | {
+      type: "substate";
+      state: T;
+      path: (string | number)[];
+      /** This is really a DragSpecData<T[path]> */
+      innerSpec: DragSpecData<unknown>;
+    }
+);
 
 export type FloatingOptions = {
   ghost?: SVGProps<SVGElement> | true;
   tether?: (dist: number) => number;
-};
-
-export type DragSpecWithFloating<T> = {
-  type: "with-floating";
-  inner: DragSpecData<T>;
-  ghost: SVGProps<SVGElement> | undefined;
-  tether: ((dist: number) => number) | undefined;
-};
-
-export type DragSpecClosest<T> = {
-  type: "closest";
-  specs: DragSpecData<T>[];
-};
-
-export type DragSpecWhenFar<T> = {
-  type: "when-far";
-  foreground: DragSpecData<T>;
-  background: DragSpecData<T>;
-  distance: number;
-};
-
-export type DragSpecWithSnapRadius<T> = {
-  type: "with-snap-radius";
-  inner: DragSpecData<T>;
-  radius: number;
-  transition: Transition | false;
-  chain: boolean;
-};
-
-export type DragSpecWithDropTransition<T> = {
-  type: "with-drop-transition";
-  inner: DragSpecData<T>;
-  transition: Transition | false;
-};
-
-export type DragSpecWithBranchTransition<T> = {
-  type: "with-branch-transition";
-  inner: DragSpecData<T>;
-  transition: Transition | false;
-};
-
-export type DragSpecOnDrop<T> = {
-  type: "on-drop";
-  inner: DragSpecData<T>;
-  onDropState: T | ((previewState: T) => T);
-};
-
-export type DragSpecVary<T> = {
-  type: "vary";
-  state: T;
-  paramPaths: PathIn<T, number>[];
-  options: VaryOptions<T>;
-};
-
-export type DragSpecChangeDistance<T> = {
-  type: "change-distance";
-  inner: DragSpecData<T>;
-  f: (distance: number) => number;
-};
-
-export type DragSpecBetween<T> = {
-  type: "between";
-  states: T[];
-};
-
-export type DragSpecSwitchToStateAndFollow<T> = {
-  type: "switch-to-state-and-follow";
-  state: T;
-  draggedId: string;
-  followSpec?: DragSpec<T>;
-};
-
-export type DragSpecDropTarget<T> = {
-  type: "drop-target";
-  state: T;
-  targetId: string;
-};
-
-export type DragSpecWithChaining<T> = {
-  type: "with-chaining";
-  inner: DragSpecData<T>;
-  chaining: Chaining<T>;
-};
-
-export type DragSpecDuring<T> = {
-  type: "during";
-  inner: DragSpecData<T>;
-  duringFn: (state: T) => T;
-};
-
-export type DragSpecSubstate<T> = {
-  type: "substate";
-  state: T;
-  path: (string | number)[];
-  /** This is really a DragSpecData<T[path]> */
-  innerSpec: DragSpecData<unknown>;
 };
 
 /**
