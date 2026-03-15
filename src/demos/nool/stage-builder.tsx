@@ -463,7 +463,13 @@ function makePaletteDrag(
         const stageTargets = emptyStageTarget(stateWithClone, block);
         const palTargets = paletteInsertionTargets(stateWithClone, block);
         return d
-          .closest([placeTargets, insertTargets, stageTargets, palTargets, state])
+          .closest([
+            placeTargets,
+            insertTargets,
+            stageTargets,
+            palTargets,
+            state,
+          ])
           .whenFar(stateWithClone)
           .withFloating();
       }
@@ -507,7 +513,12 @@ function makePaletteDrag(
       return d
         .closest([
           d
-            .closest([placeTargets, insertTargets, stageTargets, reorderTargets])
+            .closest([
+              placeTargets,
+              insertTargets,
+              stageTargets,
+              reorderTargets,
+            ])
             .withFloating(),
           d
             .floating(removeStageHoles(eraseState))

@@ -1,9 +1,9 @@
 import { Draggable, makeDraggableProps } from "./draggable";
+import { Vec2 } from "./math/vec2";
 import { Svgx } from "./svgx";
 import { LayeredSvgx, layerSvg, layeredExtract } from "./svgx/layers";
 import { assignPaths } from "./svgx/path";
 import { localToGlobal } from "./svgx/transform";
-import { Vec2 } from "./math/vec2";
 import { pipe, throwError } from "./utils";
 
 /** Render a state through assignPaths, but stop before layering. */
