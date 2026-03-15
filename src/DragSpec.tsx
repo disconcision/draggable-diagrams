@@ -54,7 +54,7 @@ export type DragSpecData<T> = {
       inner: DragSpecData<T>;
       transition: Transition | false;
     }
-  | { type: "between"; states: T[] }
+  | { type: "between"; specs: DragSpecData<T>[] }
   | {
       type: "switch-to-state-and-follow";
       state: T;
@@ -311,10 +311,10 @@ export class DragSpecBuilder<T> {
    * This drag behavior lets you interpolate smoothly between states
    * by dragging inside their convex hull.
    */
-  between(states: Many<T>): DragSpec<T> {
-    const resolved = manyToArray(states);
+  between(specs: Many<DragSpecLike<T>>): DragSpec<T> {
+    const resolved = manyToArray(specs).map(resolveDragSpecLike);
     assert(resolved.length > 0, "between requires at least one state");
-    return attachMethods({ type: "between", states: resolved });
+    return attachMethods({ type: "between", specs: resolved });
   }
 
   /**

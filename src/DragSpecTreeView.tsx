@@ -217,7 +217,7 @@ function SpecNode<T>({ spec, path }: { spec: DragSpecData<T>; path: string }) {
     const { active, color, traceInfo } = info(spec);
     return (
       <Box
-        label={`between [${spec.states.length}]`}
+        label={`between [${spec.specs.length}]`}
         active={active}
         color={color}
       >

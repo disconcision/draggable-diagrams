@@ -556,7 +556,11 @@ function betweenBehavior<T extends object>(
   spec: DragSpecData<T> & { type: "between" },
   ctx: DragBehaviorInitContext<T>,
 ): DragBehavior<T> {
-  const renderedStates = spec.states.map((state) => {
+  const states = spec.specs.map((s) => {
+    assert(s.type === "fixed", `between: expected fixed spec, got ${s.type}`);
+    return s.state;
+  });
+  const renderedStates = states.map((state) => {
     const layered = renderStateReadOnly(ctx, state);
     return { state, layered, position: getElementPosition(ctx, layered) };
   });
