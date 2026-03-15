@@ -72,7 +72,7 @@ export default demo(
     <>
       <DemoNotes>
         Hold <b>Alt/Option</b> while dragging to duplicate a dot. You can toggle
-        Alt mid-drag. (Though we don't yet support a{" "}
+        Alt mid-drag. (Test out our{" "}
         <DemoLink href="https://tldraw.dev/blog/adding-delays-to-modifier-keys">
           release timeout
         </DemoLink>

@@ -3,11 +3,21 @@ function monitorKey(
 ): Iterator<boolean> {
   let value = false;
 
+  // see https://tldraw.dev/blog/adding-delays-to-modifier-keys
+  let upTimeout: ReturnType<typeof setTimeout> | undefined;
+
   const onDown = (e: KeyboardEvent) => {
-    if (predicate(e)) value = true;
+    if (predicate(e)) {
+      clearTimeout(upTimeout);
+      value = true;
+    }
   };
   const onUp = (e: KeyboardEvent) => {
-    if (predicate(e)) value = false;
+    if (predicate(e)) {
+      upTimeout = setTimeout(() => {
+        value = false;
+      }, 150);
+    }
   };
 
   window.addEventListener("keydown", onDown);
