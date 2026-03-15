@@ -406,6 +406,7 @@ export default demo(
   ),
   {
     tags: [
+      "math",
       "d.closest",
       "d.vary",
       "d.switchToStateAndFollow",

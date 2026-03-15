@@ -212,5 +212,5 @@ export default demo(
       />
     </div>
   ),
-  { tags: ["d.vary"] },
+  { tags: ["math", "d.vary"] },
 );
