@@ -446,7 +446,7 @@ export function useDropZoneData<T extends object>(
   width: number,
   height: number,
 ): { data: DropZoneData | null; computing: boolean } {
-  const { specForDropZoneVis: spec, behaviorCtx, pointerStart } = status ?? {};
+  const { specForDropZoneVis: spec, behaviorCtx } = status ?? {};
 
   const [data, setData] = useState<DropZoneData | null>(null);
   const [computing, setComputing] = useState(false);
@@ -455,7 +455,7 @@ export function useDropZoneData<T extends object>(
   dataRef.current = data;
 
   useEffect(() => {
-    if (!spec || !behaviorCtx || !pointerStart) {
+    if (!spec || !behaviorCtx) {
       setData(null);
       setComputing(false);
       return;
@@ -466,14 +466,13 @@ export function useDropZoneData<T extends object>(
     specRef.current = spec;
 
     setComputing(true);
-    const ps = pointerStart;
 
     // Create a separate behavior instance for sampling (doesn't interfere
     // with the drag's own behavior's mutable curParams).
     const samplingBehavior = dragSpecToBehavior(spec, behaviorCtx);
 
     function sample(x: number, y: number): string {
-      const frame: DragFrame = { pointer: Vec2(x, y), pointerStart: ps };
+      const frame: DragFrame = { pointer: Vec2(x, y) };
       try {
         return samplingBehavior(frame).activePath;
       } catch {
@@ -501,7 +500,7 @@ export function useDropZoneData<T extends object>(
       cancelled = true;
       setComputing(false);
     };
-  }, [spec, behaviorCtx, pointerStart, width, height]);
+  }, [spec, behaviorCtx, width, height]);
 
   return { data, computing };
 }

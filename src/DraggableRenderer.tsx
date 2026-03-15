@@ -138,7 +138,6 @@ export type DragStatus<T extends object> = {
       startState: T;
       behavior: DragBehavior<T>;
       behaviorCtx: DragBehaviorInitContext<T>;
-      pointerStart: Vec2;
       result: DragResult<T>;
       dragParamsInfo: DragParamsInfo<T>;
       /**
@@ -351,7 +350,7 @@ function DraggableRendererControlled<T extends object>({
       if (status.type !== "dragging") return;
       const pointer = setPointerFromEvent(e);
 
-      const frame: DragFrame = { pointer, pointerStart: status.pointerStart };
+      const frame: DragFrame = { pointer };
       const result = status.behavior(frame);
       const dropState = result.dropState;
 
@@ -386,7 +385,7 @@ function DraggableRendererControlled<T extends object>({
       const pointer = pointerRef.current;
       if (!pointer) return;
 
-      const frame: DragFrame = { pointer, pointerStart: status.pointerStart };
+      const frame: DragFrame = { pointer };
 
       // Spring from current display
       const layered = runSpring(status.springingFrom, status.result.rendered);
@@ -395,9 +394,9 @@ function DraggableRendererControlled<T extends object>({
       const newStatus = initDrag(
         newSpec,
         status.dragParamsInfo.originalBehaviorCtxWithoutFloat,
+        status.behaviorCtx.pointerStart,
         status.dragParamsInfo.originalStartState,
         frame,
-        status.pointerStart,
         newSpringingFrom,
         { ...status.dragParamsInfo, originalDragParams: newParams },
       );
@@ -505,7 +504,7 @@ type DragParamsInfo<T extends object> = {
   originalStartState: T;
   originalBehaviorCtxWithoutFloat: Omit<
     DragBehaviorInitContext<T>,
-    "floatLayered"
+    "floatLayered" | "pointerStart"
   >;
 };
 
@@ -516,7 +515,7 @@ function advanceFrame<T extends object>(
 ): DragStatus<T> | null {
   if (status.type === "dragging") {
     if (!pointer) return null;
-    const frame: DragFrame = { pointer, pointerStart: status.pointerStart };
+    const frame: DragFrame = { pointer };
     const result = status.behavior(frame);
 
     // Handle chaining: restart drag from new state
@@ -609,18 +608,22 @@ function processChainNow<T extends object>(
     pointerLocal,
   );
 
-  const { floatLayered: _fl, ...behaviorCtxWithoutFloat } = status.behaviorCtx;
+  const {
+    floatLayered: _fl,
+    pointerStart: _ps,
+    ...behaviorCtxBase
+  } = status.behaviorCtx;
   const chainedResult = initDrag(
     newDragSpec,
     {
-      ...behaviorCtxWithoutFloat,
+      ...behaviorCtxBase,
       draggedPath: newDraggedPath,
       draggedId: newDraggedId,
       pointerLocal,
     },
+    newPointerStart,
     newState,
     frame,
-    newPointerStart,
     newSpringingFrom,
     status.dragParamsInfo,
   );
@@ -641,14 +644,17 @@ function processChainNow<T extends object>(
 
 function initDrag<T extends object>(
   spec: DragSpec<T>,
-  behaviorCtxWithoutFloat: Omit<DragBehaviorInitContext<T>, "floatLayered">,
+  behaviorCtxBase: Omit<
+    DragBehaviorInitContext<T>,
+    "floatLayered" | "pointerStart"
+  >,
+  pointerStart: Vec2,
   state: T,
   frame: DragFrame,
-  pointerStart: Vec2,
   springingFrom: SpringingFrom | null,
   dragParamsInfo: DragParamsInfo<T>,
 ): DragStatusDragging<T> {
-  const { draggable, draggedId } = behaviorCtxWithoutFloat;
+  const { draggable, draggedId } = behaviorCtxBase;
   let floatLayered: LayeredSvgx | null = null;
   if (draggedId) {
     const startLayered = renderDraggableInert(
@@ -660,17 +666,12 @@ function initDrag<T extends object>(
     floatLayered = layeredExtract(startLayered, draggedId).extracted;
   }
   const behaviorCtx: DragBehaviorInitContext<T> = {
-    ...behaviorCtxWithoutFloat,
+    ...behaviorCtxBase,
+    pointerStart,
     floatLayered,
   };
   const behavior = dragSpecToBehavior(spec, behaviorCtx);
-  // Use the canonical pointerStart (not frame.pointerStart) so that
-  // the first rendered frame of a chained drag uses the correct
-  // origin. processChainNow passes a frame with the *old*
-  // pointerStart but a new pointerStart parameter; using the
-  // parameter avoids a single-frame offset equal to the difference
-  // between the two.
-  const result = behavior({ ...frame, pointerStart });
+  const result = behavior(frame);
 
   const status: DragStatusDragging<T> = {
     type: "dragging",
@@ -678,7 +679,6 @@ function initDrag<T extends object>(
     behavior,
     specForDropZoneVis: spec,
     behaviorCtx,
-    pointerStart,
     result,
     springingFrom,
     dragParamsInfo,
@@ -749,13 +749,13 @@ function postProcessForInteraction<T extends object>(
               pointerLocal,
             };
 
-            const frame: DragFrame = { pointer, pointerStart: pointer };
+            const frame: DragFrame = { pointer };
             const draggingStatus = initDrag(
               dragSpec,
               behaviorCtxWithoutFloat,
+              pointer,
               state,
               frame,
-              pointer,
               null,
               {
                 originalDragParams: dragParams,

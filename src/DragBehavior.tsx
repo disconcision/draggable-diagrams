@@ -49,7 +49,6 @@ export type DragBehavior<T> = (frame: DragFrame) => DragResult<T>;
  */
 export type DragFrame = {
   pointer: Vec2;
-  pointerStart: Vec2;
 };
 
 /**
@@ -79,6 +78,7 @@ export type DragBehaviorInitContext<T extends object> = {
   draggedPath: string;
   draggedId: string | null;
   pointerLocal: Vec2;
+  pointerStart: Vec2;
   floatLayered: LayeredSvgx | null;
 };
 
@@ -187,14 +187,14 @@ function withFloatingBehavior<T extends object>(
 
     // Compute float translation. With tether, we limit how far the
     // float can deviate from the inner spec's element position.
-    let floatDelta = frame.pointer.sub(frame.pointerStart);
+    let floatDelta = frame.pointer.sub(ctx.pointerStart);
     if (spec.tether) {
       const v = frame.pointer.sub(elementPos);
       const dist = v.len();
       if (dist > 1e-6) {
         const newDist = spec.tether(dist);
         const adjusted = elementPos.add(v.mul(newDist / dist));
-        floatDelta = adjusted.sub(frame.pointerStart);
+        floatDelta = adjusted.sub(ctx.pointerStart);
       }
     }
     const floatPositioned = layeredTransform(
