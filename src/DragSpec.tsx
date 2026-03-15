@@ -343,7 +343,7 @@ export class DragSpecBuilder<T> {
    */
   vary<S extends T>(
     state: S,
-    paramPaths: PathIn<S, number>[],
+    paramPaths: NoInfer<PathIn<S, number>>[],
     options?: VaryOptions<S>,
   ): DragSpec<T> {
     return attachMethods({
