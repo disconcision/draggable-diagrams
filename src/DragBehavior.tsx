@@ -40,6 +40,8 @@ import {
   ManyReader,
   manyReaderToArray,
   pipe,
+  Reader,
+  readerToValue,
 } from "./utils";
 
 /**
@@ -111,6 +113,8 @@ export function dragSpecToBehavior<T extends object>(
       return duringBehavior(spec, ctx);
     case "vary":
       return varyBehavior(spec, ctx);
+    case "change-result":
+      return changeResultBehavior(spec, ctx);
     case "change-distance":
       return changeDistanceBehavior(spec, ctx);
     case "with-snap-radius":
@@ -337,19 +341,12 @@ function onDropBehavior<T extends object>(
   spec: DragSpecData<T> & { type: "on-drop" },
   ctx: DragBehaviorInitContext<T>,
 ): DragBehavior<T> {
-  const subBehavior = dragSpecToBehavior(spec.inner, ctx);
-  return (frame) => {
-    const result = subBehavior(frame);
-    return {
-      ...result,
-      dropState:
-        typeof spec.onDropState === "function"
-          ? (spec.onDropState as (s: T) => T)(result.dropState)
-          : spec.onDropState,
-      activePath: `on-drop/${result.activePath}`,
-      tracedSpec: { ...spec, inner: result.tracedSpec },
-    };
-  };
+  return changeResultBehaviorBase(spec, ctx, (result) => ({
+    dropState:
+      typeof spec.onDropState === "function"
+        ? (spec.onDropState as (s: T) => T)(result.dropState)
+        : spec.onDropState,
+  }));
 }
 
 function duringBehavior<T extends object>(
@@ -360,10 +357,6 @@ function duringBehavior<T extends object>(
   return (frame) => {
     const result = subBehavior(frame);
     const transformedState = spec.duringFn(result.dropState);
-    // console.group("during turned");
-    // prettyLog(result.dropState);
-    // prettyLog(transformedState);
-    // console.groupEnd();
     const rendered = renderStateReadOnly(ctx, transformedState);
     const elementPos = getElementPosition(ctx, rendered);
     return {
@@ -461,21 +454,38 @@ function varyBehavior<T extends object>(
   };
 }
 
-function changeDistanceBehavior<T extends object>(
-  spec: DragSpecData<T> & { type: "change-distance" },
+function changeResultBehaviorBase<T extends object>(
+  spec: DragSpecData<T> & { inner: DragSpecData<T> },
   ctx: DragBehaviorInitContext<T>,
+  f: Reader<Partial<DragResult<T>>, DragResult<T>>,
 ): DragBehavior<T> {
   const subBehavior = dragSpecToBehavior(spec.inner, ctx);
   return (frame) => {
     const result = subBehavior(frame);
-    const scaledDistance = spec.f(result.distance);
+    const changed = readerToValue(f, result);
     return {
       ...result,
-      distance: scaledDistance,
-      activePath: `change-distance/${result.activePath}`,
+      activePath: `${spec.type}/${changed.activePath}`,
       tracedSpec: { ...spec, inner: result.tracedSpec },
+      ...changed,
     };
   };
+}
+
+function changeResultBehavior<T extends object>(
+  spec: DragSpecData<T> & { type: "change-result" },
+  ctx: DragBehaviorInitContext<T>,
+): DragBehavior<T> {
+  return changeResultBehaviorBase(spec, ctx, spec.f);
+}
+
+function changeDistanceBehavior<T extends object>(
+  spec: DragSpecData<T> & { type: "change-distance" },
+  ctx: DragBehaviorInitContext<T>,
+): DragBehavior<T> {
+  return changeResultBehaviorBase(spec, ctx, (result) => ({
+    distance: spec.f(result.distance),
+  }));
 }
 
 function withSnapRadiusBehavior<T extends object>(
@@ -526,32 +536,18 @@ function withDropTransitionBehavior<T extends object>(
   spec: DragSpecData<T> & { type: "with-drop-transition" },
   ctx: DragBehaviorInitContext<T>,
 ): DragBehavior<T> {
-  const subBehavior = dragSpecToBehavior(spec.inner, ctx);
-  return (frame) => {
-    const result = subBehavior(frame);
-    return {
-      ...result,
-      dropTransition: spec.transition,
-      activePath: `with-drop-transition/${result.activePath}`,
-      tracedSpec: { ...spec, inner: result.tracedSpec },
-    };
-  };
+  return changeResultBehaviorBase(spec, ctx, {
+    dropTransition: spec.transition,
+  });
 }
 
 function withBranchTransitionBehavior<T extends object>(
   spec: DragSpecData<T> & { type: "with-branch-transition" },
   ctx: DragBehaviorInitContext<T>,
 ): DragBehavior<T> {
-  const subBehavior = dragSpecToBehavior(spec.inner, ctx);
-  return (frame) => {
-    const result = subBehavior(frame);
-    return {
-      ...result,
-      activePathTransition: spec.transition,
-      activePath: `with-branch-transition/${result.activePath}`,
-      tracedSpec: { ...spec, inner: result.tracedSpec },
-    };
-  };
+  return changeResultBehaviorBase(spec, ctx, {
+    activePathTransition: spec.transition,
+  });
 }
 
 function betweenBehavior<T extends object>(
@@ -793,16 +789,9 @@ function withChainingBehavior<T extends object>(
   spec: DragSpecData<T> & { type: "with-chaining" },
   ctx: DragBehaviorInitContext<T>,
 ): DragBehavior<T> {
-  const subBehavior = dragSpecToBehavior(spec.inner, ctx);
-  return (frame) => {
-    const result = subBehavior(frame);
-    return {
-      ...result,
-      chainNow: result.chainNow ?? spec.chaining,
-      activePath: `with-chaining/${result.activePath}`,
-      tracedSpec: { ...spec, inner: result.tracedSpec },
-    };
-  };
+  return changeResultBehaviorBase(spec, ctx, (result) => ({
+    chainNow: result.chainNow ?? spec.chaining,
+  }));
 }
 
 function substateBehavior<T extends object>(

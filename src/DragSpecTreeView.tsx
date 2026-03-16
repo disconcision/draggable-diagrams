@@ -184,6 +184,13 @@ function SpecNode<T>({ spec, path }: { spec: DragSpecData<T>; path: string }) {
         <SpecNode spec={spec.inner} path={childPath} />
       </Box>
     );
+  } else if (spec.type === "change-result") {
+    const { childPath } = info(spec);
+    return (
+      <Box label="changeResult">
+        <SpecNode spec={spec.inner} path={childPath} />
+      </Box>
+    );
   } else if (spec.type === "change-distance") {
     const { childPath } = info(spec);
     return (

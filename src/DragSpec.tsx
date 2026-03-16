@@ -1,12 +1,12 @@
 import { SVGProps } from "react";
-import type { DragBehaviorInitContext } from "./DragBehavior";
+import type { DragBehaviorInitContext, DragResult } from "./DragBehavior";
 import { PathIn, ValueAtPath, getAtPath } from "./paths";
 import {
   Transition,
   TransitionLike,
   resolveTransitionLike,
 } from "./transition";
-import { Many, ManyReader, assert, manyToArray } from "./utils";
+import { Many, ManyReader, Reader, assert, manyToArray } from "./utils";
 
 // # DragSpecData
 
@@ -37,6 +37,11 @@ export type DragSpecData<T> = {
       state: T;
       paramPaths: PathIn<T, number>[];
       options: VaryOptions<T>;
+    }
+  | {
+      type: "change-result";
+      inner: DragSpecData<T>;
+      f: Reader<Partial<DragResult<T>>, DragResult<T>>;
     }
   | {
       type: "change-distance";
@@ -180,6 +185,13 @@ export interface DragSpecMethods<T> {
   withBranchTransition(transition: TransitionLike): DragSpec<T>;
 
   /**
+   * Advanced: Transform the behavior's entire result on each frame.
+   * This is the most general wrapper — you can change any field of
+   * the DragResult (rendered output, drop state, distance, etc.).
+   */
+  changeResult(f: (result: DragResult<T>) => DragResult<T>): DragSpec<T>;
+
+  /**
    * Advanced: Change the behavior's reported "distance" measurement
    * via the provided function. Use this, e.g., to "reweight" the
    * behavior's drop target in a `closest`.
@@ -261,6 +273,9 @@ const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
       inner: this,
       transition: resolveTransitionLike(transition) ?? false,
     });
+  },
+  changeResult(f) {
+    return attachMethods({ type: "change-result", inner: this, f });
   },
   changeDistance(f) {
     return attachMethods({ type: "change-distance", inner: this, f });
