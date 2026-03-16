@@ -1,6 +1,7 @@
 import React, { cloneElement, Fragment } from "react";
 import { FindElementResult, Svgx, updateElement, updatePropsDownTree } from ".";
 import { DRAGOLOGY_PROP_NAME } from "../draggable";
+import { ErrorWithJSX } from "../ErrorBoundary";
 import { assert } from "../utils/assert";
 import { objectEntries } from "../utils/js";
 import { findByPath } from "./path";
@@ -162,7 +163,14 @@ export function layeredExtract(
   id: string,
 ): { remaining: LayeredSvgx; extracted: LayeredSvgx } {
   assert(layered.descendents !== null, "layered.descendents is null");
-  assert(layered.byId.has(id), `Layered SVG does not contain id "${id}"`);
+  if (!layered.byId.has(id)) {
+    throw new ErrorWithJSX(
+      `Layered SVG does not contain id "${id}"`,
+      <p>
+        Available ids: <code>{[...layered.byId.keys()].join(", ")}</code>
+      </p>,
+    );
+  }
 
   // Collect the ID and all its descendants
   const extractedIds = new Set([id]);
