@@ -245,8 +245,6 @@ const SHAPE_STROKES: Record<ShapeKind, string> = {
 
 // --- The draggable ---
 
-const SNAP_RADIUS = 30;
-
 /** Build a snap-or-free-drag spec for a shape in a given state. */
 function shapeSpec(
   d: DragSpecBuilder<State>,
@@ -270,17 +268,13 @@ function shapeSpec(
     param("shapes", shapeId, "y"),
   ]);
 
-  const snapOrFree =
-    snapStates.length > 0
-      ? d.closest(snapStates).withSnapRadius(SNAP_RADIUS).whenFar(freeSpec)
-      : freeSpec;
-
   const stateWithout = produce(st, (draft) => {
     delete draft.shapes[shapeId];
   });
 
   return d
-    .closest([snapOrFree, d.dropTarget(stateWithout, "trash-bin")])
+    .closest([snapStates, d.dropTarget(stateWithout, "trash-bin")])
+    .whenFar(freeSpec)
     .withInitContext((ctx) => ({ ...ctx, pointerLocal: Vec2(0) }));
 }
 
@@ -410,7 +404,6 @@ export default demo(
       "d.closest",
       "d.vary",
       "d.switchToStateAndFollow",
-      "spec.withSnapRadius",
       "spec.whenFar",
       "discrete on top of continuous",
     ],

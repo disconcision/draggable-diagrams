@@ -285,8 +285,28 @@ function closestBehavior<T extends object>(
   spec: DragSpecData<T> & { type: "closest" },
   ctx: DragBehaviorInitContext<T>,
 ): DragBehavior<T> {
+  let fixedResult: DragResult<T> | undefined;
+  if (spec.specs.length === 0) {
+    // TODO: Weird special case: just stay on the starting state.
+    // This is actually useful – it lets you do things like
+    // d.closest(specs).whenFar(specFar) and not worry about the
+    // 0-specs case. But it's not especially principled.
+    fixedResult = {
+      rendered: renderStateReadOnly(ctx, ctx.startState),
+      dropState: ctx.startState,
+      distance: Infinity,
+      activePath: "closest/none",
+      tracedSpec: spec,
+    };
+  }
+
   const subBehaviors = spec.specs.map((s) => dragSpecToBehavior(s, ctx));
+
   return (frame) => {
+    if (fixedResult) {
+      return fixedResult;
+    }
+
     const subResults = subBehaviors.map((b) => b(frame));
     const best = _.minBy(subResults, (r) => r.distance)!;
     const bestIdx = subResults.indexOf(best);

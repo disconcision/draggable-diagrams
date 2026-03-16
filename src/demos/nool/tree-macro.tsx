@@ -601,41 +601,37 @@ function renderMacroMode(
               pointerEventsNone: true,
               flatZIndex: true,
               opacity: insertionPoints.length > 0 ? undefined : 0.35,
-              rootDragology:
-                insertionPoints.length > 0
-                  ? () => {
-                      // Clone-and-refresh: new node gets original key,
-                      // toolkit item gets refreshed key so the dragged
-                      // element (original key) isn't anchored to toolkit
-                      const stateWithout = produce(state, (draft) => {
-                        draft.toolkit[idx].key += "-r";
-                      });
-                      const newNode: Tree = {
-                        id: block.key,
-                        label: block.label,
-                        children: [],
-                      };
-                      const points = allInsertionPoints(
-                        stateWithout.tree,
-                        (t) => isOp(t.label),
-                      );
-                      const targetStates: State[] = points.map(
-                        ({ parentId, index }) => ({
-                          ...stateWithout,
-                          tree: insertChild(
-                            stateWithout.tree,
-                            parentId,
-                            index,
-                            newNode,
-                          ),
-                        }),
-                      );
-                      return d
-                        .closest(targetStates)
-                        .whenFar(stateWithout)
-                        .withFloating();
-                    }
-                  : undefined,
+              rootDragology: () => {
+                // Clone-and-refresh: new node gets original key,
+                // toolkit item gets refreshed key so the dragged
+                // element (original key) isn't anchored to toolkit
+                const stateWithout = produce(state, (draft) => {
+                  draft.toolkit[idx].key += "-r";
+                });
+                const newNode: Tree = {
+                  id: block.key,
+                  label: block.label,
+                  children: [],
+                };
+                const points = allInsertionPoints(stateWithout.tree, (t) =>
+                  isOp(t.label),
+                );
+                const targetStates: State[] = points.map(
+                  ({ parentId, index }) => ({
+                    ...stateWithout,
+                    tree: insertChild(
+                      stateWithout.tree,
+                      parentId,
+                      index,
+                      newNode,
+                    ),
+                  }),
+                );
+                return d
+                  .closest(targetStates)
+                  .whenFar(stateWithout)
+                  .withFloating();
+              },
             }).element
           }
         </g>
