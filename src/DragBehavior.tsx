@@ -484,7 +484,7 @@ function changeResultBehaviorBase<T extends object>(
     const changed = readerToValue(f, result);
     return {
       ...result,
-      activePath: `${spec.type}/${changed.activePath}`,
+      activePath: `${spec.type}/${result.activePath}`,
       tracedSpec: { ...spec, inner: result.tracedSpec },
       ...changed,
     };
