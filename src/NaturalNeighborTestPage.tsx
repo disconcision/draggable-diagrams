@@ -1,10 +1,11 @@
-import { useCallback, useRef, useState } from "react";
-import { naturalNeighborWeights } from "./math/natural-neighbor";
+import { Delaunay } from "d3-delaunay";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { naturalNeighborWeightsFromDelaunay } from "./math/natural-neighbor";
 import { Vec2 } from "./math/vec2";
 
 const WIDTH = 600;
 const HEIGHT = 600;
-const GRID_STEP = 10;
+const GRID_STEP = 5;
 const DOT_RADIUS = 8;
 
 type Dot = { x: number; y: number };
@@ -28,15 +29,31 @@ export const NaturalNeighborTestPage = () => {
 
   const points = dots.map((d) => Vec2(d.x, d.y));
 
+  const flat = useMemo(() => {
+    const f = new Float64Array(points.length * 2);
+    for (let i = 0; i < points.length; i++) {
+      f[2 * i] = points[i].x;
+      f[2 * i + 1] = points[i].y;
+    }
+    return f;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dots]);
+
+  const delaunay = useMemo(() => new Delaunay(flat), [flat]);
+
   const t0 = performance.now();
+
+  const opts = { projectOutside };
 
   // Compute weight grid for the selected dot.
   const grid: { x: number; y: number; weight: number }[] = [];
   for (let x = GRID_STEP; x < WIDTH; x += GRID_STEP) {
     for (let y = GRID_STEP; y < HEIGHT; y += GRID_STEP) {
-      const result = naturalNeighborWeights(points, Vec2(x, y), {
-        projectOutside,
-      });
+      const result = naturalNeighborWeightsFromDelaunay(
+        delaunay,
+        Vec2(x, y),
+        opts,
+      );
       let weight = 0;
       if (result && "weights" in result) {
         weight = result.weights.get(selectedIdx) ?? 0;
@@ -48,10 +65,10 @@ export const NaturalNeighborTestPage = () => {
   }
 
   // Compute weights at the query point.
-  const queryResult = naturalNeighborWeights(
-    points,
+  const queryResult = naturalNeighborWeightsFromDelaunay(
+    delaunay,
     Vec2(queryPoint.x, queryPoint.y),
-    { projectOutside },
+    opts,
   );
   const queryWeights: { idx: number; weight: number }[] = [];
   if (queryResult && "weights" in queryResult) {
