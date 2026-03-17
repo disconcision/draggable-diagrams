@@ -1,11 +1,11 @@
 import { Delaunay } from "d3-delaunay";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { naturalNeighborWeightsFromDelaunay } from "./math/natural-neighbor";
 import { Vec2 } from "./math/vec2";
 
 const WIDTH = 600;
 const HEIGHT = 600;
-const GRID_STEP = 5;
+const GRID_STEP = 2;
 const DOT_RADIUS = 8;
 
 type Dot = { x: number; y: number };
@@ -25,6 +25,8 @@ export const NaturalNeighborTestPage = () => {
   const [queryPoint, setQueryPoint] = useState<Dot>({ x: 250, y: 200 });
   const [draggingQuery, setDraggingQuery] = useState(false);
   const [projectOutside, setProjectOutside] = useState(false);
+  const [renderMs, setRenderMs] = useState(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const points = dots.map((d) => Vec2(d.x, d.y));
@@ -41,30 +43,58 @@ export const NaturalNeighborTestPage = () => {
 
   const delaunay = useMemo(() => new Delaunay(flat), [flat]);
 
-  const t0 = performance.now();
+  // Draw weight grid on canvas.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-  const opts = { projectOutside };
+    const t0 = performance.now();
+    const opts = { projectOutside };
 
-  // Compute weight grid for the selected dot.
-  const grid: { x: number; y: number; weight: number }[] = [];
-  for (let x = GRID_STEP; x < WIDTH; x += GRID_STEP) {
-    for (let y = GRID_STEP; y < HEIGHT; y += GRID_STEP) {
-      const result = naturalNeighborWeightsFromDelaunay(
-        delaunay,
-        Vec2(x, y),
-        opts,
-      );
-      let weight = 0;
-      if (result && "weights" in result) {
-        weight = result.weights.get(selectedIdx) ?? 0;
-      } else if (result && "coincidentIndex" in result) {
-        weight = result.coincidentIndex === selectedIdx ? 1 : 0;
+    const imageData = ctx.createImageData(WIDTH, HEIGHT);
+    const data = imageData.data;
+
+    for (let x = 0; x < WIDTH; x += GRID_STEP) {
+      for (let y = 0; y < HEIGHT; y += GRID_STEP) {
+        const cx = x + GRID_STEP / 2;
+        const cy = y + GRID_STEP / 2;
+        const result = naturalNeighborWeightsFromDelaunay(
+          delaunay,
+          Vec2(cx, cy),
+          opts,
+        );
+        let weight = 0;
+        if (result && "weights" in result) {
+          weight = result.weights.get(selectedIdx) ?? 0;
+        } else if (result && "coincidentIndex" in result) {
+          weight = result.coincidentIndex === selectedIdx ? 1 : 0;
+        }
+        if (weight > 0) {
+          const a = Math.round(weight * 255);
+          const xEnd = Math.min(x + GRID_STEP, WIDTH);
+          const yEnd = Math.min(y + GRID_STEP, HEIGHT);
+          for (let py = y; py < yEnd; py++) {
+            for (let px = x; px < xEnd; px++) {
+              const i = (py * WIDTH + px) * 4;
+              data[i] = 59;
+              data[i + 1] = 130;
+              data[i + 2] = 246;
+              data[i + 3] = a;
+            }
+          }
+        }
       }
-      grid.push({ x, y, weight });
     }
-  }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    setRenderMs(performance.now() - t0);
+  }, [delaunay, selectedIdx, projectOutside]);
 
   // Compute weights at the query point.
+  const opts = { projectOutside };
   const queryResult = naturalNeighborWeightsFromDelaunay(
     delaunay,
     Vec2(queryPoint.x, queryPoint.y),
@@ -79,11 +109,10 @@ export const NaturalNeighborTestPage = () => {
     queryWeights.push({ idx: queryResult.coincidentIndex, weight: 1 });
   }
 
-  const renderMs = performance.now() - t0;
-
-  const getSvgPoint = useCallback((e: React.PointerEvent) => {
-    const svg = svgRef.current!;
-    const rect = svg.getBoundingClientRect();
+  const getPoint = useCallback((e: React.PointerEvent) => {
+    const el = canvasRef.current ?? svgRef.current;
+    if (!el) return { x: 0, y: 0 };
+    const rect = el.getBoundingClientRect();
     return {
       x: ((e.clientX - rect.left) / rect.width) * WIDTH,
       y: ((e.clientY - rect.top) / rect.height) * HEIGHT,
@@ -106,17 +135,17 @@ export const NaturalNeighborTestPage = () => {
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (draggingQuery) {
-        const pt = getSvgPoint(e);
+        const pt = getPoint(e);
         setQueryPoint({ x: pt.x, y: pt.y });
         return;
       }
       if (dragging === null) return;
-      const pt = getSvgPoint(e);
+      const pt = getPoint(e);
       setDots((prev) =>
         prev.map((d, i) => (i === dragging ? { x: pt.x, y: pt.y } : d)),
       );
     },
-    [dragging, draggingQuery, getSvgPoint],
+    [dragging, draggingQuery, getPoint],
   );
 
   const onPointerUp = useCallback(() => {
@@ -141,85 +170,93 @@ export const NaturalNeighborTestPage = () => {
         Project outside hull
       </label>
       <div style={{ display: "flex", gap: 20 }}>
-        <svg
-          ref={svgRef}
-          width={WIDTH}
-          height={HEIGHT}
-          style={{
-            border: "1px solid #ccc",
-            cursor: dragging !== null || draggingQuery ? "grabbing" : "default",
-          }}
+        <div
+          style={{ position: "relative", width: WIDTH, height: HEIGHT }}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
         >
-          {/* Weight grid */}
-          {grid.map((cell, i) => (
-            <rect
-              key={i}
-              x={cell.x - GRID_STEP / 2}
-              y={cell.y - GRID_STEP / 2}
-              width={GRID_STEP}
-              height={GRID_STEP}
-              fill={`rgba(59, 130, 246, ${cell.weight})`}
-            />
-          ))}
+          {/* Canvas for the weight heatmap */}
+          <canvas
+            ref={canvasRef}
+            width={WIDTH}
+            height={HEIGHT}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              border: "1px solid #ccc",
+            }}
+          />
+          {/* SVG overlay for interactive elements */}
+          <svg
+            ref={svgRef}
+            width={WIDTH}
+            height={HEIGHT}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              cursor:
+                dragging !== null || draggingQuery ? "grabbing" : "default",
+            }}
+          >
+            {/* Lines from query point to contributing data points */}
+            {queryWeights.map(({ idx, weight }) => (
+              <line
+                key={`line-${idx}`}
+                x1={queryPoint.x}
+                y1={queryPoint.y}
+                x2={dots[idx].x}
+                y2={dots[idx].y}
+                stroke="#22c55e"
+                strokeWidth={Math.max(1, weight * 6)}
+                strokeOpacity={0.6}
+              />
+            ))}
 
-          {/* Lines from query point to contributing data points */}
-          {queryWeights.map(({ idx, weight }) => (
-            <line
-              key={`line-${idx}`}
-              x1={queryPoint.x}
-              y1={queryPoint.y}
-              x2={dots[idx].x}
-              y2={dots[idx].y}
-              stroke="#22c55e"
-              strokeWidth={Math.max(1, weight * 6)}
-              strokeOpacity={0.6}
-            />
-          ))}
+            {/* Dots */}
+            {dots.map((dot, i) => (
+              <circle
+                key={i}
+                cx={dot.x}
+                cy={dot.y}
+                r={DOT_RADIUS}
+                fill={i === selectedIdx ? "#ef4444" : "#333"}
+                stroke={i === selectedIdx ? "#fff" : "none"}
+                strokeWidth={2}
+                style={{ cursor: "grab" }}
+                onPointerDown={(e) => onPointerDown(e, i)}
+              />
+            ))}
 
-          {/* Dots */}
-          {dots.map((dot, i) => (
+            {/* Weight labels on data dots */}
+            {queryWeights.map(({ idx, weight }) => (
+              <text
+                key={`label-${idx}`}
+                x={dots[idx].x}
+                y={dots[idx].y - DOT_RADIUS - 4}
+                textAnchor="middle"
+                fontSize={12}
+                fontFamily="monospace"
+                fill="#333"
+              >
+                {(weight * 100).toFixed(1)}%
+              </text>
+            ))}
+
+            {/* Query point */}
             <circle
-              key={i}
-              cx={dot.x}
-              cy={dot.y}
+              cx={queryPoint.x}
+              cy={queryPoint.y}
               r={DOT_RADIUS}
-              fill={i === selectedIdx ? "#ef4444" : "#333"}
-              stroke={i === selectedIdx ? "#fff" : "none"}
+              fill="#22c55e"
+              stroke="#fff"
               strokeWidth={2}
               style={{ cursor: "grab" }}
-              onPointerDown={(e) => onPointerDown(e, i)}
+              onPointerDown={onQueryPointerDown}
             />
-          ))}
-
-          {/* Weight labels on data dots */}
-          {queryWeights.map(({ idx, weight }) => (
-            <text
-              key={`label-${idx}`}
-              x={dots[idx].x}
-              y={dots[idx].y - DOT_RADIUS - 4}
-              textAnchor="middle"
-              fontSize={12}
-              fontFamily="monospace"
-              fill="#333"
-            >
-              {(weight * 100).toFixed(1)}%
-            </text>
-          ))}
-
-          {/* Query point */}
-          <circle
-            cx={queryPoint.x}
-            cy={queryPoint.y}
-            r={DOT_RADIUS}
-            fill="#22c55e"
-            stroke="#fff"
-            strokeWidth={2}
-            style={{ cursor: "grab" }}
-            onPointerDown={onQueryPointerDown}
-          />
-        </svg>
+          </svg>
+        </div>
 
         {/* Weight breakdown panel */}
         <div style={{ minWidth: 200 }}>
