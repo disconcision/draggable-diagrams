@@ -35,6 +35,7 @@ export const demoList = [
   "hanoi",
   "sokoban",
   "spinny",
+  "interval-graph",
   "graph",
   "tromino",
   "angle",
