@@ -618,7 +618,7 @@ export function ConfigPanel({
   children,
 }: {
   title?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="bg-gray-50 rounded p-3 shrink-0 md:sticky md:top-4">
@@ -669,6 +669,40 @@ export function ConfigSelect<T>({
         })}
       </select>
     </label>
+  );
+}
+
+export function ConfigRadio<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label?: string;
+  value: T;
+  onChange: (newValue: T) => void;
+  options: Record<T, React.ReactNode> | readonly T[];
+}) {
+  const entries: [T, React.ReactNode][] = Array.isArray(options)
+    ? options.map((k) => [k, k])
+    : (Object.entries(options) as [T, React.ReactNode][]);
+  return (
+    <fieldset className="flex flex-col gap-1 text-xs">
+      {label && (
+        <legend className="font-medium text-gray-600 mb-1">{label}</legend>
+      )}
+      {entries.map(([key, node]) => (
+        <label key={key} className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio"
+            checked={value === key}
+            onChange={() => onChange(key)}
+            className="accent-blue-500"
+          />
+          {node}
+        </label>
+      ))}
+    </fieldset>
   );
 }
 

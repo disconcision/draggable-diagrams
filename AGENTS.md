@@ -132,6 +132,13 @@ export default demo(() => (
 | Nested structures | `src/demos/canvas-of-lists-nested.tsx` | Recursive rendering with path-based state updates |
 | Group movement + `during` | `src/demos/card-piles.tsx` | Vary pile position, `during(recomputePiles)` for live regrouping |
 
+### Demo Tags
+
+Tags in `demo()` use prefixes to distinguish builder methods from spec chain methods:
+- `d.` for `DragSpecBuilder` methods: `d.between`, `d.closest`, `d.vary`, `d.fixed`, `d.switchToStateAndFollow`
+- `spec.` for `DragSpec` chain methods: `spec.withFloating`, `spec.whenFar`, `spec.onDrop`, `spec.withSnapRadius`, `spec.withDropTransition`, `spec.during`, `spec.withBranchTransition`
+- No prefix for other tags: `reordering`, `puzzle`, `math`, `setState`, etc.
+
 ### Gotchas
 
 - **Transform ordering**: SVG transforms are right-to-left. Put `translate()` first: `translate(x, y) + rotate(angle)`
