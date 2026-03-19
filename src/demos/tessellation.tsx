@@ -188,7 +188,7 @@ type Shape = {
 };
 
 type State = {
-  shapes: Record<string, Shape>;
+  shapes: Shape[];
 };
 
 // Palette items (in palette space, not on canvas)
@@ -203,7 +203,7 @@ const PALETTE_ITEMS = [
   return { ...item, y: PALETTE_BASELINE - bottom };
 });
 
-const initialState: State = { shapes: {} };
+const initialState: State = { shapes: [] };
 
 // --- Palette rendering ---
 
@@ -231,12 +231,10 @@ function getStrokeColor(kind: ShapeKind) {
 // --- The draggable ---
 
 const draggable: Draggable<State> = ({ state, d, draggedId }) => {
-  const shapesArr = Object.values(state.shapes);
-
   return (
     <g>
       {/* Canvas shapes */}
-      {shapesArr.map((shape) => {
+      {state.shapes.map((shape, i) => {
         const isDragged = draggedId === `shape-${shape.id}`;
 
         return (
@@ -249,23 +247,23 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             stroke={getStrokeColor(shape.kind)}
             strokeWidth={2}
             dragology={() => {
-              const snaps = computeSnaps(shape.kind, shapesArr, shape.id);
+              const snaps = computeSnaps(shape.kind, state.shapes, shape.id);
 
               const snapStates = snaps.map((snap) =>
                 produce(state, (draft) => {
-                  draft.shapes[shape.id].x = snap.pos.x;
-                  draft.shapes[shape.id].y = snap.pos.y;
-                  draft.shapes[shape.id].rotDeg = snap.rotDeg;
+                  draft.shapes[i].x = snap.pos.x;
+                  draft.shapes[i].y = snap.pos.y;
+                  draft.shapes[i].rotDeg = snap.rotDeg;
                 }),
               );
 
               const freeSpec = d.vary(state, [
-                param("shapes", shape.id, "x"),
-                param("shapes", shape.id, "y"),
+                param("shapes", i, "x"),
+                param("shapes", i, "y"),
               ]);
 
               const stateWithout = produce(state, (draft) => {
-                delete draft.shapes[shape.id];
+                draft.shapes.splice(i, 1);
               });
 
               return d
@@ -340,7 +338,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               rotDeg: 0,
             };
             const stateWithNew = produce(state, (draft) => {
-              draft.shapes[newId] = newShape;
+              draft.shapes.push(newShape);
             });
             return d.switchToStateAndFollow(stateWithNew, `shape-${newId}`);
           }}
