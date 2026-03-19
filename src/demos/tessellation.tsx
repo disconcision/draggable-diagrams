@@ -257,18 +257,19 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                 }),
               );
 
-              const freeSpec = d.vary(state, [
-                param("shapes", i, "x"),
-                param("shapes", i, "y"),
-              ]);
-
               const stateWithout = produce(state, (draft) => {
                 draft.shapes.splice(i, 1);
               });
 
               return d
                 .closest([snapStates, d.dropTarget(stateWithout, "trash-bin")])
-                .whenFar(freeSpec, { gap: 30 })
+                .whenFar(
+                  d.vary(state, [
+                    param("shapes", i, "x"),
+                    param("shapes", i, "y"),
+                  ]),
+                  { gap: 30 },
+                )
                 .withInitContext((ctx) => ({ ...ctx, pointerLocal: Vec2(0) }));
             }}
           />
