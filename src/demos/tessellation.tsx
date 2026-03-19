@@ -3,7 +3,7 @@ import _ from "lodash";
 import { demo } from "../demo";
 import { DemoDraggable } from "../demo/ui";
 import { Draggable } from "../draggable";
-import { DragSpec, DragSpecBuilder, param } from "../DragSpec";
+import { param } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { rotateDeg, translate } from "../svgx/helpers";
 import { makeId } from "../utils";
@@ -230,39 +230,6 @@ function getStrokeColor(kind: ShapeKind) {
 
 // --- The draggable ---
 
-/** Build a snap-or-free-drag spec for a shape in a given state. */
-function shapeSpec(
-  d: DragSpecBuilder<State>,
-  st: State,
-  shapeId: string,
-): DragSpec<State> {
-  const shape = st.shapes[shapeId];
-  const shapesArr = Object.values(st.shapes);
-  const snaps = computeSnaps(shape.kind, shapesArr, shapeId);
-
-  const snapStates = snaps.map((snap) =>
-    produce(st, (draft) => {
-      draft.shapes[shapeId].x = snap.pos.x;
-      draft.shapes[shapeId].y = snap.pos.y;
-      draft.shapes[shapeId].rotDeg = snap.rotDeg;
-    }),
-  );
-
-  const freeSpec = d.vary(st, [
-    param("shapes", shapeId, "x"),
-    param("shapes", shapeId, "y"),
-  ]);
-
-  const stateWithout = produce(st, (draft) => {
-    delete draft.shapes[shapeId];
-  });
-
-  return d
-    .closest([snapStates, d.dropTarget(stateWithout, "trash-bin")])
-    .whenFar(freeSpec, { gap: 30 })
-    .withInitContext((ctx) => ({ ...ctx, pointerLocal: Vec2(0) }));
-}
-
 const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   const shapesArr = Object.values(state.shapes);
 
@@ -281,7 +248,31 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             fill={getFillColor(shape.kind)}
             stroke={getStrokeColor(shape.kind)}
             strokeWidth={2}
-            dragology={() => shapeSpec(d, state, shape.id)}
+            dragology={() => {
+              const snaps = computeSnaps(shape.kind, shapesArr, shape.id);
+
+              const snapStates = snaps.map((snap) =>
+                produce(state, (draft) => {
+                  draft.shapes[shape.id].x = snap.pos.x;
+                  draft.shapes[shape.id].y = snap.pos.y;
+                  draft.shapes[shape.id].rotDeg = snap.rotDeg;
+                }),
+              );
+
+              const freeSpec = d.vary(state, [
+                param("shapes", shape.id, "x"),
+                param("shapes", shape.id, "y"),
+              ]);
+
+              const stateWithout = produce(state, (draft) => {
+                delete draft.shapes[shape.id];
+              });
+
+              return d
+                .closest([snapStates, d.dropTarget(stateWithout, "trash-bin")])
+                .whenFar(freeSpec, { gap: 30 })
+                .withInitContext((ctx) => ({ ...ctx, pointerLocal: Vec2(0) }));
+            }}
           />
         );
       })}
