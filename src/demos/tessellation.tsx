@@ -331,15 +331,14 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           opacity={0.8}
           dragology={() => {
             const newId = makeId();
-            const newShape: Shape = {
-              id: newId,
-              kind: item.kind,
-              x: 0,
-              y: 0,
-              rotDeg: 0,
-            };
             const stateWithNew = produce(state, (draft) => {
-              draft.shapes.push(newShape);
+              draft.shapes.push({
+                id: newId,
+                kind: item.kind,
+                x: 0,
+                y: 0,
+                rotDeg: 0,
+              });
             });
             return d.switchToStateAndFollow(stateWithNew, `shape-${newId}`);
           }}
