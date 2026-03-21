@@ -48,20 +48,20 @@ import { pipe } from "./utils/pipe";
 
 // # Engine state machine
 
-type SpringingFrom = {
+type SpringOrigin = {
   layered: LayeredSvgx;
   time: number;
   transition: Transition;
 };
 
-function makeSpringingFrom(
+function makeSpringOrigin(
   transitionLike: TransitionLike,
   /**
    * We provide this lazily cuz if the transition says "no
    * transition" then we can skip it.
    */
   layeredLazy: () => LayeredSvgx,
-): SpringingFrom | null {
+): SpringOrigin | null {
   const transition = resolveTransitionLike(transitionLike);
   if (transition === false) return null;
   return {
@@ -103,7 +103,7 @@ A bit of terminology about the lifetimes of drags:
 */
 
 export type DragStatus<T extends object> = {
-  springingFrom: SpringingFrom | null;
+  springOrigin: SpringOrigin | null;
 } & (
   | { type: "idle"; state: T; pendingDrag?: PendingDrag<T> }
   | {
@@ -205,7 +205,7 @@ function DraggableRendererControlled<T extends object>({
   const [status, setStatus, statusRef] = useStateWithRef<DragStatus<T>>({
     type: "idle",
     state,
-    springingFrom: null,
+    springOrigin: null,
   });
 
   // Sync internal idle state from props.state (with spring animation).
@@ -219,11 +219,11 @@ function DraggableRendererControlled<T extends object>({
       null,
       false,
     );
-    const currentVisual = runSpring(status.springingFrom, currentRendered);
+    const currentVisual = runSpring(status.springOrigin, currentRendered);
     setStatus({
       ...status,
       state,
-      springingFrom: makeSpringingFrom(true, () => currentVisual),
+      springOrigin: makeSpringOrigin(true, () => currentVisual),
     });
   }
 
@@ -313,7 +313,7 @@ function DraggableRendererControlled<T extends object>({
         const newState: DragStatus<T> = {
           type: "idle",
           state: status.state,
-          springingFrom: status.springingFrom,
+          springOrigin: status.springOrigin,
         };
         setStatus(newState);
         return;
@@ -329,8 +329,8 @@ function DraggableRendererControlled<T extends object>({
       const newState: DragStatus<T> = {
         type: "idle",
         state: dropState,
-        springingFrom: makeSpringingFrom(result.dropTransition, () =>
-          runSpring(status.springingFrom, result.preview),
+        springOrigin: makeSpringOrigin(result.dropTransition, () =>
+          runSpring(status.springOrigin, result.preview),
         ),
       };
       setStatus(newState);
@@ -404,13 +404,13 @@ function DraggableRendererControlled<T extends object>({
  * always show the target's version so they track the cursor.
  */
 function runSpring(
-  springingFrom: SpringingFrom | null,
+  springOrigin: SpringOrigin | null,
   target: LayeredSvgx,
 ): LayeredSvgx {
-  if (!springingFrom) return target;
-  const elapsed = performance.now() - springingFrom.time;
-  const t = applyEasing(springingFrom.transition, elapsed);
-  const lerped = lerpLayered(target, springingFrom.layered, 1 - t);
+  if (!springOrigin) return target;
+  const elapsed = performance.now() - springOrigin.time;
+  const t = applyEasing(springOrigin.transition, elapsed);
+  const lerped = lerpLayered(target, springOrigin.layered, 1 - t);
   // Replace non-transitioning layers with the target's version so they
   // track the cursor without spring lag.
   for (const [key, element] of lerped.byId.entries()) {
@@ -439,32 +439,32 @@ function advanceFrame<T extends object>(
     const chained = processChainNow(updatedDs, frame);
     if (chained) return chained;
 
-    let springingFrom = status.springingFrom;
+    let springOrigin = status.springOrigin;
 
     // Detect activePath change → start new spring from current display
     if (result.activePath !== status.result.activePath) {
-      springingFrom = makeSpringingFrom(result.activePathTransition, () =>
-        runSpring(springingFrom, status.result.preview),
+      springOrigin = makeSpringOrigin(result.activePathTransition, () =>
+        runSpring(springOrigin, status.result.preview),
       );
     }
 
     // Clear expired spring
     if (
-      springingFrom &&
-      now - springingFrom.time >= springingFrom.transition?.duration!
+      springOrigin &&
+      now - springOrigin.time >= springOrigin.transition?.duration!
     ) {
-      springingFrom = null;
+      springOrigin = null;
     }
 
-    return { ...status, result, springingFrom };
+    return { ...status, result, springOrigin };
   }
 
-  if (status.type === "idle" && status.springingFrom) {
+  if (status.type === "idle" && status.springOrigin) {
     if (
-      now - status.springingFrom.time >=
-      status.springingFrom.transition.duration
+      now - status.springOrigin.time >=
+      status.springOrigin.transition.duration
     ) {
-      return { ...status, springingFrom: null };
+      return { ...status, springOrigin: null };
     }
     // Force re-render so spring progress advances
     return { ...status };
@@ -509,8 +509,8 @@ function processChainNow<T extends object>(
     getDragSpecCallbackOnElement<T>(found.element)?.();
   if (!newDragSpec) return null;
 
-  const newSpringingFrom = makeSpringingFrom(true, () =>
-    runSpring(status.springingFrom, result.preview),
+  const newSpringOrigin = makeSpringOrigin(true, () =>
+    runSpring(status.springOrigin, result.preview),
   );
 
   const newDraggedPath = getPath(found.element);
@@ -534,7 +534,7 @@ function processChainNow<T extends object>(
     },
     newState,
     frame,
-    newSpringingFrom,
+    newSpringOrigin,
   );
   // TODO: this is a hack
   // Don't chain if the new state isn't strictly closer than what we had.
@@ -553,7 +553,7 @@ function initDrag<T extends object>(
   behaviorCtx: DragInitContext<T>,
   state: T,
   frame: DragFrame,
-  springingFrom: SpringingFrom | null,
+  springOrigin: SpringOrigin | null,
 ): DragStatusDragging<T> {
   const behavior = dragSpecToBehavior(spec, behaviorCtx);
   const result = behavior(frame);
@@ -565,7 +565,7 @@ function initDrag<T extends object>(
     specForDropZoneVis: spec,
     behaviorCtx,
     result,
-    springingFrom,
+    springOrigin,
   };
 
   // If the result chains immediately (e.g. switchToStateAndFollow),
@@ -653,7 +653,7 @@ function postProcessForInteraction<T extends object>(
               ctx.setStatus({
                 type: "idle",
                 state,
-                springingFrom: null,
+                springOrigin: null,
                 pendingDrag: {
                   startClientPos: Vec2(e.clientX, e.clientY),
                   threshold: ctx.dragThreshold,
@@ -694,7 +694,7 @@ const DrawIdleMode = memoGeneric(
             const newStatus: DragStatus<T> = {
               type: "idle",
               state: resolved,
-              springingFrom: makeSpringingFrom(transition, () =>
+              springOrigin: makeSpringOrigin(transition, () =>
                 renderDraggableInert(ctx.draggable, status.state, null, false),
               ),
             };
@@ -707,7 +707,7 @@ const DrawIdleMode = memoGeneric(
     );
 
     const layered = postProcessForInteraction(content, status.state, ctx);
-    return drawLayered(runSpring(status.springingFrom, layered));
+    return drawLayered(runSpring(status.springOrigin, layered));
   },
 );
 
@@ -721,7 +721,7 @@ const DrawDraggingMode = memoGeneric(
     showDebugOverlay?: boolean;
     pointer?: Vec2;
   }) => {
-    const rendered = runSpring(status.springingFrom, status.result.preview);
+    const rendered = runSpring(status.springOrigin, status.result.preview);
     return (
       <>
         {drawLayered(rendered)}
