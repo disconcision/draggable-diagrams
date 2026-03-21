@@ -180,5 +180,5 @@ export default demo(
       height={NUM_TRACKS * (TRACK_H + GAP) + 20}
     />
   ),
-  { tags: ["d.vary [w/constraint]", "d.between", "spec.withSnapRadius"] },
+  { tags: ["d.vary [constraint]", "d.between", "spec.withSnapRadius"] },
 );

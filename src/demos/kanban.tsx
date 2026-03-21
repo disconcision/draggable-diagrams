@@ -175,7 +175,7 @@ export default demo(
     tags: [
       "d.between",
       "d.closest",
-      "spec.withFloating [w/ghost]",
+      "spec.withFloating [ghost]",
       "spec.withSnapRadius",
       "reordering",
     ],

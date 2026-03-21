@@ -970,7 +970,7 @@ export default demo(
     tags: [
       "d.switchToStateAndFollow",
       "d.between",
-      "d.vary [w/constraint]",
+      "d.vary [constraint]",
       "d.fixed",
       "d.closest",
       "spec.withFloating",

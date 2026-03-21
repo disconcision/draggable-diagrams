@@ -274,5 +274,5 @@ export default demo(
       />
     </>
   ),
-  { tags: ["d.vary [w/constraint] [w/pin]"] },
+  { tags: ["d.vary [constraint] [pin]"] },
 );

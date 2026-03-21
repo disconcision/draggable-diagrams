@@ -58,5 +58,5 @@ export default demo(
       />
     </>
   ),
-  { tags: ["d.vary [w/constraint]"] },
+  { tags: ["d.vary [constraint]"] },
 );

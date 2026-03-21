@@ -468,5 +468,5 @@ export default demo(
       </DemoWithConfig>
     );
   },
-  { tags: ["d.between", "spec.withSnapRadius [w/chain]"] },
+  { tags: ["d.between", "spec.withSnapRadius [chain]"] },
 );

@@ -151,5 +151,5 @@ export default demo(
       height={400}
     />
   ),
-  { tags: ["math", "d.closest", "d.between", "spec.withSnapRadius [w/chain]"] },
+  { tags: ["math", "d.closest", "d.between", "spec.withSnapRadius [chain]"] },
 );

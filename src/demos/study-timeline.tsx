@@ -108,6 +108,6 @@ export default demo(
     />
   ),
   {
-    tags: ["d.vary [w/constraint]", "d.closest", "spec.withBranchTransition"],
+    tags: ["d.vary [constraint]", "d.closest", "spec.withBranchTransition"],
   },
 );

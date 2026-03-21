@@ -96,5 +96,5 @@ export default demo(
       />
     </>
   ),
-  { tags: ["math", "d.vary [w/constraint]"] },
+  { tags: ["math", "d.vary [constraint]"] },
 );

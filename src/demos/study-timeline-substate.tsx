@@ -110,7 +110,7 @@ export default demo(
   {
     tags: [
       "d.substate",
-      "d.vary [w/constraint]",
+      "d.vary [constraint]",
       "d.closest",
       "spec.withBranchTransition",
     ],
