@@ -409,17 +409,34 @@ export function DemoDraggable<T extends object>({
               )}
               {showStateViewer && status && (
                 <ErrorBoundary>
-                  <PrettyPrint
-                    value={
-                      status.type === "dragging"
-                        ? status.result.dropState
-                        : status.state
-                    }
-                    precision={2}
-                    style={{ fontSize: "11px" }}
-                    niceId={false}
-                    niceType={false}
-                  />
+                  <div className="flex gap-4">
+                    <div className="min-w-[50%]">
+                      <div className="text-xs text-slate-500">drop state</div>
+                      <PrettyPrint
+                        value={
+                          status.type === "dragging"
+                            ? status.startState
+                            : status.state
+                        }
+                        precision={2}
+                        style={{ fontSize: "11px" }}
+                        niceId={false}
+                        niceType={false}
+                      />
+                    </div>
+                    {status.type === "dragging" && (
+                      <div className="min-w-[50%]">
+                        <div className="text-xs text-slate-500">drag state</div>
+                        <PrettyPrint
+                          value={status.result.dropState}
+                          precision={2}
+                          style={{ fontSize: "11px" }}
+                          niceId={false}
+                          niceType={false}
+                        />
+                      </div>
+                    )}
+                  </div>
                   {/* {status.springOrigin && (
                     <div>
                       <div className="text-xs text-slate-500 mb-1">
