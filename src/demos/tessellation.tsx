@@ -367,6 +367,7 @@ export default demo(
       "d.switchToStateAndFollow",
       "spec.whenFar",
       "discrete on top of continuous",
+      "d.dropTarget",
     ],
   },
 );

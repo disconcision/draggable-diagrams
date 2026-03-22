@@ -23,9 +23,11 @@ import {
   renderDraggableInertUnlayered,
 } from "./renderDraggable";
 import { findElement } from "./svgx";
-import { getLocalBounds, pointInBounds } from "./svgx/bounds";
+import { emptyBounds, getGlobalBounds, pointInBounds } from "./svgx/bounds";
 import { translate } from "./svgx/helpers";
+import { getLayeredBounds } from "./svgx/layeredBounds";
 import {
+  drawLayered,
   findByPathInLayered,
   layeredExtract,
   layeredMerge,
@@ -37,7 +39,7 @@ import {
 } from "./svgx/layers";
 import { lerpLayeredWeighted } from "./svgx/lerp";
 import { findByPath } from "./svgx/path";
-import { globalToLocal, localToGlobal, parseTransform } from "./svgx/transform";
+import { localToGlobal } from "./svgx/transform";
 import { Transition } from "./transition";
 import { assert, assertNever } from "./utils/assert";
 import {
@@ -599,6 +601,68 @@ function betweenBehavior<T extends object>(
   }
 }
 
+function CoincidentStatePreview<T extends object>({
+  layered,
+  draggedPath,
+  state,
+}: {
+  layered: LayeredSvgx;
+  draggedPath: string;
+  state: T;
+}) {
+  const viewBounds = getLayeredBounds(layered);
+
+  // Red outline around the dragged element
+  const found = findByPathInLayered(draggedPath, layered);
+  const draggedBounds = found
+    ? getGlobalBounds(found.element, found.accumulatedTransform)
+    : emptyBounds;
+
+  const pad = 10;
+  const vb = viewBounds.empty
+    ? { minX: 0, minY: 0, maxX: 100, maxY: 100 }
+    : viewBounds;
+  const viewBox = `${vb.minX - pad} ${vb.minY - pad} ${vb.maxX - vb.minX + pad * 2} ${vb.maxY - vb.minY + pad * 2}`;
+
+  return (
+    <div style={{ flex: "1 1 0", minWidth: 0, overflow: "hidden" }}>
+      <svg
+        viewBox={viewBox}
+        style={{
+          width: "100%",
+          maxWidth: 200,
+          border: "1px solid #ccc",
+          borderRadius: 4,
+          background: "#fff",
+        }}
+      >
+        {drawLayered(layered)}
+        {!draggedBounds.empty && (
+          <rect
+            x={draggedBounds.minX - 3}
+            y={draggedBounds.minY - 3}
+            width={draggedBounds.maxX - draggedBounds.minX + 6}
+            height={draggedBounds.maxY - draggedBounds.minY + 6}
+            fill="none"
+            stroke="#ff0000"
+            strokeWidth={2}
+            rx={2}
+          />
+        )}
+      </svg>
+      <div style={{ marginTop: 4 }}>
+        <PrettyPrint
+          value={state}
+          precision={2}
+          style={{ fontSize: "11px" }}
+          niceId={false}
+          niceType={false}
+        />
+      </div>
+    </div>
+  );
+}
+
 function betweenMakeDelaunay<T extends object>(
   renderedStates: { state: T; layered: LayeredSvgx; position: Vec2 }[],
   ctx: DragInitContext<T>,
@@ -607,6 +671,9 @@ function betweenMakeDelaunay<T extends object>(
     return new Delaunay(renderedStates.map((rs) => rs.position));
   } catch (e) {
     if (e instanceof CoincidentPointsError) {
+      const stateA = renderedStates[e.indexA];
+      const stateB = renderedStates[e.indexB];
+
       throw new ErrorWithJSX(
         "Coincident targets detected in d.between",
         <>
@@ -619,12 +686,24 @@ function betweenMakeDelaunay<T extends object>(
           <p style={{ marginBottom: 8 }}>
             Here, we are dragging element{" "}
             <span style={{ fontFamily: "monospace" }}>{ctx.draggedPath}</span>.
-            Two states put it at the point [
-            {renderedStates[e.indexA].position.str(", ")}]:
+            Two states put it at the point [{stateA.position.str(", ")}]:
           </p>
-          <div style={{ marginBottom: 8 }}>
-            <PrettyPrint value={renderedStates[e.indexA].state} />
-            <PrettyPrint value={renderedStates[e.indexB].state} />
+          <div
+            style={{
+              display: "flex",
+              gap: 16,
+              marginBottom: 8,
+              overflow: "hidden",
+            }}
+          >
+            {[stateA, stateB].map((rs, i) => (
+              <CoincidentStatePreview
+                key={i}
+                layered={rs.layered}
+                draggedPath={ctx.draggedPath}
+                state={rs.state}
+              />
+            ))}
           </div>
           <p>
             (This is just the first pair of overlaps – other states may also
@@ -828,22 +907,16 @@ function dropTargetBehavior<T extends object>(
     targetElement !== undefined,
     `dropTarget: element with id "${spec.targetId}" not found in rendered state`,
   );
-  const transforms = parseTransform(targetElement.props.transform);
-  const localBounds = getLocalBounds(targetElement);
+  const globalBounds = getGlobalBounds(
+    targetElement,
+    targetElement.props.transform ?? "",
+  );
   assert(
-    localBounds !== null,
+    !globalBounds.empty,
     `dropTarget: could not compute bounds for element "${spec.targetId}"`,
   );
-  // Pre-compute global bounds corners for debug overlay
-  const globalCorners = [
-    localToGlobal(transforms, Vec2(localBounds.minX, localBounds.minY)),
-    localToGlobal(transforms, Vec2(localBounds.maxX, localBounds.minY)),
-    localToGlobal(transforms, Vec2(localBounds.maxX, localBounds.maxY)),
-    localToGlobal(transforms, Vec2(localBounds.minX, localBounds.maxY)),
-  ];
   return (frame) => {
-    const localPointer = globalToLocal(transforms, frame.pointer);
-    const inside = pointInBounds(localPointer, localBounds);
+    const inside = pointInBounds(frame.pointer, globalBounds);
     const gap = inside ? 0 : Infinity;
     return {
       preview,
@@ -853,7 +926,7 @@ function dropTargetBehavior<T extends object>(
       tracedSpec: setTraceInfo(spec, {
         renderedStates: [{ layered: preview, position: Vec2(0, 0) }],
         inside,
-        globalCorners,
+        globalBounds,
       }),
     };
   };

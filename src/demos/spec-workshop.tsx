@@ -975,6 +975,7 @@ export default demo(
       "d.closest",
       "spec.withFloating",
       "spec.whenFar",
+      "d.dropTarget",
     ],
   },
 );

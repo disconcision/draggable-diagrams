@@ -1,6 +1,7 @@
 import { DragSpecData } from "./DragSpec";
 import { Vec2 } from "./math/vec2";
 import { Svgx } from "./svgx";
+import { Bounds, boundsCenter } from "./svgx/bounds";
 import { path as svgPath } from "./svgx/helpers";
 import { LayeredSvgx } from "./svgx/layers";
 import { assertNever } from "./utils/assert";
@@ -42,7 +43,7 @@ export type DragSpecTraceInfoByType = {
   "drop-target": {
     renderedStates: RenderedState[];
     inside: boolean;
-    globalCorners: Vec2[];
+    globalBounds: Bounds;
   };
   "with-chaining": Record<string, never>;
   substate: Record<string, never>;
@@ -236,16 +237,23 @@ export function debugOverlay<T extends object>(
 
     case "drop-target": {
       const info = getTraceInfo(spec);
-      if (!info) return null;
+      if (!info || info.globalBounds.empty) return null;
       return (
         <g opacity={0.8}>
-          <polygon
-            points={info.globalCorners.map((c) => `${c.x},${c.y}`).join(" ")}
-            fill={info.inside ? "magenta" : "none"}
+          <rect
+            x={info.globalBounds.minX}
+            y={info.globalBounds.minY}
+            width={info.globalBounds.maxX - info.globalBounds.minX}
+            height={info.globalBounds.maxY - info.globalBounds.minY}
+            fill="magenta"
             fillOpacity={0.15}
             stroke="magenta"
             strokeWidth={1.5}
-            strokeDasharray={info.inside ? undefined : "4 3"}
+          />
+          <DistanceLine
+            from={boundsCenter(info.globalBounds)}
+            to={pointer}
+            distance={info.inside ? 0 : Infinity}
           />
         </g>
       );
@@ -290,7 +298,8 @@ function DistanceLine({
   to: Vec2;
   distance: number;
 }) {
-  const label = `${Math.round(distance)}px`;
+  const [label, fontSize] =
+    distance === Infinity ? ["∞", 24] : [`${Math.round(distance)}px`, 11];
   return (
     <g>
       <line
@@ -313,7 +322,7 @@ function DistanceLine({
         stroke="white"
         strokeWidth={3}
         paintOrder="stroke"
-        fontSize={11}
+        fontSize={fontSize}
         fontFamily="monospace"
         textAnchor="middle"
         dominantBaseline="central"
