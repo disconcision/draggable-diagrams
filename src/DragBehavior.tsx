@@ -625,7 +625,16 @@ function CoincidentStatePreview<T extends object>({
   const viewBox = `${vb.minX - pad} ${vb.minY - pad} ${vb.maxX - vb.minX + pad * 2} ${vb.maxY - vb.minY + pad * 2}`;
 
   return (
-    <div style={{ flex: "1 1 0", minWidth: 0, overflow: "hidden" }}>
+    <div
+      style={{
+        flex: "1 1 0",
+        minWidth: 0,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
       <svg
         viewBox={viewBox}
         style={{
@@ -650,15 +659,14 @@ function CoincidentStatePreview<T extends object>({
           />
         )}
       </svg>
-      <div style={{ marginTop: 4 }}>
-        <PrettyPrint
-          value={state}
-          precision={2}
-          style={{ fontSize: "11px" }}
-          niceId={false}
-          niceType={false}
-        />
-      </div>
+      <div style={{ fontStyle: "italic" }}>from</div>
+      <PrettyPrint
+        value={state}
+        precision={2}
+        style={{ fontSize: "11px" }}
+        niceId={false}
+        niceType={false}
+      />
     </div>
   );
 }
@@ -677,11 +685,14 @@ function betweenMakeDelaunay<T extends object>(
       throw new ErrorWithJSX(
         "Coincident targets detected in d.between",
         <>
+          <p style={{ marginBottom: 8, fontStyle: "italic" }}>
+            (Quick hint: are you reordering siblings without IDs?)
+          </p>
           <p style={{ marginBottom: 8 }}>
             In order to use{" "}
             <span style={{ fontFamily: "monospace" }}>d.between</span>, the
-            dragged element must move to distinct locations in the different
-            states provided.
+            dragged element must move to distinct locations in each rendered
+            state.
           </p>
           <p style={{ marginBottom: 8 }}>
             Here, we are dragging element{" "}
@@ -705,9 +716,15 @@ function betweenMakeDelaunay<T extends object>(
               />
             ))}
           </div>
-          <p>
+          <p style={{ marginBottom: 8 }}>
             (This is just the first pair of overlaps – other states may also
             cause overlap.)
+          </p>
+          <p style={{ marginBottom: 8 }}>
+            If this isn't caused by reordering siblings without IDs, you may
+            have a genuinely ambiguous drag behavior: multiple states bringing
+            the dragged element to the same location. (Or maybe you just
+            repeated a state?)
           </p>
         </>,
       );
