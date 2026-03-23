@@ -276,5 +276,5 @@ export default demo(
       </DemoWithConfig>
     );
   },
-  { tags: ["spec.withSnapRadius [chain]", "d.between"] },
+  { tags: ["spec.withSnapRadius [chain]", "d.between", "dragologyEmergeFrom"] },
 );

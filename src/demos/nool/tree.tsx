@@ -265,7 +265,7 @@ function renderTree(
       dragologyEmergeFrom={
         config.enableEmergeAnimation ? tree.emergeFrom : undefined
       }
-      data-emerge-mode={
+      dragologyEmergeMode={
         tree.emergeMode ?? (config.forceTransformScale ? "scale" : undefined)
       }
     >
@@ -468,5 +468,5 @@ export default demo(
       </DemoWithConfig>
     );
   },
-  { tags: ["d.between", "spec.withSnapRadius [chain]"] },
+  { tags: ["d.between", "spec.withSnapRadius [chain]", "dragologyEmergeFrom"] },
 );

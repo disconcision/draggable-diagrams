@@ -7,6 +7,7 @@ import { shouldRecurseIntoChildren, Svgx } from ".";
 import { DRAGOLOGY_PROP_NAME } from "../draggable";
 import { ErrorWithJSX } from "../ErrorBoundary";
 import { lerp } from "../math/vec2";
+import { objectKeys } from "../utils/js";
 import { LayeredSvgx } from "./layers";
 import { lerpTransformString } from "./transform";
 
@@ -212,8 +213,8 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
     );
   }
 
-  const propsA = a.props as any;
-  const propsB = b.props as any;
+  const propsA = a.props;
+  const propsB = b.props;
 
   // Lerp transform if present
   const transformA = propsA.transform || "";
@@ -222,7 +223,7 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
 
   // Lerp numeric props (x, y, width, height, etc.)
   const lerpedNumericProps: any = {};
-  const allPropKeys = new Set([...Object.keys(propsA), ...Object.keys(propsB)]);
+  const allPropKeys = new Set([...objectKeys(propsA), ...objectKeys(propsB)]);
 
   for (const key of allPropKeys) {
     if (key === "children" || key === "transform") continue;
@@ -245,8 +246,8 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
       const styleB = valB || {};
       const lerpedStyle: any = {};
       const allStyleKeys = new Set([
-        ...Object.keys(styleA),
-        ...Object.keys(styleB),
+        ...objectKeys(styleA),
+        ...objectKeys(styleB),
       ]);
 
       for (const styleKey of allStyleKeys) {
@@ -313,9 +314,7 @@ type EmergeBounds = {
 
 /** Finds the first <rect>'s dimensions and first <text>'s y position (direct children only). */
 function findEmergeBounds(element: Svgx): EmergeBounds | null {
-  const children = React.Children.toArray(
-    (element.props as any).children,
-  ) as Svgx[];
+  const children = React.Children.toArray(element.props.children) as Svgx[];
 
   let rectWidth: number | null = null;
   let rectHeight: number | null = null;
@@ -323,6 +322,7 @@ function findEmergeBounds(element: Svgx): EmergeBounds | null {
 
   for (const child of children) {
     if (React.isValidElement(child)) {
+      // TODO: fix "as any" below
       if (child.type === "rect" && rectWidth === null) {
         const props = child.props as any;
         rectWidth = parseFloat(props.width);
@@ -351,7 +351,7 @@ function findEmergeBounds(element: Svgx): EmergeBounds | null {
 
 /** Clone element with modified first <rect> dimensions and first <text> y. */
 function cloneWithBounds(element: Svgx, bounds: EmergeBounds): Svgx {
-  const props = element.props as any;
+  const props = element.props;
   const children = React.Children.toArray(props.children) as Svgx[];
 
   let foundRect = false;
@@ -379,13 +379,13 @@ function cloneWithBounds(element: Svgx, bounds: EmergeBounds): Svgx {
  * Creates a synthetic "before" version of an emerging element.
  *
  * Strategy:
- * 1. If data-emerge-mode="clone", position at origin with full opacity (split/merge)
+ * 1. If dragologyEmergeMode="clone", position at origin with full opacity (split/merge)
  * 2. If both elements have rect+text structure, use bounds interpolation
  * 3. Otherwise, fall back to transform scale(0) + opacity 0
  */
 function createSyntheticBefore(newElement: Svgx, originElement: Svgx): Svgx {
-  const originTransform = (originElement.props as any).transform || "";
-  const emergeMode = (newElement.props as any)["data-emerge-mode"];
+  const originTransform = originElement.props.transform || "";
+  const emergeMode = newElement.props.dragologyEmergeMode;
 
   if (emergeMode === "clone") {
     const originBounds = findEmergeBounds(originElement);
@@ -433,7 +433,7 @@ function augmentWithEmerging(
 ) {
   for (const [key, val] of source) {
     if (!target.has(key)) {
-      const emergeFromId = val.props["dragologyEmergeFrom"];
+      const emergeFromId = val.props.dragologyEmergeFrom;
       if (emergeFromId && typeof emergeFromId === "string") {
         const originElement = origins.get(emergeFromId);
         if (originElement) {

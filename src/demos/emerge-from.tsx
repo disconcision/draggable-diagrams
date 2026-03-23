@@ -71,5 +71,5 @@ export default demo(
       </DemoWithConfig>
     );
   },
-  { tags: ["d.between", "spec.withSnapRadius"] },
+  { tags: ["d.between", "spec.withSnapRadius", "dragologyEmergeFrom"] },
 );

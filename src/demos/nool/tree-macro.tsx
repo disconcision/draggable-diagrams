@@ -316,7 +316,7 @@ function renderNormalTree(
       dragologyEmergeFrom={
         config.enableEmergeAnimation ? tree.emergeFrom : undefined
       }
-      data-emerge-mode={tree.emergeMode}
+      dragologyEmergeMode={tree.emergeMode}
     >
       <rect
         x={0}
@@ -869,6 +869,12 @@ export default demo(
     );
   },
   {
-    tags: ["d.between", "d.closest", "spec.withFloating", "spec.whenFar"],
+    tags: [
+      "d.between",
+      "d.closest",
+      "spec.withFloating",
+      "spec.whenFar",
+      "dragologyEmergeFrom",
+    ],
   },
 );
