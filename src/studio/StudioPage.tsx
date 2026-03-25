@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import qrA from "./qr_A.png";
-import { Teaser } from "./Teaser";
+import { RingOfBeadsSection } from "./RingOfBeadsSection";
+import { TeaserSection } from "./TeaserSection";
 
 export function Section({
   title,
@@ -10,7 +11,7 @@ export function Section({
   children?: ReactNode;
 }) {
   return (
-    <section className="min-h-screen flex flex-col max-w-4xl mx-auto w-full px-8 py-24">
+    <section className="min-h-screen flex flex-col px-16 py-24">
       <h2 className="text-sm font-medium uppercase tracking-widest text-gray-400 mb-8">
         {title}
       </h2>
@@ -75,9 +76,9 @@ function Divider() {
 export const StudioPage = () => {
   return (
     <div className="bg-white min-h-screen text-gray-700">
-      <Teaser />
+      <TeaserSection />
       <Divider />
-      <Section title="Section 2"></Section>
+      <RingOfBeadsSection />
       <Divider />
       <Section title="Section 3"></Section>
     </div>

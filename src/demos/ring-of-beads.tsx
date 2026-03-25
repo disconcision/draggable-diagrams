@@ -113,6 +113,8 @@ function makeDraggable(stage: Stage): Draggable<State> {
   };
 }
 
+export { initialState, makeDraggable };
+
 export default demo(
   () => {
     const [stage, setStage] = useState<Stage>("d.closest()");

@@ -5,7 +5,7 @@ import { listOfListsSimple } from "./list-of-lists-simple";
 import { StudioHackContext } from "./StudioHackContext";
 import { Lens, Section } from "./StudioPage";
 
-export function Teaser() {
+export function TeaserSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   return (
     <Section title="Teaser">
