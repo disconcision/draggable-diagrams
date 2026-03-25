@@ -23,6 +23,20 @@ import { OpenInEditor } from "./OpenInEditor";
 import type { Demo } from "./registry";
 import { parseTag, type TagNode, tagStringFromPath } from "./tags";
 
+// # window.dumpState
+
+const dumpStateCallbacks = new Set<() => void>();
+declare global {
+  interface Window {
+    dumpState?: () => void;
+  }
+}
+if (typeof window !== "undefined") {
+  window.dumpState = () => {
+    for (const cb of dumpStateCallbacks) cb();
+  };
+}
+
 export type DemoToggleSettings = {
   showTreeView: boolean;
   showDropZones: boolean;
@@ -332,6 +346,18 @@ export function DemoDraggable<T extends object>({
     thumbArea,
   } = useDemoSettings();
   const [status, setStatus] = useState<DragStatus<T> | null>(null);
+
+  useEffect(() => {
+    const cb = () => {
+      if (status?.type === "idle") {
+        console.log(status.state);
+      }
+    };
+    dumpStateCallbacks.add(cb);
+    return () => {
+      dumpStateCallbacks.delete(cb);
+    };
+  }, [status]);
 
   const draggingStatus = status?.type === "dragging" ? status : null;
 
