@@ -61,7 +61,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
         <g
           id={`tile-${key}`}
           transform={translate(tile.x * TILE_SIZE, tile.y * TILE_SIZE)}
-          dragology={() => {
+          dragologyOnDrag={() => {
             const betweens = (
               [
                 [-1, 0],

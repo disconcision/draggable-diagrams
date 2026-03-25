@@ -95,7 +95,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   ): { element: React.JSX.Element; width: number; height: number } {
     const isDragged = draggedId === box.id;
 
-    const dragology = () => {
+    const dragologyOnDrag = () => {
       const stateWithout = produce(state, (draft) => {
         const items = getAtPath<State, Box[]>(draft, itemsPath);
         items.splice(idx, 1);
@@ -188,7 +188,11 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     let belowXOffset = 0;
 
     const element = (
-      <g id={box.id} dragologyZIndex={effectiveZIndex} dragology={dragology}>
+      <g
+        id={box.id}
+        dragologyZIndex={effectiveZIndex}
+        dragologyOnDrag={dragologyOnDrag}
+      >
         {/* Box */}
         <g transform={translate(boxX, 0)}>
           <rect

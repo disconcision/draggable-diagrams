@@ -46,7 +46,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
         stroke="white"
         strokeWidth={2}
         dragologyZIndex={2}
-        dragology={() =>
+        dragologyOnDrag={() =>
           d.closest(
             targets.map((t, i) =>
               d.fixed({ current: i }).changeGap((dist) => dist * t.strength),

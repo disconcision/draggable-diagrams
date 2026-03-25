@@ -120,7 +120,7 @@ function draggableFactory(config: Config): Draggable<State> {
               object.pos.y * TILE_SIZE,
             )}
             dragologyZIndex={object.type === "goal" ? 1 : 0}
-            dragology={
+            dragologyOnDrag={
               config.levelEditable
                 ? () =>
                     d
@@ -191,7 +191,7 @@ function draggableFactory(config: Config): Draggable<State> {
             state.player.y * TILE_SIZE,
           )}
           dragologyZIndex={2}
-          dragology={() =>
+          dragologyOnDrag={() =>
             d
               .closest(
                 (

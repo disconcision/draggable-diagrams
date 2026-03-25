@@ -11,7 +11,7 @@ import {
   DemoDraggable,
   DemoWithConfig,
 } from "../../demo/ui";
-import { Draggable, DragSpecCallback } from "../../draggable";
+import { Draggable, OnDragCallback } from "../../draggable";
 import { DragSpecBuilder } from "../../DragSpec";
 import { Svgx } from "../../svgx";
 import { translate } from "../../svgx/helpers";
@@ -257,7 +257,7 @@ function renderNormalMode(
 ): Svgx {
   const activeRewrites = config.userRules;
 
-  function dragTargets(draggedKey: string): DragSpecCallback<State> {
+  function dragTargets(draggedKey: string): OnDragCallback<State> {
     const newTrees = allPossibleRewrites(
       state.tree,
       activeRewrites,
@@ -276,7 +276,7 @@ function renderNormalMode(
 function renderNormalTree(
   tree: Tree,
   d: DragSpecBuilder<State>,
-  dragTargets: (id: string) => DragSpecCallback<State>,
+  dragTargets: (id: string) => OnDragCallback<State>,
   config: Config,
   depth: number,
 ): { element: Svgx; w: number; h: number } {
@@ -311,7 +311,7 @@ function renderNormalTree(
   const element = (
     <g
       id={tree.id}
-      dragology={dragTargets(tree.id)}
+      dragologyOnDrag={dragTargets(tree.id)}
       dragologyZIndex={depth}
       dragologyEmergeFrom={
         config.enableEmergeAnimation ? tree.emergeFrom : undefined
@@ -357,7 +357,7 @@ function renderMacroTree(
   fullState: State,
   depth: number,
   opts?: {
-    rootDragology?: DragSpecCallback<State>;
+    rootDragology?: OnDragCallback<State>;
     rootTransform?: string;
     pointerEventsNone?: boolean;
     opacity?: number;
@@ -399,7 +399,7 @@ function renderMacroTree(
     : T_LABEL_MIN_HEIGHT;
 
   // Pick-up drag for freeform rearrangement
-  const pickUpDrag: DragSpecCallback<State> = () => {
+  const pickUpDrag: OnDragCallback<State> = () => {
     const nodeId = tree.id;
     const parentInfo = findParentAndIndex(fullState.tree, nodeId);
 
@@ -471,7 +471,7 @@ function renderMacroTree(
     <g
       id={tree.id}
       transform={opts?.rootTransform}
-      dragology={opts?.rootDragology || pickUpDrag}
+      dragologyOnDrag={opts?.rootDragology || pickUpDrag}
       dragologyZIndex={zIndex}
       opacity={opts?.opacity}
     >

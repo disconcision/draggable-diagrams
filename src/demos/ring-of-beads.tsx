@@ -50,7 +50,7 @@ function makeDraggable(stage: Stage): Draggable<State> {
               id={bead}
               transform={translate(p)}
               dragologyZIndex={isDragged ? 2 : 1}
-              dragology={() => {
+              dragologyOnDrag={() => {
                 const newStates = Array.from({ length: n }, (_, targetIdx) => {
                   const newState = structuredClone(state);
                   newState.beads.splice(idx, 1);

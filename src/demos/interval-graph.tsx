@@ -99,7 +99,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               height={BAR_H}
               rx={3}
               fill={color}
-              dragology={() =>
+              dragologyOnDrag={() =>
                 d.between(barStates).withSnapRadius(10, { transition: true })
               }
             />
@@ -111,7 +111,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               r={DOT_R}
               fill={color}
               dragologyZIndex={2}
-              dragology={() => endpointDrag("start")}
+              dragologyOnDrag={() => endpointDrag("start")}
             />
 
             {/* Right dot */}
@@ -121,7 +121,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               r={DOT_R}
               fill={color}
               dragologyZIndex={2}
-              dragology={() => endpointDrag("end")}
+              dragologyOnDrag={() => endpointDrag("end")}
             />
 
             {/* Graph node */}
@@ -131,7 +131,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               fill={color}
               stroke="white"
               strokeWidth={2}
-              dragology={() =>
+              dragologyOnDrag={() =>
                 d.between(barStates).withSnapRadius(10, { transition: 40 })
               }
             />

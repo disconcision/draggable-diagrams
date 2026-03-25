@@ -32,7 +32,7 @@ function makeDraggable(
             id={item}
             transform={translate(0, i * (H + GAP))}
             dragologyZIndex={isDragged ? 1 : 0}
-            dragology={() => {
+            dragologyOnDrag={() => {
               const newStates = state.items.map((_item, j) => ({
                 items: moveItem(state.items, i, j),
               }));

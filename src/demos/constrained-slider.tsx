@@ -85,7 +85,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
         transform={translate(Vec2(knobX, trackY))}
         r={12}
         fill="black"
-        dragology={() =>
+        dragologyOnDrag={() =>
           d.vary(state, param("value"), {
             constraint: (s) => inOrder(20, s.value, 80),
           })

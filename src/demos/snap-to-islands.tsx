@@ -38,7 +38,7 @@ const draggable: Draggable<State> = ({ state, d }) => (
       transform={translate(
         state.type === "on-island" ? islands[state.island] : state,
       )}
-      dragology={() =>
+      dragologyOnDrag={() =>
         d
           .closest([
             { type: "on-island", island: "A" },

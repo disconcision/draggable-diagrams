@@ -240,7 +240,7 @@ function renderTree(
       <g
         id={tree.id}
         dragologyZIndex={tree.id === draggedId ? 1 : 0}
-        dragology={
+        dragologyOnDrag={
           isRoot
             ? undefined
             : () => {

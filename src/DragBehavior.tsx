@@ -2,7 +2,7 @@ import { PrettyPrint } from "@joshuahhh/pretty-print";
 import _ from "lodash";
 import {
   Draggable,
-  getDragSpecCallbackOnElement,
+  getOnDragCallbackOnElement,
   makeDraggableProps,
 } from "./draggable";
 import { Chaining, DragSpecData } from "./DragSpec";
@@ -898,7 +898,7 @@ function switchToStateAndFollowBehavior<T extends object>(
       !!found,
       `switchToStateAndFollow: element "${spec.draggedId}" not found`,
     );
-    const callback = getDragSpecCallbackOnElement<T>(found.element);
+    const callback = getOnDragCallbackOnElement<T>(found.element);
     assert(
       !!callback,
       `switchToStateAndFollow: no followSpec and no dragology on "${spec.draggedId}"`,

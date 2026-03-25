@@ -45,7 +45,7 @@ const draggable: Draggable<State> = ({ state, d, setState }) => (
         <g
           id={`slide-${idx}`}
           transform={translate(xOffset, 0)}
-          dragology={() => {
+          dragologyOnDrag={() => {
             const specs = [];
             if (state.slideIdx > 0)
               specs.push(d.between([state, { slideIdx: state.slideIdx - 1 }]));
@@ -121,7 +121,9 @@ const draggable: Draggable<State> = ({ state, d, setState }) => (
         )}
         r={DOT_RADIUS}
         fill="transparent"
-        dragology={() => d.between(SLIDES.map((_, idx) => ({ slideIdx: idx })))}
+        dragologyOnDrag={() =>
+          d.between(SLIDES.map((_, idx) => ({ slideIdx: idx })))
+        }
       />
     </g>
 

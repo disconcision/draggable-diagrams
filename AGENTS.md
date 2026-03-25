@@ -79,7 +79,7 @@ const draggable: Draggable<State> = ({ state, d }) => (
   <g>
     <rect
       id="my-element"
-      dragology={() => d.between([{ value: true }, { value: false }])}
+      dragologyOnDrag={() => d.between([{ value: true }, { value: false }])}
     />
   </g>
 );
@@ -146,7 +146,7 @@ Tags in `demo()` use prefixes to distinguish builder methods from spec chain met
 - **No slashes in IDs**: Use hyphens — `id="node-1-2"` not `id="node/1/2"`
 - **Positioning**: Always use `transform={translate(x, y)}`, never `x`/`y` attributes directly
 - **Layering**: Use `dragologyZIndex={isDragged ? 2 : 1}` to control draw order
-- **Conditional drag**: `dragology={condition && drag(...)}` to make things conditionally draggable
+- **Conditional drag**: `dragologyOnDrag={condition && drag(...)}` to make things conditionally draggable
 - **`dragologyTransition={false}`**: Elements with this skip spring animation and track the cursor directly
 
 ### Registration

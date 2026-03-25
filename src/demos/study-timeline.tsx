@@ -46,7 +46,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => (
           id={block.id}
           transform={translate(block.pos, block.track * (TRACK_H + GAP))}
           dragologyZIndex={isDragged ? 1 : 0}
-          dragology={() =>
+          dragologyOnDrag={() =>
             d
               .closest(
                 _.range(NUM_TRACKS).map((t) =>

@@ -68,7 +68,7 @@ const draggable: Draggable<State> = ({ state, d }) =>
         const rowBgName = createName("rowBg");
 
         attach(`row-${row.id}`, {
-          dragology: () => {
+          dragologyOnDrag: () => {
             const stateWithout = produce(state, (draft) => {
               draft.rows.splice(rowIdx, 1);
             });
@@ -115,7 +115,7 @@ const draggable: Draggable<State> = ({ state, d }) =>
 
                   attach(p.id, {
                     dragologyZIndex: 1,
-                    dragology: () => {
+                    dragologyOnDrag: () => {
                       const stateWithout = produce(state, (draft) => {
                         draft.rows[rowIdx].items.splice(idx, 1);
                       });

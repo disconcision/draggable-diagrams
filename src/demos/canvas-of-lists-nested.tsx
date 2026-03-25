@@ -90,7 +90,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   ): { element: React.JSX.Element; width: number; height: number } {
     const isDragged = draggedId === item.id;
 
-    const dragology = () => {
+    const draglogyOnDrag = () => {
       // Remove item from current location
       const stateWithout = produce(state, (draft) => {
         const items = getAtPath<State, (Tile | Row)[]>(draft, itemsPath);
@@ -141,7 +141,11 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
 
     if (item.type === "tile") {
       const element = (
-        <g id={item.id} dragologyZIndex={effectiveZIndex} dragology={dragology}>
+        <g
+          id={item.id}
+          dragologyZIndex={effectiveZIndex}
+          dragologyOnDrag={draglogyOnDrag}
+        >
           <rect
             x={0}
             y={0}
@@ -186,7 +190,11 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
       let xOffset = GRIP_WIDTH + GRIP_PADDING + ROW_PADDING;
 
       const element = (
-        <g id={item.id} dragologyZIndex={effectiveZIndex} dragology={dragology}>
+        <g
+          id={item.id}
+          dragologyZIndex={effectiveZIndex}
+          dragologyOnDrag={draglogyOnDrag}
+        >
           <rect
             width={rowWidth}
             height={rowHeight}

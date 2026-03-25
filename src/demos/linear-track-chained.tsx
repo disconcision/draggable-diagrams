@@ -29,7 +29,7 @@ const draggable: Draggable<State> = ({ state, d }) => (
       width={SIZE}
       height={SIZE}
       rx={4}
-      dragology={() =>
+      dragologyOnDrag={() =>
         d
           .closest([
             state.value > 0 && d.between([state, { value: state.value - 1 }]),

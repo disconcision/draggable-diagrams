@@ -76,7 +76,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
         transform={translate(knobPos)}
         r={14}
         fill="#333"
-        dragology={() =>
+        dragologyOnDrag={() =>
           d.between([
             d.vary({ mode: "slider", value: 50 }, param("value"), {
               constraint: (s) => inOrder(0, s.value, 100),

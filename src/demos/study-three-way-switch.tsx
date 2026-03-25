@@ -51,7 +51,7 @@ const makeDraggable = (
         stroke="white"
         strokeWidth={3}
         filter="url(#shadow)"
-        dragology={() => {
+        dragologyOnDrag={() => {
           const spec = clockwiseOnly
             ? (state.name === "r"
                 ? d.between([state, { name: "b" }])

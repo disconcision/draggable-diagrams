@@ -64,7 +64,7 @@ function draggableFactory(config: Config): Draggable<State> {
         width={cellSize - 2 * padding}
         height={cellSize - 2 * padding}
         fill="black"
-        dragology={() => {
+        dragologyOnDrag={() => {
           if (config.mazeMode) {
             const singleRotations = singleRotationStates(state, boardLevel);
             return config.snappyMode

@@ -214,7 +214,7 @@ function draggableFactory(config: Config): Draggable<State> {
             transform={translate(pos.x, pos.y)}
             dragologyZIndex={draggedId === node.id ? 3 : 1}
             dragologyEmergeFrom={node.emergeFrom}
-            dragology={
+            dragologyOnDrag={
               leaf &&
               (() => {
                 return d

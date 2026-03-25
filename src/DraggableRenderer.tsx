@@ -20,7 +20,7 @@ import { ErrorBoundary } from "./ErrorBoundary";
 import { OverlayVis } from "./OverlayVis";
 import {
   Draggable,
-  getDragSpecCallbackOnElement,
+  getOnDragCallbackOnElement,
   makeDraggableProps,
 } from "./draggable";
 import { Vec2 } from "./math/vec2";
@@ -99,9 +99,9 @@ A bit of terminology about the lifetimes of drags:
 
   A drag span is initialized in a few steps:
 
-  - Get ahold of a DragSpecCallback – extract from rendered SVGX or
-    use a saved one.
-  - Evaluate the DragSpecCallback to get a DragSpec.
+  - Get ahold of a OnDragCallback – extract from rendered SVGX or use
+    a saved one.
+  - Evaluate the OnDragCallback to get a DragSpec.
   - Turn the DragSpec into a DragBehavior using dragSpecToBehavior,
     providing some DragInitContext.
 
@@ -517,7 +517,7 @@ function resolveChainNows<T extends object>(
 
   const newDragSpec =
     result.chainNow.followSpec ??
-    getDragSpecCallbackOnElement<T>(found.element)?.();
+    getOnDragCallbackOnElement<T>(found.element)?.();
   if (!newDragSpec) return status;
 
   // We construct a spring origin to emulate what was rendered here
@@ -623,8 +623,8 @@ function postProcessForInteraction<T extends object>(
     withPaths,
     (el) =>
       updatePropsDownTree(el, (el) => {
-        const dragSpecCallback = getDragSpecCallbackOnElement<T>(el);
-        if (!dragSpecCallback) return;
+        const onDragCallback = getOnDragCallbackOnElement<T>(el);
+        if (!onDragCallback) return;
         assert(
           !el.props.onPointerDown,
           "Elements with dragology cannot have onPointerDown (it is overwritten)",
@@ -636,7 +636,7 @@ function postProcessForInteraction<T extends object>(
             e.stopPropagation();
             const pointer = ctx.setPointerFromEvent(e.nativeEvent);
 
-            const dragSpec: DragSpec<T> = dragSpecCallback();
+            const dragSpec: DragSpec<T> = onDragCallback();
             const draggedId = el.props.id ?? null;
             const draggedPath = getPath(el);
             assert(!!draggedPath, "Dragged element must have a path");

@@ -510,7 +510,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         key={childId}
         transform={translate(pos.x, pos.y)}
         dragologyZIndex={draggedId === `n-${childId}` ? 10 : 1}
-        dragology={() => {
+        dragologyOnDrag={() => {
           const base = detach(state, childId);
           return nodeDrag(d, base, childId);
         }}
@@ -674,7 +674,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           strokeWidth={2}
           style={{ cursor: "ew-resize" }}
           dragologyZIndex={parentDragged ? 11 : 2}
-          dragology={() =>
+          dragologyOnDrag={() =>
             d.vary(state, param("nodes", parentId, "expr", "radius"), {
               constraint: (s: State) => {
                 const expr = s.nodes[parentId].expr as WithSnapRadiusExpr;
@@ -776,7 +776,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         key={nodeId}
         transform={translate(node.x, node.y)}
         dragologyZIndex={isDragged ? 10 : 0}
-        dragology={() => {
+        dragologyOnDrag={() => {
           const base = detach(state, nodeId);
           return nodeDrag(d, base, nodeId);
         }}
@@ -843,7 +843,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           id={`tb-${t.label}`}
           key={t.label}
           transform={translate(t.x, TOOLBAR_H / 2 + 4)}
-          dragology={() => {
+          dragologyOnDrag={() => {
             const nid = makeId();
             const ns = produce(state, (draft) => {
               draft.nodes[nid] = {
@@ -942,7 +942,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           fill={STATE_FILL[state.previewDot]}
           stroke="white"
           strokeWidth={2}
-          dragology={previewDragSpec && (() => previewDragSpec)}
+          dragologyOnDrag={previewDragSpec && (() => previewDragSpec)}
         />
       </g>
 

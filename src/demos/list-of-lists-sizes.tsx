@@ -69,7 +69,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
           <g
             id={`row-${row.id}`}
             transform={translate(0, origY)}
-            dragology={() => {
+            dragologyOnDrag={() => {
               const stateWithout = produce(state, (draft) => {
                 draft.rows.splice(rowIdx, 1);
               });
@@ -119,7 +119,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
                     GRIP_WIDTH + GRIP_PADDING + origX + ROW_PADDING,
                     ROW_PADDING,
                   )}
-                  dragology={() => {
+                  dragologyOnDrag={() => {
                     const stateWithout = produce(state, (draft) => {
                       draft.rows[rowIdx].items.splice(idx, 1);
                     });

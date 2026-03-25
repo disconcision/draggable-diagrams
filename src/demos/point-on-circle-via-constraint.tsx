@@ -31,7 +31,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
         transform={translate(state)}
         r={14}
         fill="black"
-        dragology={() =>
+        dragologyOnDrag={() =>
           d.vary(state, [param("x"), param("y")], {
             constraint: (s) => equal(center.dist2(s), radius ** 2),
           })

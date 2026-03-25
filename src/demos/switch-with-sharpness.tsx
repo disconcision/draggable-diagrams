@@ -49,7 +49,7 @@ const draggable: Draggable<State> = ({ state, d }) => (
             stroke="#e5e7eb"
             strokeWidth={1}
             filter="url(#shadow)"
-            dragology={() =>
+            dragologyOnDrag={() =>
               d.between([{ status: "off" }, { status: "on" }], { sharpness })
             }
           />

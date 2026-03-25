@@ -260,7 +260,7 @@ function renderTree(
   const element = (
     <g
       id={tree.id}
-      dragology={() => dragTargets(d, state, tree.id, activeRewrites)}
+      dragologyOnDrag={() => dragTargets(d, state, tree.id, activeRewrites)}
       dragologyZIndex={depth}
       dragologyEmergeFrom={
         config.enableEmergeAnimation ? tree.emergeFrom : undefined

@@ -3,7 +3,7 @@ import _ from "lodash";
 import { amb, produceAmb } from "../amb";
 import { demo } from "../demo";
 import { DemoDraggable, DemoNotes } from "../demo/ui";
-import { Draggable } from "../draggable";
+import { Draggable, OnDragCallback } from "../draggable";
 import { translate } from "../svgx/helpers";
 
 type Tile = { key: string; label: string };
@@ -33,15 +33,15 @@ const draggable: Draggable<State> = ({ state, d }) => {
   const drawTile = ({
     tile,
     transform,
-    dragology,
+    dragologyOnDrag,
   }: {
     tile: Tile;
     transform: string;
-    dragology?: () => ReturnType<typeof d.closest>;
+    dragologyOnDrag?: OnDragCallback<State>;
   }) => {
     const id = `tile-${tile.key}`;
     return (
-      <g id={id} transform={transform} dragology={dragology}>
+      <g id={id} transform={transform} dragologyOnDrag={dragologyOnDrag}>
         <rect
           x={0}
           y={0}
@@ -89,7 +89,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
         drawTile({
           tile,
           transform: translate(5 + idx * TILE_SIZE, 0),
-          dragology: () => {
+          dragologyOnDrag: () => {
             const storeItem = tile;
 
             const stateWithout = produce(state, (draft) => {
@@ -111,7 +111,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
         drawTile({
           tile,
           transform: translate(idx * TILE_SIZE, toolbarHeight + 10),
-          dragology: () => {
+          dragologyOnDrag: () => {
             const draggedItem = tile;
 
             const stateWithout = produce(state, (draft) => {

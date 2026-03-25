@@ -37,7 +37,7 @@ const switchDraggable: Draggable<SwitchState> = ({ state, d }) => (
       width={SQUARE_SIZE}
       height={SQUARE_SIZE}
       rx={4}
-      dragology={() =>
+      dragologyOnDrag={() =>
         d
           .between([{ value: true }, { value: false }])
           .withSnapRadius(10)
@@ -62,7 +62,7 @@ const sliderDraggable: Draggable<SliderState> = ({ state, d }) => (
       id="knob"
       transform={translate(state.t * 100, 10)}
       r={8}
-      dragology={() =>
+      dragologyOnDrag={() =>
         d.vary(state, param("t"), {
           constraint: (s) => inOrder(0, s.t, 1),
         })

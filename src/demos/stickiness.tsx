@@ -43,7 +43,7 @@ function makeDraggable(stickiness: number): Draggable<State> {
         width={SIZE}
         height={SIZE}
         rx={6}
-        dragology={() =>
+        dragologyOnDrag={() =>
           d.closest([{ pos: 0 }, { pos: 1 }, { pos: 2 }] as State[], {
             stickiness,
           })

@@ -107,7 +107,7 @@ const draggable: Draggable<State> = ({ state, d }) => {
             (state.seq.length + 1) * TILE_SIZE,
           )}
           dragologyZIndex={1}
-          dragology={() => {
+          dragologyOnDrag={() => {
             return d
               .closest([
                 // drag to add crossing

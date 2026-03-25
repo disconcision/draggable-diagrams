@@ -51,7 +51,7 @@ function makeDraggable(levels: number, tiltEnabled: boolean): Draggable<State> {
             stroke="black"
             strokeWidth={4}
             strokeLinecap="round"
-            dragology={() =>
+            dragologyOnDrag={() =>
               d.vary(
                 state,
                 [param("squareness"), tiltEnabled && param("tilt")],
@@ -84,7 +84,7 @@ function makeDraggable(levels: number, tiltEnabled: boolean): Draggable<State> {
           transform={translate(state.from)}
           r={8}
           fill="red"
-          dragology={() =>
+          dragologyOnDrag={() =>
             d.vary(state, [param("from", "x"), param("from", "y")])
           }
         />
@@ -93,7 +93,9 @@ function makeDraggable(levels: number, tiltEnabled: boolean): Draggable<State> {
           transform={translate(state.to)}
           r={8}
           fill="blue"
-          dragology={() => d.vary(state, [param("to", "x"), param("to", "y")])}
+          dragologyOnDrag={() =>
+            d.vary(state, [param("to", "x"), param("to", "y")])
+          }
         />
       </g>
     );

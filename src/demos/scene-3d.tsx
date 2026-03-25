@@ -191,7 +191,7 @@ function makeDraggable(
               id={`box-${key}`}
               transform={translate(center.x, center.y)}
               dragologyZIndex={1}
-              dragology={() =>
+              dragologyOnDrag={() =>
                 d.vary(
                   state,
                   [param("boxes", key, "x"), param("boxes", key, "z")],

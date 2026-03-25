@@ -49,7 +49,7 @@ But this draggable doesn't actually do anything. Let's fix that. For a diagram t
         transform={translate(state.status === "off" ? [100, 100] : [200, 100])}
         r={50}
         fill="blue"
-        dragology={() => d.between([{status: "off"}, {status: "on"}])}
+        dragologyOnDrag={() => d.between([{status: "off"}, {status: "on"}])}
       />
     );
 
@@ -103,7 +103,7 @@ With this knowledge we can take on a more involved example: reordering objects.
               id={p}
               transform={translate(idx * TILE_SIZE, isDragged ? -10 : 0)}
               dragologyZIndex={isDragged ? 1 : 0}
-              dragology={() =>
+              dragologyOnDrag={() =>
                 d.between(
                   _.range(state.perm.length).map((newIdx) => {
                     const draft = structuredClone(state);
@@ -184,7 +184,7 @@ The most novel part of Draggable Diagrams is the "drag between discrete states" 
             transform={translate(100, 0)}
             r={20}
             fill="black"
-            dragology={() => d.vary(state, [["angle"]])}
+            dragologyOnDrag={() => d.vary(state, [["angle"]])}
           />
         </g>
       </g>

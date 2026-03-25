@@ -22,7 +22,7 @@ const draggable: Draggable<State> = ({ state, d }) => (
         stroke="#d1d5db"
         strokeWidth={2}
         filter="url(#shadow)"
-        dragology={() => d.vary(state, param("angle"))}
+        dragologyOnDrag={() => d.vary(state, param("angle"))}
       />
       <line
         x1={0}

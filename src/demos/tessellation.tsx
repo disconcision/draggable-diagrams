@@ -246,7 +246,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             fill={getFillColor(shape.kind)}
             stroke={getStrokeColor(shape.kind)}
             strokeWidth={2}
-            dragology={() => {
+            dragologyOnDrag={() => {
               const snaps = computeSnaps(shape.kind, state.shapes, shape.id);
 
               const snapStates = snaps.map((snap) =>
@@ -329,7 +329,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           stroke={getStrokeColor(item.kind)}
           strokeWidth={2}
           opacity={0.8}
-          dragology={() => {
+          dragologyOnDrag={() => {
             const newId = makeId();
             const stateWithNew = produce(state, (draft) => {
               draft.shapes.push({

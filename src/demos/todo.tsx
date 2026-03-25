@@ -105,7 +105,7 @@ function draggableFactory(config: Config): Draggable<State> {
           dragologyZIndex: isDragged ? 1 : 0,
           opacity: 1,
           setState,
-          dragology: () => {
+          dragologyOnDrag: () => {
             const stateWithout = produce(state, (s) => {
               s.todos.splice(idx, 1);
             });
