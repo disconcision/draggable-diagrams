@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useTitle } from "../useTitle";
 import { demosById } from "./registry";
 import { DemoCard, DemoSettingsBar, DemoSettingsProvider } from "./ui";
 
 export function SingleDemoPage({ id }: { id: string }) {
+  useTitle(`${id} — Dragology`);
   const [searchParams] = useSearchParams();
   const minimal = searchParams.has("minimal");
   const navigate = useNavigate();

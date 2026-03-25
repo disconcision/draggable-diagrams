@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { useTitle } from "../useTitle";
 import { NoolTreeSection } from "./NoolTreeSection";
 import { OrderPreservingSection } from "./OrderPreservingSection";
 import qrA from "./qr_A.png";
@@ -76,6 +77,7 @@ function Divider() {
 }
 
 export const StudioPage = () => {
+  useTitle("Studio — Dragology");
   return (
     <div className="bg-white min-h-screen text-gray-700">
       <TeaserSection />
