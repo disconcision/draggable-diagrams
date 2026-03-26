@@ -589,7 +589,10 @@ type RenderContext<T extends object> = {
  * Checks whether the element at `targetPath` or any of its ancestors
  * in the JSX tree has an onClick or onDoubleClick handler.
  */
-function treeHasClickHandler(root: Svgx, targetPath: string): boolean {
+function ancestorOrSelfHasClickHandler(
+  root: Svgx,
+  targetPath: string,
+): boolean {
   const nodePath = getPath(root);
 
   // Not on the path to the target — skip this subtree
@@ -604,7 +607,7 @@ function treeHasClickHandler(root: Svgx, targetPath: string): boolean {
   const children = React.Children.toArray(root.props.children);
   for (const child of children) {
     if (React.isValidElement(child)) {
-      if (treeHasClickHandler(child as Svgx, targetPath)) return true;
+      if (ancestorOrSelfHasClickHandler(child as Svgx, targetPath)) return true;
     }
   }
   return false;
@@ -665,7 +668,10 @@ function postProcessForInteraction<T extends object>(
               null,
             );
 
-            const hasClickHandler = treeHasClickHandler(withPaths, draggedPath);
+            const hasClickHandler = ancestorOrSelfHasClickHandler(
+              withPaths,
+              draggedPath,
+            );
 
             if (ctx.dragThreshold <= 0 || !hasClickHandler) {
               ctx.setStatus(draggingStatus);
