@@ -84,7 +84,7 @@ function allPorts(side: "in" | "out") {
   return result;
 }
 
-const initialState: State = {
+export const initialState: State = {
   nodes: {
     A: { x: 20, y: 30 },
     B: { x: 200, y: 10 },
@@ -102,7 +102,7 @@ const initialState: State = {
   },
 };
 
-const draggable: Draggable<State> = ({ state, d, draggedId }) => {
+export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   function endDragSpec(wireId: string, endKey: "from" | "to") {
     const side = endKey === "to" ? "in" : "out";
     const snapSpecs = allPorts(side).map(({ nodeId, port }) =>

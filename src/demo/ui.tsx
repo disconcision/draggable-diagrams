@@ -330,12 +330,14 @@ export function DemoDraggable<T extends object>({
   width,
   height,
   onDropState,
+  stateRef,
 }: {
   draggable: Draggable<T>;
   initialState: T;
   width: number;
   height: number;
   onDropState?: (state: T) => void;
+  stateRef?: React.RefObject<T | null>;
 }) {
   const {
     showTreeView,
@@ -346,6 +348,16 @@ export function DemoDraggable<T extends object>({
     thumbArea,
   } = useDemoSettings();
   const [status, setStatus] = useState<DragStatus<T> | null>(null);
+
+  useEffect(() => {
+    if (stateRef) {
+      if (status?.type === "idle") {
+        stateRef.current = status.state;
+      } else {
+        stateRef.current = null;
+      }
+    }
+  }, [stateRef, status]);
 
   useEffect(() => {
     const cb = () => {

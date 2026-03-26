@@ -1,7 +1,8 @@
 import { produce } from "immer";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { defaultDemoContext, DemoContext, DemoDraggable } from "../demo/ui";
 import { initialState, makeDraggable } from "../demos/ring-of-beads";
+import { CopyStateButton } from "./CopyStateButton";
 import { StudioHackContext } from "./StudioHackContext";
 import { Lens, Section } from "./StudioPage";
 
@@ -13,6 +14,7 @@ const versions = [
 export function RingOfBeadsSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [versionIdx, setVersionIdx] = useState(0);
+  const stateRef = useRef(null);
   const draggable = useMemo(
     () => makeDraggable(versions[versionIdx].stage),
     [versionIdx],
@@ -46,6 +48,7 @@ export function RingOfBeadsSection() {
               </option>
             ))}
           </select>
+          <CopyStateButton stateRef={stateRef} />
         </div>
         <Lens zoom={3}>
           <StudioHackContext.Provider
@@ -59,6 +62,7 @@ export function RingOfBeadsSection() {
               initialState={initialState}
               width={300}
               height={300}
+              stateRef={stateRef}
             />
           </StudioHackContext.Provider>
         </Lens>

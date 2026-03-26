@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { defaultDemoContext, DemoContext, DemoDraggable } from "../demo/ui";
 import {
   Config,
@@ -7,6 +7,7 @@ import {
   initialState,
   rewriteSets,
 } from "../demos/nool/tree";
+import { CopyStateButton } from "./CopyStateButton";
 import { StudioHackContext } from "./StudioHackContext";
 import { Lens, Section } from "./StudioPage";
 
@@ -43,6 +44,7 @@ export const myInitialState: typeof initialState = {
 
 export function NoolTreeSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const stateRef = useRef(null);
   const draggable = useMemo(() => draggableFactory(config), []);
   return (
     <Section title="Nool Tree">
@@ -62,6 +64,7 @@ export function NoolTreeSection() {
             />
             <span className="text-fuchsia-600 font-medium">debug overlay</span>
           </label>
+          <CopyStateButton stateRef={stateRef} />
         </div>
         <Lens zoom={3}>
           <StudioHackContext.Provider
@@ -76,6 +79,7 @@ export function NoolTreeSection() {
                 initialState={myInitialState}
                 width={150}
                 height={140}
+                stateRef={stateRef}
               />
             </div>
           </StudioHackContext.Provider>

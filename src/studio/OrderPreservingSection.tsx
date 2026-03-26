@@ -1,8 +1,9 @@
 import { produce } from "immer";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { defaultDemoContext, DemoContext, DemoDraggable } from "../demo/ui";
 import { allMorphs7, draggableFactory } from "../demos/order-preserving";
 import { tree7 } from "../demos/order-preserving/trees";
+import { CopyStateButton } from "./CopyStateButton";
 import { StudioHackContext } from "./StudioHackContext";
 import { Lens, Section } from "./StudioPage";
 
@@ -14,6 +15,7 @@ const defaultConfig = {
 
 export function OrderPreservingSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const stateRef = useRef(null);
   const draggable = useMemo(
     () => draggableFactory(tree7, tree7, allMorphs7, defaultConfig, 500),
     [],
@@ -36,6 +38,7 @@ export function OrderPreservingSection() {
             />
             <span className="text-fuchsia-600 font-medium">debug overlay</span>
           </label>
+          <CopyStateButton stateRef={stateRef} />
         </div>
         <Lens zoom={1.5}>
           <StudioHackContext.Provider
@@ -49,6 +52,7 @@ export function OrderPreservingSection() {
               initialState={{ morph: allMorphs7[3681] }}
               width={460}
               height={400}
+              stateRef={stateRef}
               // onDropState={(state) => {
               //   console.log(allMorphs7.indexOf(state.morph));
               // }}

@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { defaultDemoContext, DemoContext, DemoDraggable } from "../demo/ui";
 import {
   CANVAS_H,
@@ -7,6 +7,7 @@ import {
   draggable,
   initialState,
 } from "../demos/spec-workshop";
+import { CopyStateButton } from "./CopyStateButton";
 import { StudioHackContext } from "./StudioHackContext";
 import { Lens, Section } from "./StudioPage";
 
@@ -82,6 +83,7 @@ const myInitialState: typeof initialState = {
 
 export function SpecWorkshopSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const stateRef = useRef(null);
   return (
     <Section title="Spec Workshop">
       <DemoContext.Provider
@@ -100,6 +102,7 @@ export function SpecWorkshopSection() {
             />
             <span className="text-fuchsia-600 font-medium">debug overlay</span>
           </label>
+          <CopyStateButton stateRef={stateRef} />
         </div>
         <Lens zoom={2}>
           <StudioHackContext.Provider
@@ -114,6 +117,7 @@ export function SpecWorkshopSection() {
                 initialState={myInitialState}
                 width={CANVAS_W}
                 height={CANVAS_H}
+                stateRef={stateRef}
               />
             </div>
           </StudioHackContext.Provider>

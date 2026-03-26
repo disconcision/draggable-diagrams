@@ -26,7 +26,7 @@ const colors = [
   "#e8d4f0", // soft lavender
 ];
 
-const initialState: State = {
+export const initialState: State = {
   rows: [
     {
       type: "row",
@@ -75,7 +75,7 @@ const initialState: State = {
   ],
 };
 
-const draggable: Draggable<State> = ({ state, d, draggedId }) => {
+export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   const TILE_SIZE = 50;
   const TILE_GAP = 8;
   const ROW_PADDING = 8;

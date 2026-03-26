@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { useTitle } from "../useTitle";
+import { CanvasOfListsNestedSection } from "./CanvasOfListsNestedSection";
 import { IntervalGraphSection } from "./IntervalGraphSection";
+import { NodeWiresSection } from "./NodeWiresSection";
 import { NoolTreeSection } from "./NoolTreeSection";
 import { OrderPreservingSection } from "./OrderPreservingSection";
 import qrA from "./qr_A.png";
@@ -87,15 +89,19 @@ export const StudioPage = () => {
       <Divider />
       <RingOfBeadsSection />
       <Divider />
-      <OrderPreservingSection />
+      <IntervalGraphSection />
       <Divider />
-      <NoolTreeSection />
+      <CanvasOfListsNestedSection />
+      <Divider />
+      <NodeWiresSection />
       <Divider />
       <TessellationSection />
       <Divider />
       <SpecWorkshopSection />
       <Divider />
-      <IntervalGraphSection />
+      <NoolTreeSection />
+      <Divider />
+      <OrderPreservingSection />
     </div>
   );
 };

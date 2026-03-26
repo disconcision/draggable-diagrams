@@ -1,7 +1,8 @@
 import { produce } from "immer";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { defaultDemoContext, DemoContext, DemoDraggable } from "../demo/ui";
 import { draggable, State } from "../demos/tessellation";
+import { CopyStateButton } from "./CopyStateButton";
 import { StudioHackContext } from "./StudioHackContext";
 import { Lens, Section } from "./StudioPage";
 
@@ -17,6 +18,7 @@ const initialState: State = {
 
 export function TessellationSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const stateRef = useRef(null);
   return (
     <Section title="Tessellation">
       <DemoContext.Provider
@@ -35,6 +37,7 @@ export function TessellationSection() {
             />
             <span className="text-fuchsia-600 font-medium">debug overlay</span>
           </label>
+          <CopyStateButton stateRef={stateRef} />
         </div>
         <Lens zoom={2}>
           <StudioHackContext.Provider
@@ -49,6 +52,7 @@ export function TessellationSection() {
                 initialState={initialState}
                 width={600}
                 height={450}
+                stateRef={stateRef}
               />
             </div>
           </StudioHackContext.Provider>

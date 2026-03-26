@@ -1,51 +1,16 @@
 import { produce } from "immer";
 import { useRef, useState } from "react";
 import { defaultDemoContext, DemoContext, DemoDraggable } from "../demo/ui";
-import {
-  CANVAS_H,
-  CANVAS_W,
-  draggable,
-  initialState,
-} from "../demos/interval-graph";
+import { draggable, initialState } from "../demos/node-wires";
 import { CopyStateButton } from "./CopyStateButton";
 import { StudioHackContext } from "./StudioHackContext";
 import { Lens, Section } from "./StudioPage";
 
-const myInitialState: typeof initialState = {
-  meetings: [
-    {
-      start: 20,
-      end: 100,
-      room: 0,
-    },
-    {
-      start: 60,
-      end: 160,
-      room: 1,
-    },
-    {
-      start: 10,
-      end: 70,
-      room: 3,
-    },
-    {
-      start: 120,
-      end: 200,
-      room: 0,
-    },
-    {
-      start: 80,
-      end: 140,
-      room: 2,
-    },
-  ],
-};
-
-export function IntervalGraphSection() {
+export function NodeWiresSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const stateRef = useRef(null);
   return (
-    <Section title="Interval Graph">
+    <Section title="Nodes and Wires">
       <DemoContext.Provider
         value={produce(defaultDemoContext, (draft) => {
           draft.settings.showDebugOverlay = showDebugOverlay;
@@ -71,15 +36,13 @@ export function IntervalGraphSection() {
               overlayHideDistances: true,
             }}
           >
-            <div style={{ padding: 15 }}>
-              <DemoDraggable
-                draggable={draggable}
-                initialState={myInitialState}
-                width={CANVAS_W}
-                height={CANVAS_H}
-                stateRef={stateRef}
-              />
-            </div>
+            <DemoDraggable
+              draggable={draggable}
+              initialState={initialState}
+              width={500}
+              height={200}
+              stateRef={stateRef}
+            />
           </StudioHackContext.Provider>
         </Lens>
       </DemoContext.Provider>
