@@ -349,4 +349,4 @@ const point = center.add(offset);
 
 7. **`dragologyOnDrag` takes a function that returns a spec**, not the spec directly: `dragologyOnDrag={() => d.between(...)}`, not `dragologyOnDrag={d.between(...)}`.
 
-8. **Conditional dragging** — make an element conditionally draggable with: `dragologyOnDrag={condition && (() => d.between(...))}`.
+8. **Use `<g>` rather than `<>` (Fragment) for grouping.** Fragments are not supported. Always use `<g>` to wrap multiple elements.
