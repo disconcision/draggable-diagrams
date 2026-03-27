@@ -247,17 +247,40 @@ The library tracks elements by their `id` attribute. Use `id` (not React `key`) 
 
 **No slashes in IDs.** Use hyphens: `id="node-1-2"` not `id="node/1/2"`.
 
-### `dragologyZIndex` for Draw Order
+### Layers and `dragologyZIndex`
 
-Control layering with `dragologyZIndex`. Useful for bringing dragged items to the front:
+Any SVG node with an `id` is extracted as a **layer** — a separately-stacked piece of the rendering. Layers are sorted by their **stacking path**, an array of z-indices built from nesting.
+
+By default, each layer gets z-index `0`, which puts it above its layer-parent. You can control ordering with `dragologyZIndex`:
+
+```tsx
+// A simple nested structure. Inner layers draw above outer by default.
+<g id="container">
+  <g id="child-a" />           {/* stacking path: [..., 0, 0] */}
+  <g id="child-b" />           {/* stacking path: [..., 0, 0] */}
+</g>
+
+// Use positive z-indices to sort siblings against each other
+<g id="container">
+  <g id="background" dragologyZIndex={-1} />  {/* below parent */}
+  <g id="child-a" dragologyZIndex={1} />       {/* above default */}
+  <g id="child-b" dragologyZIndex={2} />       {/* above child-a */}
+</g>
+```
+
+**Bringing dragged items to the front** — use an absolute z-index `"/N"` to escape the nesting hierarchy entirely. Everything else ends up at paths like `0/0/0/...`, so `"/1"` puts the dragged item above all of them. Its layer-children will inherit the absolute path and end up at `1/0/0/...`, so they come along for the ride:
 
 ```tsx
 <g
   id={item.id}
-  dragologyZIndex={draggedId === item.id ? 1 : 0}
+  dragologyZIndex={draggedId === item.id ? "/1" : false}
   dragologyOnDrag={() => ...}
 >
 ```
+
+The value `false`, `null`, or `undefined` all resolve to z-index `0` (the default). This makes conditional expressions like `isDragged ? "/1" : false` convenient.
+
+`dragologyZIndex` can only be set on elements that have an `id`. The absolute `"/N"` syntax only accepts a slash followed by an integer (e.g. `"/1"`, `"/-2"`).
 
 ## Imperative State Updates with `setState`
 

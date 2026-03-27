@@ -53,7 +53,7 @@ export function extractFloatContext<T extends object>(
 ): { floatLayered: LayeredSvgx; pointerStart: Vec2 } {
   const layered = renderDraggableInert(draggable, state, draggedId, false);
   const { extracted } = layeredExtract(layered, draggedId);
-  const element = layered.byId.get(draggedId)!;
-  const pointerStart = localToGlobal(element.props.transform, anchorPos);
+  const layer = layered.byId.get(draggedId)!;
+  const pointerStart = localToGlobal(layer.element.props.transform, anchorPos);
   return { floatLayered: extracted, pointerStart };
 }

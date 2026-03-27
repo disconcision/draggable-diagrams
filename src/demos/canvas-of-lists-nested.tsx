@@ -86,10 +86,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     item: Tile | Row,
     itemsPath: PathIn<State, (Tile | Row)[]>,
     idx: number,
-    zIndexBase: number,
   ): { element: React.JSX.Element; width: number; height: number } {
-    const isDragged = draggedId === item.id;
-
     const draglogyOnDrag = () => {
       // Remove item from current location
       const stateWithout = produce(state, (draft) => {
@@ -137,13 +134,13 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         );
     };
 
-    const effectiveZIndex = isDragged ? zIndexBase + 10 : zIndexBase;
+    const zIndex = draggedId === item.id && "/1";
 
     if (item.type === "tile") {
       const element = (
         <g
           id={item.id}
-          dragologyZIndex={effectiveZIndex}
+          dragologyZIndex={zIndex}
           dragologyOnDrag={draglogyOnDrag}
         >
           <rect
@@ -177,7 +174,6 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           child,
           [...itemsPath, idx, "items"] as PathIn<State, (Tile | Row)[]>,
           childIdx,
-          effectiveZIndex + 1,
         ),
       );
 
@@ -192,7 +188,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
       const element = (
         <g
           id={item.id}
-          dragologyZIndex={effectiveZIndex}
+          dragologyZIndex={zIndex}
           dragologyOnDrag={draglogyOnDrag}
         >
           <rect
@@ -238,7 +234,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     <g>
       {state.rows.map((row, rowIdx) => (
         <g id={`row-slot-${rowIdx}`} transform={translate(row)}>
-          {renderItem(row, ["rows"], rowIdx, 0).element}
+          {renderItem(row, ["rows"], rowIdx).element}
         </g>
       ))}
     </g>

@@ -196,16 +196,16 @@ function withFloatingBehavior<T extends object>(
     const innerResult = innerBehavior(frame);
     const layered = innerResult.preview;
     // On a layer, the transform prop IS the accumulated transform.
-    const draggedElement = layered.byId.get(draggedId);
-    const elementPos = draggedElement
-      ? localToGlobal(draggedElement.props.transform, ctx.anchorPos)
+    const draggedLayer = layered.byId.get(draggedId);
+    const elementPos = draggedLayer
+      ? localToGlobal(draggedLayer.element.props.transform, ctx.anchorPos)
       : Vec2(Infinity, Infinity);
 
     // Extract the float element from the inner result, or fall back to cache.
     let floatLayered: LayeredSvgx;
     let floatPos: Vec2;
     let backdrop: LayeredSvgx;
-    if (!draggedElement) {
+    if (!draggedLayer) {
       if (cachedFloatLayered === null) {
         // The dragged element isn't in the inner result on the first
         // frame (e.g. switchToStateAndFollow created it in a new state
@@ -219,9 +219,12 @@ function withFloatingBehavior<T extends object>(
         );
         const { extracted } = layeredExtract(startLayered, draggedId);
         cachedFloatLayered = extracted;
-        const startDraggedElement = startLayered.byId.get(draggedId);
-        cachedFloatPos = startDraggedElement
-          ? localToGlobal(startDraggedElement.props.transform, ctx.anchorPos)
+        const startDraggedLayer = startLayered.byId.get(draggedId);
+        cachedFloatPos = startDraggedLayer
+          ? localToGlobal(
+              startDraggedLayer.element.props.transform,
+              ctx.anchorPos,
+            )
           : Vec2(0, 0);
         startFloatPos = ctx.pointerStart;
       }
@@ -931,14 +934,14 @@ function dropTargetBehavior<T extends object>(
   ctx: DragInitContext<T>,
 ): DragBehavior<T> {
   const preview = renderStateReadOnly(ctx, spec.state);
-  const targetElement = preview.byId.get(spec.targetId);
+  const targetLayer = preview.byId.get(spec.targetId);
   assert(
-    targetElement !== undefined,
+    targetLayer !== undefined,
     `dropTarget: element with id "${spec.targetId}" not found in rendered state`,
   );
   const globalBounds = getGlobalBounds(
-    targetElement,
-    targetElement.props.transform ?? "",
+    targetLayer.element,
+    targetLayer.element.props.transform ?? "",
   );
   assert(
     !globalBounds.empty,

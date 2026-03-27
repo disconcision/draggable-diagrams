@@ -91,7 +91,6 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     box: Box,
     itemsPath: PathIn<State, Box[]>,
     idx: number,
-    zIndexBase: number,
   ): { element: React.JSX.Element; width: number; height: number } {
     const isDragged = draggedId === box.id;
 
@@ -129,7 +128,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
       return d.closest(statesWith).withFloating().whenFar(varySpec);
     };
 
-    const effectiveZIndex = isDragged ? zIndexBase + 10 : zIndexBase;
+    const zIndex = isDragged && "/1";
     const hasItems = box.items.length > 0;
 
     // Render horizontal children
@@ -138,7 +137,6 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         child,
         [...itemsPath, idx, "items"] as PathIn<State, Box[]>,
         childIdx,
-        effectiveZIndex + 1,
       ),
     );
 
@@ -148,7 +146,6 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         child,
         [...itemsPath, idx, "itemsBelow"] as PathIn<State, Box[]>,
         childIdx,
-        effectiveZIndex + 1,
       ),
     );
 
@@ -188,11 +185,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     let belowXOffset = 0;
 
     const element = (
-      <g
-        id={box.id}
-        dragologyZIndex={effectiveZIndex}
-        dragologyOnDrag={dragologyOnDrag}
-      >
+      <g id={box.id} dragologyZIndex={zIndex} dragologyOnDrag={dragologyOnDrag}>
         {/* Box */}
         <g transform={translate(boxX, 0)}>
           <rect
@@ -249,7 +242,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           return (
             <line
               id={`${box.id}-line-${childIdx}`}
-              dragologyZIndex={effectiveZIndex + 1}
+              dragologyZIndex={1}
               x1={totalWidth / 2}
               y1={contentHeight}
               x2={childCenterX}
@@ -284,7 +277,7 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     <g>
       {state.boxes.map((box, boxIdx) => (
         <g id={`box-slot-${boxIdx}`} transform={translate(box)}>
-          {renderBox(box, ["boxes"], boxIdx, 0).element}
+          {renderBox(box, ["boxes"], boxIdx).element}
         </g>
       ))}
     </g>

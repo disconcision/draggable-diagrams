@@ -425,8 +425,8 @@ function runSpring(
   const lerped = lerpLayered(target, springOrigin.layered, 1 - t);
   // Replace non-transitioning layers with the target's version so they
   // track the cursor without spring lag.
-  for (const [key, element] of lerped.byId.entries()) {
-    if (element.props["dragologyTransition"] === false) {
+  for (const [key, layer] of lerped.byId.entries()) {
+    if (layer.element.props["dragologyTransition"] === false) {
       const targetVal = target.byId.get(key);
       if (targetVal) {
         lerped.byId.set(key, targetVal);

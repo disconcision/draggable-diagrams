@@ -7,7 +7,7 @@ import { shouldRecurseIntoChildren, Svgx } from ".";
 import { ErrorWithJSX } from "../ErrorBoundary";
 import { lerp } from "../math/vec2";
 import { objectKeys } from "../utils/js";
-import { LayeredSvgx } from "./layers";
+import { Layer, LayeredSvgx } from "./layers";
 import { lerpTransformString } from "./transform";
 
 // SVG properties that should be interpolated as colors
@@ -426,17 +426,20 @@ function createSyntheticBefore(newElement: Svgx, originElement: Svgx): Svgx {
  * using the referenced origin element from `origins`.
  */
 function augmentWithEmerging(
-  target: Map<string, Svgx>,
-  source: Map<string, Svgx>,
-  origins: Map<string, Svgx>,
+  target: Map<string, Layer>,
+  source: Map<string, Layer>,
+  origins: Map<string, Layer>,
 ) {
   for (const [key, val] of source) {
     if (!target.has(key)) {
-      const emergeFromId = val.props.dragologyEmergeFrom;
+      const emergeFromId = val.element.props.dragologyEmergeFrom;
       if (emergeFromId && typeof emergeFromId === "string") {
-        const originElement = origins.get(emergeFromId);
-        if (originElement) {
-          target.set(key, createSyntheticBefore(val, originElement));
+        const originLayer = origins.get(emergeFromId);
+        if (originLayer) {
+          target.set(key, {
+            element: createSyntheticBefore(val.element, originLayer.element),
+            stackingPath: val.stackingPath,
+          });
         }
       }
     }
@@ -456,7 +459,7 @@ export function lerpLayered(
   augmentWithEmerging(augmentedB, a.byId, b.byId);
 
   // Main lerp loop
-  const result = new Map<string, Svgx>();
+  const result = new Map<string, Layer>();
   const allKeys = new Set([...augmentedA.keys(), ...augmentedB.keys()]);
 
   for (const key of allKeys) {
@@ -464,13 +467,24 @@ export function lerpLayered(
     const bVal = augmentedB.get(key);
 
     if (aVal && bVal) {
-      result.set(key, lerpSvgx(aVal, bVal, t));
+      result.set(key, {
+        element: lerpSvgx(aVal.element, bVal.element, t),
+        stackingPath: aVal.stackingPath,
+      });
     } else if (aVal) {
-      const opacity = +(aVal.props.opacity ?? 1) * (1 - t);
-      if (opacity > 1e-3) result.set(key, cloneElement(aVal, { opacity }));
+      const opacity = +(aVal.element.props.opacity ?? 1) * (1 - t);
+      if (opacity > 1e-3)
+        result.set(key, {
+          element: cloneElement(aVal.element, { opacity }),
+          stackingPath: aVal.stackingPath,
+        });
     } else if (bVal) {
-      const opacity = +(bVal.props.opacity ?? 1) * t;
-      if (opacity > 1e-3) result.set(key, cloneElement(bVal, { opacity }));
+      const opacity = +(bVal.element.props.opacity ?? 1) * t;
+      if (opacity > 1e-3)
+        result.set(key, {
+          element: cloneElement(bVal.element, { opacity }),
+          stackingPath: bVal.stackingPath,
+        });
     }
   }
 
