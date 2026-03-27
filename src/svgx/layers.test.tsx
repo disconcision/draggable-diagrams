@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { layerSvg, layeredExtract } from "./layers";
+import { drawLayered, layeredExtract, LayeredSvgx, layerSvg } from "./layers";
 
 describe("layerSvg", () => {
   it("pulls nodes with IDs to the top level", () => {
@@ -559,6 +559,126 @@ describe("layeredExtract", () => {
         },
         "descendents": Map {},
       }
+    `);
+  });
+});
+
+describe("drawLayered", () => {
+  it("strips dragology* props from output", () => {
+    const layered: LayeredSvgx = {
+      byId: new Map([
+        [
+          "r1",
+          <rect
+            id="r1"
+            dragologyZIndex={3}
+            dragologyTransition={true}
+            x={10}
+          />,
+        ],
+      ]),
+      descendents: new Map(),
+    };
+
+    expect(drawLayered(layered)).toMatchInlineSnapshot(`
+      <React.Fragment>
+        <React.Fragment>
+          <rect
+            id="r1"
+            x={10}
+          />
+        </React.Fragment>
+      </React.Fragment>
+    `);
+  });
+
+  it("strips dragology* props from nested children", () => {
+    const layered: LayeredSvgx = {
+      byId: new Map([
+        [
+          "g1",
+          <g id="g1" dragologyZIndex={1}>
+            <rect dragologyTransition={true} x={5} />
+          </g>,
+        ],
+      ]),
+      descendents: new Map(),
+    };
+
+    expect(drawLayered(layered)).toMatchInlineSnapshot(`
+      <React.Fragment>
+        <React.Fragment>
+          <g
+            id="g1"
+          >
+            <rect
+              x={5}
+            />
+          </g>
+        </React.Fragment>
+      </React.Fragment>
+    `);
+  });
+
+  it("sorts layers by dragologyZIndex", () => {
+    const layered: LayeredSvgx = {
+      byId: new Map([
+        ["a", <rect id="a" dragologyZIndex={10} />],
+        ["b", <rect id="b" dragologyZIndex={-5} />],
+        ["c", <rect id="c" dragologyZIndex={0} />],
+      ]),
+      descendents: new Map(),
+    };
+
+    expect(drawLayered(layered)).toMatchInlineSnapshot(`
+      <React.Fragment>
+        <React.Fragment>
+          <rect
+            id="b"
+          />
+        </React.Fragment>
+        <React.Fragment>
+          <rect
+            id="c"
+          />
+        </React.Fragment>
+        <React.Fragment>
+          <rect
+            id="a"
+          />
+        </React.Fragment>
+      </React.Fragment>
+    `);
+  });
+
+  it("treats missing dragologyZIndex as 0", () => {
+    const layered: LayeredSvgx = {
+      byId: new Map([
+        ["a", <rect id="a" dragologyZIndex={1} />],
+        ["b", <rect id="b" />],
+        ["c", <rect id="c" dragologyZIndex={-1} />],
+      ]),
+      descendents: new Map(),
+    };
+
+    expect(drawLayered(layered)).toMatchInlineSnapshot(`
+      <React.Fragment>
+        <React.Fragment>
+          <rect
+            id="c"
+          />
+        </React.Fragment>
+        <React.Fragment>
+          <rect
+            id="b"
+          />
+        </React.Fragment>
+        <React.Fragment>
+          <rect
+            id="a"
+          />
+        </React.Fragment>
+      </React.Fragment>
     `);
   });
 });
