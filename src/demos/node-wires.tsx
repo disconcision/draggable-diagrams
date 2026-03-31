@@ -10,18 +10,17 @@ const NODE_HEADER = 20;
 const PORT_SPACING = 22;
 const PORT_R = 5;
 
-const NODE_DEFS: Record<
-  string,
-  { label: string; inputs: string[]; outputs: string[] }
-> = {
-  A: { label: "Mix", inputs: ["a", "b"], outputs: ["out"] },
-  B: { label: "Filter", inputs: ["in"], outputs: ["out"] },
-  C: { label: "Output", inputs: ["in"], outputs: [] },
+type NodeType = { label: string; inputs: string[]; outputs: string[] };
+
+const NODE_TYPES: Record<string, NodeType> = {
+  mix: { label: "Mix", inputs: ["a", "b"], outputs: ["out"] },
+  filter: { label: "Filter", inputs: ["in"], outputs: ["out"] },
+  output: { label: "Output", inputs: ["in"], outputs: [] },
 };
 
-function nodeHeight(nodeId: string) {
-  const def = NODE_DEFS[nodeId];
-  const maxPorts = Math.max(def.inputs.length, def.outputs.length, 1);
+function nodeHeight(type: string) {
+  const nt = NODE_TYPES[type];
+  const maxPorts = Math.max(nt.inputs.length, nt.outputs.length, 1);
   return NODE_HEADER + maxPorts * PORT_SPACING + 6;
 }
 
@@ -34,13 +33,13 @@ function portY(count: number, idx: number, h: number) {
 }
 
 /** Port position relative to its node's origin. */
-function localPortPos(nodeId: string, port: string): [number, number] {
-  const def = NODE_DEFS[nodeId];
-  const h = nodeHeight(nodeId);
-  const outIdx = def.outputs.indexOf(port);
-  if (outIdx >= 0) return [NODE_W, portY(def.outputs.length, outIdx, h)];
-  const inIdx = def.inputs.indexOf(port);
-  return [0, portY(def.inputs.length, inIdx, h)];
+function localPortPos(type: string, port: string): [number, number] {
+  const nt = NODE_TYPES[type];
+  const h = nodeHeight(type);
+  const outIdx = nt.outputs.indexOf(port);
+  if (outIdx >= 0) return [NODE_W, portY(nt.outputs.length, outIdx, h)];
+  const inIdx = nt.inputs.indexOf(port);
+  return [0, portY(nt.inputs.length, inIdx, h)];
 }
 
 type WireEnd =
@@ -48,23 +47,19 @@ type WireEnd =
   | { type: "free"; x: number; y: number };
 
 type State = {
-  nodes: Record<string, { x: number; y: number }>;
+  nodes: Record<string, { type: string; x: number; y: number }>;
   wires: Record<string, { from: WireEnd; to: WireEnd }>;
 };
 
 /** Port position in global coordinates. */
-function portPos(
-  nodes: State["nodes"],
-  nodeId: string,
-  port: string,
-): [number, number] {
-  const [lx, ly] = localPortPos(nodeId, port);
-  const n = nodes[nodeId];
+function portPos(state: State, nodeId: string, port: string): [number, number] {
+  const n = state.nodes[nodeId];
+  const [lx, ly] = localPortPos(n.type, port);
   return [n.x + lx, n.y + ly];
 }
 
-function endPos(nodes: State["nodes"], end: WireEnd): [number, number] {
-  if (end.type === "on-port") return portPos(nodes, end.nodeId, end.port);
+function endPos(state: State, end: WireEnd): [number, number] {
+  if (end.type === "on-port") return portPos(state, end.nodeId, end.port);
   return [end.x, end.y];
 }
 
@@ -74,10 +69,11 @@ function nextWireId(state: State): string {
   return `w${i}`;
 }
 
-function allPorts(side: "in" | "out") {
+function allPorts(state: State, side: "in" | "out") {
   const result: { nodeId: string; port: string }[] = [];
-  for (const [nodeId, def] of Object.entries(NODE_DEFS)) {
-    for (const p of side === "in" ? def.inputs : def.outputs) {
+  for (const [nodeId, node] of Object.entries(state.nodes)) {
+    const nt = NODE_TYPES[node.type];
+    for (const p of side === "in" ? nt.inputs : nt.outputs) {
       result.push({ nodeId, port: p });
     }
   }
@@ -86,9 +82,9 @@ function allPorts(side: "in" | "out") {
 
 export const initialState: State = {
   nodes: {
-    A: { x: 20, y: 30 },
-    B: { x: 200, y: 10 },
-    C: { x: 380, y: 40 },
+    A: { type: "mix", x: 20, y: 30 },
+    B: { type: "filter", x: 200, y: 10 },
+    C: { type: "output", x: 380, y: 40 },
   },
   wires: {
     w1: {
@@ -105,7 +101,7 @@ export const initialState: State = {
 export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   function endDragSpec(wireId: string, endKey: "from" | "to") {
     const side = endKey === "to" ? "in" : "out";
-    const snapSpecs = allPorts(side).map(({ nodeId, port }) =>
+    const snapSpecs = allPorts(state, side).map(({ nodeId, port }) =>
       d.fixed(
         produce(state, (draft) => {
           draft.wires[wireId][endKey] = { type: "on-port", nodeId, port };
@@ -113,7 +109,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
       ),
     );
 
-    const [px, py] = endPos(state.nodes, state.wires[wireId][endKey]);
+    const [px, py] = endPos(state, state.wires[wireId][endKey]);
     const freeState = produce(state, (draft) => {
       draft.wires[wireId][endKey] = { type: "free", x: px, y: py };
     });
@@ -139,8 +135,8 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
     <g>
       {/* wires */}
       {Object.entries(state.wires).map(([wid, wire]) => {
-        const [fx, fy] = endPos(state.nodes, wire.from);
-        const [tx, ty] = endPos(state.nodes, wire.to);
+        const [fx, fy] = endPos(state, wire.from);
+        const [tx, ty] = endPos(state, wire.to);
         const dx = Math.max(Math.abs(tx - fx) * 0.4, 30);
 
         return (
@@ -184,8 +180,8 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
 
       {/* nodes */}
       {Object.entries(state.nodes).map(([nid, node]) => {
-        const def = NODE_DEFS[nid];
-        const h = nodeHeight(nid);
+        const nodeType = NODE_TYPES[node.type];
+        const h = nodeHeight(node.type);
 
         return (
           <g
@@ -223,16 +219,16 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               fontWeight="600"
               fill="#444"
             >
-              {def.label}
+              {nodeType.label}
             </text>
 
             {(["in", "out"] as const).map((side) => {
-              const ports = side === "in" ? def.inputs : def.outputs;
+              const ports = side === "in" ? nodeType.inputs : nodeType.outputs;
               const colors =
                 side === "in" ? ["#4a9eff", "#c0d8f0"] : ["#ff6b4a", "#f0c8c0"];
               const wireEndKey = side === "in" ? "to" : "from";
-              return ports.map((port) => {
-                const [lx, ly] = localPortPos(nid, port);
+              return ports.map((port: string) => {
+                const [lx, ly] = localPortPos(node.type, port);
                 const connected = Object.values(state.wires).some((w) => {
                   const end = w[wireEndKey];
                   return (
@@ -249,7 +245,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                     dragologyOnDrag={
                       !connected &&
                       (() => {
-                        const [px, py] = portPos(state.nodes, nid, port);
+                        const [px, py] = portPos(state, nid, port);
                         const wid = nextWireId(state);
                         const fixed: WireEnd = {
                           type: "on-port",

@@ -9,27 +9,17 @@ import { Lens, Section } from "./StudioPage";
 const myInitialState: typeof initialState = {
   nodes: {
     A: {
+      type: "mix",
       x: 10.500981561971743,
       y: 33.83446809476264,
     },
     B: {
+      type: "filter",
       x: 151.99930287926662,
       y: 10.75175662330605,
     },
   },
   wires: {
-    w1: {
-      from: {
-        type: "free",
-        x: 121.8347764659846,
-        y: 79.00131171797534,
-      },
-      to: {
-        type: "on-port",
-        nodeId: "B",
-        port: "in",
-      },
-    },
     w0: {
       from: {
         type: "on-port",
