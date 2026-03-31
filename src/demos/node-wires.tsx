@@ -3,6 +3,7 @@ import { demo } from "../demo";
 import { DemoDraggable } from "../demo/ui";
 import { Draggable } from "../draggable";
 import { param } from "../DragSpec";
+import { Vec2 } from "../lib";
 import { translate } from "../svgx/helpers";
 
 const NODE_W = 90;
@@ -261,10 +262,12 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
                               ? { from: fixed, to: free }
                               : { from: free, to: fixed };
                         });
-                        return d.switchToStateAndFollow(
-                          newState,
-                          `wire-${wid}-${freeEndKey}`,
-                        );
+                        return d
+                          .switchToStateAndFollow(
+                            newState,
+                            `wire-${wid}-${freeEndKey}`,
+                          )
+                          .withInitContext({ anchorPos: Vec2(0) });
                       })
                     }
                   >
