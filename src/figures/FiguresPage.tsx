@@ -15,14 +15,14 @@ const figuredemos = [
 ] as const;
 
 const figureLabels: Record<string, string> = {
-  "ring-of-beads": "A — Ring of Beads",
-  "interval-graph": "B — Scheduler",
-  "canvas-of-lists-nested": "C — Nested Lists",
-  "tessellation": "D — Tessellation",
-  "nool-tree": "E — Nool",
-  "order-preserving": "F — Order-Preserving Map",
-  "node-wires": "G — Nodes and Wires",
-  "spec-workshop": "H — Spec Workshop",
+  "ring-of-beads": "A — Alex's Ring of Beads",
+  "interval-graph": "B — Alex's Scheduler",
+  "canvas-of-lists-nested": "C — Lists in Lists",
+  "tessellation": "D — Tactile Tessellations",
+  "nool-tree": "E — Animate Algebra (Nool)",
+  "order-preserving": "F — Twisted Trees",
+  "node-wires": "G — Noodles and Nodes",
+  "spec-workshop": "H — Drag-Spec Workshop",
 };
 
 export function FiguresPage() {
