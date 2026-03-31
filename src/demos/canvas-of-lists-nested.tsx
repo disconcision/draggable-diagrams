@@ -131,6 +131,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             param("rows", stateAsTopRow.rows.length - 1, "x"),
             param("rows", stateAsTopRow.rows.length - 1, "y"),
           ]),
+          { gap: 60 },
         );
     };
 
