@@ -85,11 +85,13 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             ],
           });
 
-        const barStates = _.range(NUM_TRACKS).map((t) =>
+        const statesChangeRoom = _.range(NUM_TRACKS).map((t) =>
           produce<State>(state, (draft) => {
             draft.meetings[i].room = t;
           }),
         );
+        const onDragChangeRoom = () =>
+          d.between(statesChangeRoom).withSnapRadius(10, { transition: true });
 
         return (
           <g id={`meeting-${i}`} dragologyZIndex={isDraggedBar ? 1 : 0}>
@@ -101,9 +103,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               height={BAR_H}
               rx={3}
               fill={color}
-              dragologyOnDrag={() =>
-                d.between(barStates).withSnapRadius(10, { transition: true })
-              }
+              dragologyOnDrag={onDragChangeRoom}
             />
 
             {/* Left dot */}
@@ -133,9 +133,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               fill={color}
               stroke="white"
               strokeWidth={2}
-              dragologyOnDrag={() =>
-                d.between(barStates).withSnapRadius(10, { transition: 40 })
-              }
+              dragologyOnDrag={onDragChangeRoom}
             />
           </g>
         );
