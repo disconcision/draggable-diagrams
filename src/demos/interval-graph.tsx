@@ -146,7 +146,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         const b = nodePos(state.meetings[ib]);
         const sameTrack = state.meetings[ia].room === state.meetings[ib].room;
         return (
-          <g>
+          <g id={`edge-${ia}-${ib}`}>
             <line
               x1={a.x}
               y1={a.y}
