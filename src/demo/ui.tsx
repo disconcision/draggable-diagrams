@@ -18,9 +18,8 @@ import { DragSpecTreeView } from "../DragSpecTreeView";
 import { DraggableRenderer, type DragStatus } from "../DraggableRenderer";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { Draggable } from "../draggable";
-import { renderDraggableInert } from "../renderDraggable";
-import { compareStackingPaths } from "../svgx/layers";
 import { assert } from "../utils/assert";
+import { LayersList } from "./LayersList";
 import { OpenInEditor } from "./OpenInEditor";
 import type { Demo } from "./registry";
 import { parseTag, type TagNode, tagStringFromPath } from "./tags";
@@ -406,43 +405,6 @@ export function DemoSettingsBar({
         </div>
       </div>
     </>
-  );
-}
-
-function sortedLayers(byId: Map<string, { stackingPath: number[] }>): { id: string; stackingPath: number[] }[] {
-  return Array.from(byId.entries())
-    .sort(([, a], [, b]) => compareStackingPaths(a.stackingPath, b.stackingPath))
-    .map(([key, layer]) => ({ id: key, stackingPath: layer.stackingPath }));
-}
-
-function LayersList<T extends object>({
-  draggable,
-  status,
-}: {
-  draggable: Draggable<T>;
-  status: DragStatus<T>;
-}) {
-  const layers = useMemo(() => {
-    if (status.type === "dragging") {
-      return sortedLayers(status.result.preview.byId);
-    }
-    const layered = renderDraggableInert(draggable, status.state, null, false);
-    return sortedLayers(layered.byId);
-  }, [draggable, status]);
-
-  return (
-    <div>
-      <div className="text-xs text-slate-500 mb-1">layers</div>
-      <div className="text-xs font-mono text-slate-700 whitespace-nowrap">
-        {layers.map(({ id, stackingPath }, i) => (
-          <div key={i}>
-            {id === "" ? <span className="text-slate-400">(root)</span> : id}
-            {" "}
-            <span className="text-slate-400">[{stackingPath.join(", ")}]</span>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
