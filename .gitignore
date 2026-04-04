@@ -25,5 +25,7 @@ dist-ssr
 .playwright-mcp
 .prusik
 
+.env
+
 # Claude, for now
 /.claude

@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import gitignore from "parse-gitignore";
 import { defineConfig } from "vite";
 import { qrcode } from "vite-plugin-qrcode";
+import { reactProd } from "./vite-plugin-react-prod";
 
 const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
 
@@ -17,7 +18,7 @@ export default defineConfig({
   build: {
     outDir: "dist-demo",
   },
-  plugins: [react(), tailwindcss(), qrcode()],
+  plugins: [react(), reactProd(), tailwindcss(), qrcode()],
   test: {
     exclude: gitignoreExclude,
     typecheck: {
