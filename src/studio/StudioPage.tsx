@@ -43,15 +43,18 @@ export function Lens({
   cursorScale?: number;
   filenamePrefix?: string;
 }) {
+  const effectiveCursorScale = cursorScale ?? zoom;
   const { qrSrc, moduleCount } = useMemo(() => {
     const qr = qrcode(0, "L");
-    qr.addData(JSON.stringify({ cursorScale, filenamePrefix }));
+    qr.addData(
+      JSON.stringify({ cursorScale: effectiveCursorScale, filenamePrefix }),
+    );
     qr.make();
     return {
       qrSrc: qr.createDataURL(1, QR_MARGIN),
       moduleCount: qr.getModuleCount(),
     };
-  }, [cursorScale, filenamePrefix]);
+  }, [effectiveCursorScale, filenamePrefix]);
   const qrPixels = (moduleCount + QR_MARGIN * 2) * QR_DISPLAY_CELL_SIZE;
   const qrImg = (style: React.CSSProperties) => (
     <img
