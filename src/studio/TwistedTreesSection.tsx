@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { allMorphs7, draggableFactory } from "../demos/order-preserving";
-import { tree7 } from "../demos/order-preserving/trees";
+import { allMorphs7, draggableFactory } from "../demos/twisted-trees";
+import { tree7 } from "../demos/twisted-trees/trees";
 import { StudioDraggable } from "./StudioDraggable";
 import { Section } from "./StudioPage";
 
@@ -10,7 +10,7 @@ const defaultConfig = {
   interpolation: "natural-neighbor" as const,
 };
 
-export function OrderPreservingSection() {
+export function TwistedTreesSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const draggable = useMemo(
     () => draggableFactory(tree7, tree7, allMorphs7, defaultConfig, 500),
@@ -18,7 +18,7 @@ export function OrderPreservingSection() {
   );
   return (
     <>
-      <Section title="Order-Preserving">
+      <Section title="Twisted Trees">
         <div className="mb-6 text-sm text-gray-500 space-y-2">
           <p>Record with cursor off.</p>
           <label className="inline-flex items-center gap-1 cursor-pointer select-none">
@@ -37,12 +37,12 @@ export function OrderPreservingSection() {
           width={460}
           height={400}
           zoom={1.5}
-          filenamePrefix="order-preserving"
+          filenamePrefix="twisted-trees"
           demoSettings={{ showDebugOverlay }}
           hackSettings={{ overlayHideDistances: true }}
         />
       </Section>
-      <Section title="Order-Preserving Video">
+      <Section title="Twisted Trees Video">
         <div className="mb-6 text-sm text-gray-500 space-y-2">
           <p>Record with cursor off.</p>
           <label className="inline-flex items-center gap-1 cursor-pointer select-none">
@@ -61,7 +61,7 @@ export function OrderPreservingSection() {
           width={460}
           height={500}
           zoom={1.5}
-          filenamePrefix="order-preserving"
+          filenamePrefix="twisted-trees"
           demoSettings={{ showDebugOverlay }}
           hackSettings={{ overlayHideDistances: true }}
         />

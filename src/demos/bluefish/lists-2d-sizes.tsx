@@ -168,7 +168,7 @@ export default demo(
   () => (
     <div>
       <DemoNotes>
-        Like list-of-lists-sizes, but with Bluefish handling layout.
+        Like lists-2d-sizes, but with Bluefish handling layout.
       </DemoNotes>
       <DemoDraggable
         draggable={draggable}

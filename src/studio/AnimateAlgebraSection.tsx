@@ -4,7 +4,7 @@ import {
   draggableFactory,
   initialState,
   rewriteSets,
-} from "../demos/nool/tree";
+} from "../demos/animate-algebra/tree";
 import { StudioDraggable } from "./StudioDraggable";
 import { Section } from "./StudioPage";
 
@@ -39,11 +39,11 @@ export const myInitialState: typeof initialState = {
   ],
 };
 
-export function NoolTreeSection() {
+export function AnimateAlgebraSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const draggable = useMemo(() => draggableFactory(config), []);
   return (
-    <Section title="Nool Tree">
+    <Section title="Animate Algebra">
       <div className="mb-6 text-sm text-gray-500 space-y-2">
         <p>Record with cursor off.</p>
         <label className="inline-flex items-center gap-1 cursor-pointer select-none">
@@ -62,7 +62,7 @@ export function NoolTreeSection() {
         width={150}
         height={140}
         zoom={3}
-        filenamePrefix="nool-tree"
+        filenamePrefix="animate-algebra-tree"
         padding={15}
         demoSettings={{ showDebugOverlay }}
         hackSettings={{ overlayHideDistances: true }}

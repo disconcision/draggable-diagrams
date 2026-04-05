@@ -1,22 +1,41 @@
 import { useState } from "react";
-import { draggable, State } from "../demos/tessellation";
+import { draggable, initialState } from "../demos/nodes-and-noodles";
 import { StudioDraggable } from "./StudioDraggable";
 import { Section } from "./StudioPage";
 
-const initialState: State = {
-  shapes: [
-    { id: "imj403zq", kind: { n: 4 }, x: 121.5, y: 247.83, rotDeg: 0 },
-    { id: "e40wqbw9", kind: { n: 6 }, x: 189.8, y: 247.83, rotDeg: 330 },
-    { id: "sbz04j7d", kind: { n: 3 }, x: 121.5, y: 287.27, rotDeg: 300 },
-    { id: "za8jo88z", kind: { n: 4 }, x: 155.65, y: 306.99, rotDeg: 30 },
-    { id: "c34ahnjn", kind: { n: 4 }, x: 235, y: 336.83, rotDeg: 0 },
-  ],
+const myInitialState: typeof initialState = {
+  nodes: {
+    A: {
+      type: "mix",
+      x: 162.12605679491335,
+      y: 10.210290707356368,
+    },
+    B: {
+      type: "filter",
+      x: 17.376399491653597,
+      y: 49.251599985397256,
+    },
+  },
+  wires: {
+    w0: {
+      from: {
+        type: "on-port",
+        nodeId: "A",
+        port: "out",
+      },
+      to: {
+        type: "free",
+        x: 285.3769502249134,
+        y: 95.00117136715184,
+      },
+    },
+  },
 };
 
-export function TessellationSection() {
+export function NodesAndNoodlesSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   return (
-    <Section title="Tessellation">
+    <Section title="Nodes and Noodles">
       <div className="mb-6 text-sm text-gray-500 space-y-2">
         <p>Record with cursor off.</p>
         <label className="inline-flex items-center gap-1 cursor-pointer select-none">
@@ -31,12 +50,11 @@ export function TessellationSection() {
       </div>
       <StudioDraggable
         draggable={draggable}
-        initialState={initialState}
-        width={600}
-        height={450}
-        zoom={2}
-        filenamePrefix="tessellation"
-        padding={15}
+        initialState={myInitialState}
+        width={300}
+        height={120}
+        zoom={4}
+        filenamePrefix="nodes-and-noodles"
         demoSettings={{ showDebugOverlay }}
       />
     </Section>

@@ -1,16 +1,16 @@
 import qrcode from "qrcode-generator";
 import { ReactNode, useMemo } from "react";
 import { useTitle } from "../useTitle";
-import { CanvasOfListsNestedSection } from "./CanvasOfListsNestedSection";
-import { IntervalGraphSection } from "./IntervalGraphSection";
-import { NodeWiresSection } from "./NodeWiresSection";
-import { NoolTreeSection } from "./NoolTreeSection";
-import { OrderPreservingSection } from "./OrderPreservingSection";
+import { AnimateAlgebraSection } from "./AnimateAlgebraSection";
+import { DragSpecDesignerSection } from "./DragSpecDesignerSection";
+import { ListsInListsSection } from "./ListsInListsSection";
+import { NodesAndNoodlesSection } from "./NodesAndNoodlesSection";
 import { RingOfBeadsSection } from "./RingOfBeadsSection";
-import { SpecWorkshopSection } from "./SpecWorkshopSection";
+import { SchedulerSection } from "./SchedulerSection";
 import { StudySection } from "./StudySection";
+import { TactileTessellationsSection } from "./TactileTessellationsSection";
 import { TeaserSection } from "./TeaserSection";
-import { TessellationSection } from "./TessellationSection";
+import { TwistedTreesSection } from "./TwistedTreesSection";
 
 export function Section({
   title,
@@ -115,19 +115,19 @@ export const StudioPage = () => {
       <Divider />
       <RingOfBeadsSection />
       <Divider />
-      <IntervalGraphSection />
+      <SchedulerSection />
       <Divider />
-      <CanvasOfListsNestedSection />
+      <ListsInListsSection />
       <Divider />
-      <NodeWiresSection />
+      <NodesAndNoodlesSection />
       <Divider />
-      <TessellationSection />
+      <TactileTessellationsSection />
       <Divider />
-      <SpecWorkshopSection />
+      <DragSpecDesignerSection />
       <Divider />
-      <NoolTreeSection />
+      <AnimateAlgebraSection />
       <Divider />
-      <OrderPreservingSection />
+      <TwistedTreesSection />
       <Divider />
       <StudySection />
     </div>

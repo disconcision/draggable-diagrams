@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { draggable, initialState } from "../demos/canvas-of-lists-nested";
+import { draggable, initialState } from "../demos/lists-in-lists";
 import { DraggableRenderer, type DragStatus } from "../DraggableRenderer";
 import { DragSpecTreeView } from "../DragSpecTreeView";
 import { StudioDraggable } from "./StudioDraggable";
@@ -44,7 +44,7 @@ const myInitialState: State = {
   ],
 };
 
-function CanvasOfListsNestedWithTree() {
+function ListsInListsWithTree() {
   const [showTree, setShowTree] = useState(false);
   const [dragStatus, setDragStatus] = useState<DragStatus<State> | null>(null);
 
@@ -63,7 +63,7 @@ function CanvasOfListsNestedWithTree() {
         />
         <span className="text-fuchsia-600 font-medium">debug overlay</span>
       </label>
-      <Lens zoom={1} filenamePrefix="canvas-of-lists-nested">
+      <Lens zoom={1} filenamePrefix="lists-in-lists">
         <div style={{ display: "flex", gap: 16, padding: 10 }}>
           <DraggableRenderer
             draggable={draggable}
@@ -92,12 +92,12 @@ function CanvasOfListsNestedWithTree() {
   );
 }
 
-export function CanvasOfListsNestedSection() {
+export function ListsInListsSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [showDropZones, setShowDropZones] = useState(false);
 
   return (
-    <Section title="Nested Rows on Canvas">
+    <Section title="Lists in Lists">
       <div className="mb-6 text-sm text-gray-500 space-y-2">
         <p>Record with cursor off.</p>
         <label className="inline-flex items-center gap-1 cursor-pointer select-none">
@@ -125,12 +125,12 @@ export function CanvasOfListsNestedSection() {
         width={350}
         height={170}
         zoom={2}
-        filenamePrefix="canvas-of-lists-nested"
+        filenamePrefix="lists-in-lists"
         padding={10}
         demoSettings={{ showDebugOverlay, showDropZones }}
       />
       <div style={{ height: 200 }} />
-      <CanvasOfListsNestedWithTree />
+      <ListsInListsWithTree />
     </Section>
   );
 }

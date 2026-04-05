@@ -138,4 +138,4 @@ const draggable: Draggable<State> = ({ state, d, draggedId }) => {
   );
 };
 
-export const listOfListsSimple = { draggable, initialState };
+export const lists2dSimple = { draggable, initialState };

@@ -1,41 +1,22 @@
 import { useState } from "react";
-import { draggable, initialState } from "../demos/node-wires";
+import { draggable, State } from "../demos/tactile-tessellations";
 import { StudioDraggable } from "./StudioDraggable";
 import { Section } from "./StudioPage";
 
-const myInitialState: typeof initialState = {
-  nodes: {
-    A: {
-      type: "mix",
-      x: 162.12605679491335,
-      y: 10.210290707356368,
-    },
-    B: {
-      type: "filter",
-      x: 17.376399491653597,
-      y: 49.251599985397256,
-    },
-  },
-  wires: {
-    w0: {
-      from: {
-        type: "on-port",
-        nodeId: "A",
-        port: "out",
-      },
-      to: {
-        type: "free",
-        x: 285.3769502249134,
-        y: 95.00117136715184,
-      },
-    },
-  },
+const initialState: State = {
+  shapes: [
+    { id: "imj403zq", kind: { n: 4 }, x: 121.5, y: 247.83, rotDeg: 0 },
+    { id: "e40wqbw9", kind: { n: 6 }, x: 189.8, y: 247.83, rotDeg: 330 },
+    { id: "sbz04j7d", kind: { n: 3 }, x: 121.5, y: 287.27, rotDeg: 300 },
+    { id: "za8jo88z", kind: { n: 4 }, x: 155.65, y: 306.99, rotDeg: 30 },
+    { id: "c34ahnjn", kind: { n: 4 }, x: 235, y: 336.83, rotDeg: 0 },
+  ],
 };
 
-export function NodeWiresSection() {
+export function TactileTessellationsSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   return (
-    <Section title="Nodes and Wires">
+    <Section title="Tactile Tessellations">
       <div className="mb-6 text-sm text-gray-500 space-y-2">
         <p>Record with cursor off.</p>
         <label className="inline-flex items-center gap-1 cursor-pointer select-none">
@@ -50,11 +31,12 @@ export function NodeWiresSection() {
       </div>
       <StudioDraggable
         draggable={draggable}
-        initialState={myInitialState}
-        width={300}
-        height={120}
-        zoom={4}
-        filenamePrefix="node-wires"
+        initialState={initialState}
+        width={600}
+        height={450}
+        zoom={2}
+        filenamePrefix="tactile-tessellations"
+        padding={15}
         demoSettings={{ showDebugOverlay }}
       />
     </Section>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { listOfListsSimple } from "./list-of-lists-simple";
+import { lists2dSimple } from "./lists-2d-simple";
 import { StudioDraggable } from "./StudioDraggable";
 import { Section } from "./StudioPage";
 
@@ -31,8 +31,8 @@ export function TeaserSection() {
         </ol>
       </div>
       <StudioDraggable
-        draggable={listOfListsSimple.draggable}
-        initialState={listOfListsSimple.initialState}
+        draggable={lists2dSimple.draggable}
+        initialState={lists2dSimple.initialState}
         width={240}
         height={190}
         zoom={3}

@@ -4,7 +4,7 @@ import {
   CANVAS_W,
   draggable,
   initialState,
-} from "../demos/spec-workshop";
+} from "../demos/drag-spec-designer";
 import { StudioDraggable } from "./StudioDraggable";
 import { Section } from "./StudioPage";
 
@@ -78,10 +78,10 @@ const myInitialState: typeof initialState = {
   previewDot: "A",
 };
 
-export function SpecWorkshopSection() {
+export function DragSpecDesignerSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   return (
-    <Section title="Spec Workshop">
+    <Section title="Drag Spec Designer">
       <div className="mb-6 text-sm text-gray-500 space-y-2">
         <p>Record with cursor off.</p>
         <label className="inline-flex items-center gap-1 cursor-pointer select-none">
@@ -100,7 +100,7 @@ export function SpecWorkshopSection() {
         width={CANVAS_W}
         height={CANVAS_H}
         zoom={2}
-        filenamePrefix="spec-workshop"
+        filenamePrefix="drag-spec-designer"
         padding={15}
         demoSettings={{ showDebugOverlay }}
       />

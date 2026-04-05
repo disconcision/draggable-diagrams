@@ -4,7 +4,7 @@ import {
   CANVAS_W,
   draggable,
   initialState,
-} from "../demos/interval-graph";
+} from "../demos/scheduler";
 import { StudioDraggable } from "./StudioDraggable";
 import { Section } from "./StudioPage";
 
@@ -38,11 +38,11 @@ const myInitialState: typeof initialState = {
   ],
 };
 
-export function IntervalGraphSection() {
+export function SchedulerSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [showVaryVisualizer, setShowVaryVisualizer] = useState(false);
   return (
-    <Section title="Interval Graph">
+    <Section title="Scheduler">
       <div className="mb-6 text-sm text-gray-500 space-y-2">
         <p>Record with cursor off.</p>
         <label className="inline-flex items-center gap-1 cursor-pointer select-none">
@@ -70,7 +70,7 @@ export function IntervalGraphSection() {
         width={CANVAS_W}
         height={CANVAS_H}
         zoom={2}
-        filenamePrefix="interval-graph"
+        filenamePrefix="scheduler"
         padding={15}
         demoSettings={{ showDebugOverlay, showVaryVisualizer }}
       />
