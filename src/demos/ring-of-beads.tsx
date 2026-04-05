@@ -138,5 +138,12 @@ export default demo(
       </DemoWithConfig>
     );
   },
-  { tags: ["d.closest", "spec.withFloating", "spec.whenFar", "reordering"] },
+  {
+    tags: [
+      "d.closest",
+      "spec.withFloating [while missing]",
+      "spec.whenFar",
+      "reordering",
+    ],
+  },
 );
