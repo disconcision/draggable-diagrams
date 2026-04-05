@@ -60,18 +60,6 @@ export const initialState: State = {
       x: 20,
       y: 100,
     },
-    {
-      type: "row",
-      id: "row3",
-      items: [
-        { type: "tile", id: "A3", label: "A3" },
-        { type: "tile", id: "B3", label: "B3" },
-        { type: "tile", id: "C3", label: "C3" },
-      ],
-      color: colors[2],
-      x: 100,
-      y: 200,
-    },
   ],
 };
 
@@ -252,7 +240,7 @@ export default demo(
       <DemoDraggable
         draggable={draggable}
         initialState={initialState}
-        width={600}
+        width={400}
         height={400}
       />
     </div>

@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { draggable, initialState } from "../demos/canvas-of-lists-nested";
+import { DraggableRenderer, type DragStatus } from "../DraggableRenderer";
+import { DragSpecTreeView } from "../DragSpecTreeView";
 import { StudioDraggable } from "./StudioDraggable";
-import { Section } from "./StudioPage";
+import { Lens, Section } from "./StudioPage";
 
-const myInitialState: typeof initialState = {
+type State = typeof initialState;
+
+const myInitialState: State = {
   rows: [
     {
       type: "row",
@@ -40,9 +44,58 @@ const myInitialState: typeof initialState = {
   ],
 };
 
+function CanvasOfListsNestedWithTree() {
+  const [showTree, setShowTree] = useState(false);
+  const [dragStatus, setDragStatus] = useState<DragStatus<State> | null>(null);
+
+  const draggingStatus = dragStatus?.type === "dragging" ? dragStatus : null;
+
+  const WIDTH = 350;
+  const HEIGHT = 170;
+
+  return (
+    <>
+      <label className="inline-flex items-center gap-1 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={showTree}
+          onChange={(e) => setShowTree(e.target.checked)}
+        />
+        <span className="text-fuchsia-600 font-medium">debug overlay</span>
+      </label>
+      <Lens zoom={1} filenamePrefix="canvas-of-lists-nested">
+        <div style={{ display: "flex", gap: 16, padding: 10 }}>
+          <DraggableRenderer
+            draggable={draggable}
+            initialState={myInitialState}
+            width={WIDTH}
+            height={HEIGHT}
+            onDragStatus={setDragStatus}
+          />
+          <div
+            style={{ width: 370, height: 500, zoom: 0.7, overflow: "hidden" }}
+          >
+            {showTree && draggingStatus && (
+              <DragSpecTreeView
+                spec={draggingStatus.result.tracedSpec}
+                activePath={draggingStatus.result.activePath}
+                colorMap={null}
+                svgWidth={WIDTH}
+                svgHeight={HEIGHT}
+                thumbArea={2000}
+              />
+            )}
+          </div>
+        </div>
+      </Lens>
+    </>
+  );
+}
+
 export function CanvasOfListsNestedSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [showDropZones, setShowDropZones] = useState(false);
+
   return (
     <Section title="Nested Rows on Canvas">
       <div className="mb-6 text-sm text-gray-500 space-y-2">
@@ -76,6 +129,8 @@ export function CanvasOfListsNestedSection() {
         padding={10}
         demoSettings={{ showDebugOverlay, showDropZones }}
       />
+      <div style={{ height: 200 }} />
+      <CanvasOfListsNestedWithTree />
     </Section>
   );
 }
