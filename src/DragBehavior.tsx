@@ -360,7 +360,7 @@ function whenFarBehavior<T extends object>(
       const bgResult = backdropBehavior(frame);
       return {
         ...bgResult,
-        activePath: `bg/${bgResult.activePath}`,
+        activePath: `when-far/bg/${bgResult.activePath}`,
         tracedSpec: setTraceInfo(
           {
             ...spec,
@@ -373,7 +373,7 @@ function whenFarBehavior<T extends object>(
     }
     return {
       ...foregroundResult,
-      activePath: `fg/${foregroundResult.activePath}`,
+      activePath: `when-far/fg/${foregroundResult.activePath}`,
       tracedSpec: setTraceInfo(
         { ...spec, foreground: foregroundResult.tracedSpec },
         { inForeground: true },

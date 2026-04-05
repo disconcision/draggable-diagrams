@@ -70,7 +70,7 @@ function SpecNode<T extends object>({
   const info = <S extends DragSpecData<T>>(s: S) => {
     const fullPath = path + s.type;
     return {
-      active: activePath === fullPath,
+      active: activePath === fullPath || activePath.startsWith(fullPath + "/"),
       color: colorMap?.get(fullPath),
       childPath: fullPath + "/",
       traceInfo: getTraceInfo(s),
@@ -169,10 +169,10 @@ function SpecNode<T extends object>({
       <Box label={`whenFar (${gapLabel})`}>
         <div style={{ display: "flex", flexDirection: "row", gap: 4 }}>
           <Slot label="fg">
-            <SpecNode spec={spec.foreground} path={path + "fg/"} />
+            <SpecNode spec={spec.foreground} path={path + "when-far/fg/"} />
           </Slot>
           <Slot label="bg">
-            <SpecNode spec={spec.background} path={path + "bg/"} />
+            <SpecNode spec={spec.background} path={path + "when-far/bg/"} />
           </Slot>
         </div>
       </Box>
@@ -210,8 +210,12 @@ function SpecNode<T extends object>({
     );
   } else if (spec.type === "with-snap-radius") {
     const { childPath, traceInfo } = info(spec);
-    const snapped = activePath?.startsWith(childPath + "snapped/");
-    const snapSegment = snapped ? "snapped/" : "unsnapped/";
+    const snapped = traceInfo?.snapped ?? false;
+    const snapSegment = spec.transition
+      ? snapped
+        ? "snapped/"
+        : "unsnapped/"
+      : "";
     const options = [
       spec.transition && "transition",
       spec.chain && "chain",
@@ -270,13 +274,9 @@ function SpecNode<T extends object>({
       </Box>
     );
   } else if (spec.type === "switch-to-state-and-follow") {
-    const { active, color, traceInfo, childPath } = info(spec);
+    const { color, traceInfo, childPath } = info(spec);
     return (
-      <Box
-        label={`switchToStateAndFollow → ${spec.draggedId}`}
-        active={active}
-        color={color}
-      >
+      <Box label={`switchToStateAndFollow → ${spec.draggedId}`} color={color}>
         {traceInfo && (
           <SpecNode spec={traceInfo.tracedInner} path={childPath} />
         )}
