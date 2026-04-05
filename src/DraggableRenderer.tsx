@@ -37,7 +37,7 @@ import {
 import { LayeredSvgx, drawLayered, layerSvg } from "./svgx/layers";
 import { lerpLayered } from "./svgx/lerp";
 import { assignPaths, findByPath, getPath } from "./svgx/path";
-import { globalToLocal, localToGlobal } from "./svgx/transform";
+import { globalToLocal } from "./svgx/transform";
 import {
   Transition,
   TransitionLike,
@@ -535,7 +535,6 @@ function resolveChainNows<T extends object>(
   assert(!!newDraggedPath, "Chained element must have a path");
 
   const anchorPos = status.behaviorCtx.anchorPos;
-  const newPointerStart = localToGlobal(found.accumulatedTransform, anchorPos);
 
   return initDrag(
     newDragSpec,
@@ -544,7 +543,6 @@ function resolveChainNows<T extends object>(
       draggedPath: newDraggedPath,
       draggedId: newDraggedId,
       anchorPos,
-      pointerStart: newPointerStart,
       startState: newState,
     },
     newState,
@@ -669,7 +667,6 @@ function postProcessForInteraction<T extends object>(
               draggedPath,
               draggedId,
               anchorPos,
-              pointerStart: pointer,
               startState: state,
               debug: {
                 varyVisualizer: ctx.showVaryVisualizer,

@@ -18,7 +18,6 @@ import { DistanceMinimizer } from "./math/optimization";
 import { Vec2 } from "./math/vec2";
 import { getAtPath, setAtPath } from "./paths";
 import {
-  extractFloatContext,
   renderDraggableInert,
   renderDraggableInertUnlayered,
 } from "./renderDraggable";
@@ -95,7 +94,6 @@ export type DragInitContext<T extends object> = {
   draggedPath: string;
   draggedId: string | null;
   anchorPos: Vec2;
-  pointerStart: Vec2;
   startState: T;
   debug: {
     varyVisualizer: boolean;
@@ -924,15 +922,6 @@ function switchToStateAndFollowBehavior<T extends object>(
   spec: DragSpecData<T> & { type: "switch-to-state-and-follow" },
   ctx: DragInitContext<T>,
 ): DragBehavior<T> {
-  const floatCtx = spec.draggedId
-    ? extractFloatContext(
-        ctx.draggable,
-        spec.state,
-        spec.draggedId,
-        ctx.anchorPos,
-      )
-    : null;
-
   let followSpec = spec.followSpec;
   if (!followSpec && spec.draggedId) {
     // TODO: this is kinda questionable and/or redundant
@@ -962,7 +951,6 @@ function switchToStateAndFollowBehavior<T extends object>(
     startState: spec.state,
     draggedId: spec.draggedId,
     draggedPath: spec.draggedId + "/",
-    pointerStart: floatCtx?.pointerStart ?? ctx.pointerStart,
   });
   return (frame) => {
     const innerResult = subBehavior(frame);
