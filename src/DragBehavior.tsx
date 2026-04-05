@@ -231,7 +231,7 @@ function withFloatingBehavior<T extends object>(
               startDraggedLayer.element.props.transform,
               ctx.anchorPos,
             )
-          : Vec2(0, 0);
+          : Vec2(0);
         startFloatPos = ctx.pointerStart;
       }
       floatLayered = cachedFloatLayered;
@@ -1011,7 +1011,7 @@ function dropTargetBehavior<T extends object>(
       gap,
       activePath: "drop-target",
       tracedSpec: setTraceInfo(spec, {
-        renderedStates: [{ layered: preview, position: Vec2(0, 0) }],
+        renderedStates: [{ layered: preview, position: Vec2(0) }],
         inside,
         globalBounds,
       }),

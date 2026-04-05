@@ -30,7 +30,7 @@ function makeSokobanState(board: string): State {
   const state: State = {
     w: Math.max(...lines.map((l) => l.length)),
     h: lines.length,
-    player: Vec2(0, 0),
+    player: Vec2(0),
     objects: {},
   };
   lines.forEach((line, y) => {
