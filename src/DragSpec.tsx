@@ -1,5 +1,5 @@
-import { SVGProps } from "react";
 import type { DragBehavior, DragInitContext, DragResult } from "./DragBehavior";
+import type { SvgxProps } from "./svgx";
 import { PathIn, ValueAtPath, getAtPath } from "./paths";
 import {
   Transition,
@@ -18,7 +18,7 @@ export type DragSpecData<T extends object> = {
   | {
       type: "with-floating";
       inner: DragSpecData<T>;
-      ghost: SVGProps<SVGElement> | undefined;
+      ghost: SvgxProps | undefined;
       tether: ((dist: number) => number) | undefined;
     }
   | { type: "closest"; specs: DragSpecData<T>[]; stickiness: number }
@@ -118,7 +118,7 @@ export type WhenFarOptions =
   | { gap?: never; gapIn?: number; gapOut?: number };
 
 export type FloatingOptions = {
-  ghost?: SVGProps<SVGElement> | true;
+  ghost?: SvgxProps | true;
   tether?: (dist: number) => number;
 };
 

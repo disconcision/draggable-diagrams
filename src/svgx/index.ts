@@ -4,7 +4,8 @@ import { combineTransforms } from "./transform";
 // SVGX is our slang for "messing around with SVG represented as
 // React elements, generally provided by an author as JSX".
 
-export type Svgx = React.ReactElement<React.SVGProps<SVGElement>>;
+export type SvgxProps = React.SVGProps<SVGElement>;
+export type Svgx = React.ReactElement<SvgxProps>;
 
 /**
  * Determines if we should recurse into an element's children when
@@ -27,7 +28,7 @@ export function shouldRecurseIntoChildren(element: Svgx): boolean {
 export function updateElement(
   element: Svgx,
   childFn?: (el: Svgx, idx: number) => Svgx | null,
-  newProps?: React.SVGProps<SVGElement>,
+  newProps?: SvgxProps,
 ): Svgx {
   const { children } = element.props;
 
@@ -102,7 +103,7 @@ export function findElement(
 
 export function updatePropsDownTree(
   element: Svgx,
-  mapFn: (el: Svgx) => React.SVGProps<SVGElement> | undefined,
+  mapFn: (el: Svgx) => SvgxProps | undefined,
 ): Svgx {
   return updateElement(
     element,

@@ -3,7 +3,7 @@ import { rgb } from "d3-color";
 import * as d3Interpolate from "d3-interpolate";
 import { interpolatePath } from "d3-interpolate-path";
 import React, { cloneElement } from "react";
-import { shouldRecurseIntoChildren, Svgx } from ".";
+import { shouldRecurseIntoChildren, Svgx, SvgxProps } from ".";
 import { ErrorWithJSX } from "../ErrorBoundary";
 import { lerp } from "../math/vec2";
 import { objectKeys } from "../utils/js";
@@ -33,7 +33,7 @@ const COLOR_PROPS = new Set([
 // - TODO: Someday this should be configurable!
 const interpolateColor = d3Interpolate.interpolateLab;
 
-const NO_LERP_PROPS = new Set(["pointerEvents"]);
+const NO_LERP_PROPS = new Set(["pointerEvents", "cursor"]);
 
 const DEFAULT_VALUE_FOR_KEY: { [key: string]: any } = {
   opacity: 1,
@@ -169,11 +169,13 @@ function lerpValue(key: string, valA: any, valB: any, t: number): any {
     }
 
     // Non-numeric strings - can't interpolate
+    // TODO: should we just take B?
     throw new Error(
       `Cannot lerp prop "${key}": different non-numeric values (${valA} vs ${valB})`,
     );
   } else {
     // Different non-numeric values
+    // TODO: should we just take B?
     throw new Error(
       `Cannot lerp prop "${key}": different non-numeric values (${valA} vs ${valB})`,
     );
@@ -220,8 +222,8 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
   const transformB = propsB.transform || "";
   const lerpedTransform = lerpTransformString(transformA, transformB, t);
 
-  // Lerp numeric props (x, y, width, height, etc.)
-  const lerpedNumericProps: any = {};
+  // Lerp props
+  const lerpedProps: SvgxProps = {};
   const allPropKeys = new Set([...objectKeys(propsA), ...objectKeys(propsB)]);
 
   for (const key of allPropKeys) {
@@ -230,7 +232,10 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
     if (key.startsWith("data-")) continue;
     if (key.startsWith("dragology")) continue;
     if (/^on[A-Z]/.test(key)) continue;
-    if (NO_LERP_PROPS.has(key)) continue;
+    if (NO_LERP_PROPS.has(key)) {
+      lerpedProps[key] = propsB[key] as any; // too hard to type
+      continue;
+    }
 
     const valA = propsA[key];
     const valB = propsB[key];
@@ -250,6 +255,11 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
       ]);
 
       for (const styleKey of allStyleKeys) {
+        if (NO_LERP_PROPS.has(styleKey)) {
+          lerpedStyle[styleKey] = styleB[styleKey];
+          continue;
+        }
+
         lerpedStyle[styleKey] = lerpValue(
           styleKey,
           styleA[styleKey],
@@ -258,9 +268,9 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
         );
       }
 
-      lerpedNumericProps[key] = lerpedStyle;
+      lerpedProps[key] = lerpedStyle;
     } else {
-      lerpedNumericProps[key] = lerpValue(key, valA, valB, t);
+      lerpedProps[key] = lerpValue(key, valA, valB, t);
     }
   }
 
@@ -297,7 +307,7 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
   }
 
   return React.cloneElement(a, {
-    ...lerpedNumericProps,
+    ...lerpedProps,
     ...(lerpedTransform ? { transform: lerpedTransform } : {}),
     children: lerpedChildren.length === 0 ? undefined : lerpedChildren,
   });
