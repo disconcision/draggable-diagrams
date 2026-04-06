@@ -40,13 +40,22 @@ function RingOfBeadsWithTree({ versionIdx }: { versionIdx: number }) {
         <span>spec tree</span>
       </label>
       <Lens zoom={1} filenamePrefix="ring-of-beads">
-        <div style={{ display: "flex", gap: 16, padding: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 16,
+            padding: 10,
+            width: 960,
+            height: 400,
+          }}
+        >
           <DraggableRenderer
             draggable={draggable}
             initialState={initialState}
             width={WIDTH}
             height={HEIGHT}
             onDragStatus={setDragStatus}
+            simulateDrag="A"
           />
           <div
             style={{ width: 370, height: 500, zoom: 0.7, overflow: "hidden" }}

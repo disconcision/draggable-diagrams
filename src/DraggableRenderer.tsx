@@ -34,10 +34,11 @@ import {
   shouldRecurseIntoChildren,
   updatePropsDownTree,
 } from "./svgx";
+import { boundsCenter, getLocalBounds } from "./svgx/bounds";
 import { LayeredSvgx, drawLayered, layerSvg } from "./svgx/layers";
 import { lerpLayered } from "./svgx/lerp";
 import { assignPaths, findByPath, getPath } from "./svgx/path";
-import { globalToLocal } from "./svgx/transform";
+import { globalToLocal, localToGlobal } from "./svgx/transform";
 import {
   Transition,
   TransitionLike,
@@ -147,6 +148,11 @@ export interface DraggableRendererBaseProps<T extends object> {
    * Set to 0 to start drags immediately (old behavior). Default: 2.
    */
   dragThreshold?: number;
+  /**
+   * Simulate a drag on the element with this ID. The pointer is faked
+   * at the element's center. The draggable won't be interactive.
+   */
+  simulateDrag?: string;
 }
 
 export type DraggableRendererProps<T extends object> =
@@ -206,6 +212,7 @@ function DraggableRendererControlled<T extends object>({
   showDebugOverlay,
   showVaryVisualizer,
   dragThreshold = 2,
+  simulateDrag,
 }: DraggableRendererBaseProps<T> & { state: T }) {
   const catchToRenderError = useCatchToRenderError();
 
@@ -251,6 +258,8 @@ function DraggableRendererControlled<T extends object>({
   }, [status, onDragState]);
 
   const pointerRef = useRef<Vec2 | undefined>(undefined);
+  const pointerOverrideRef = useRef<Vec2 | undefined>(undefined);
+  const getPointer = () => pointerOverrideRef.current ?? pointerRef.current;
   const onDropStateRef = useRef(onDropState);
   onDropStateRef.current = onDropState;
   const onDragStateRef = useRef(onDragState);
@@ -281,7 +290,7 @@ function DraggableRendererControlled<T extends object>({
     catchToRenderError(() => {
       const result = advanceFrame(
         statusRef.current,
-        pointerRef.current,
+        getPointer(),
         performance.now(),
       );
       if (result) {
@@ -289,6 +298,42 @@ function DraggableRendererControlled<T extends object>({
       }
     }),
   );
+
+  // Simulated drag: initialize a drag on the target element (assumed
+  // constant). THIS IS IMPLEMENTED AS A HACK FOR DEVELOPMENT --
+  // maybe there should be a beefier version of it someday.
+  if (simulateDrag && status.type === "idle" && !status.pendingDrag) {
+    const content = renderDraggableInertUnlayered(
+      draggable,
+      state,
+      simulateDrag,
+      true,
+    );
+    const found = findElement(content, (el) => el.props.id === simulateDrag);
+    if (found) {
+      const localBounds = getLocalBounds(found.element);
+      if (!localBounds.empty) {
+        const center = boundsCenter(localBounds);
+        const pointer = localToGlobal(found.accumulatedTransform, center);
+        pointerOverrideRef.current = pointer;
+
+        const dragSpec = getOnDragCallbackOnElement<T>(found.element)?.();
+        const draggedPath = getPath(found.element);
+        if (dragSpec && draggedPath) {
+          const behaviorCtx: DragInitContext<T> = {
+            draggable,
+            draggedPath,
+            draggedId: simulateDrag,
+            anchorPos: center,
+            startState: state,
+            debug: { varyVisualizer: false },
+          };
+          const frame: DragFrame = { pointer };
+          setStatus(initDrag(dragSpec, behaviorCtx, state, frame, null));
+        }
+      }
+    }
+  }
 
   // Cursor style
   useEffect(() => {
@@ -393,7 +438,12 @@ function DraggableRendererControlled<T extends object>({
       width={width}
       height={height}
       xmlns="http://www.w3.org/2000/svg"
-      style={{ overflow: "visible", userSelect: "none", touchAction: "none" }}
+      style={{
+        overflow: "visible",
+        userSelect: "none",
+        touchAction: "none",
+        ...(simulateDrag ? { pointerEvents: "none" } : {}),
+      }}
     >
       {status.type === "idle" ? (
         <DrawIdleMode status={status} ctx={renderCtx} />
@@ -401,7 +451,7 @@ function DraggableRendererControlled<T extends object>({
         <DrawDraggingMode
           status={status}
           showDebugOverlay={showDebugOverlay}
-          pointer={pointerRef.current}
+          pointer={getPointer()}
         />
       ) : (
         assertNever(status)
