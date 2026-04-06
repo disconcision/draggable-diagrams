@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { initialState, makeDraggable } from "../demos/ring-of-beads";
+import { DraggableRenderer, type DragStatus } from "../DraggableRenderer";
+import { DragSpecTreeView } from "../DragSpecTreeView";
 import { StudioDraggable } from "./StudioDraggable";
-import { Section } from "./StudioPage";
+import { Lens, Section } from "./StudioPage";
 
 const versions: {
   label: string;
@@ -12,9 +14,75 @@ const versions: {
   { label: "Video version", stage: "d.closest().whenFar().withFloating()" },
 ];
 
+type State = typeof initialState;
+
+function RingOfBeadsWithTree({ versionIdx }: { versionIdx: number }) {
+  const draggable = useMemo(
+    () => makeDraggable(versions[versionIdx].stage),
+    [versionIdx],
+  );
+  const [showTree, setShowTree] = useState(true);
+  const [dragStatus, setDragStatus] = useState<DragStatus<State> | null>(null);
+
+  const draggingStatus = dragStatus?.type === "dragging" ? dragStatus : null;
+
+  const WIDTH = 300;
+  const HEIGHT = 300;
+
+  return (
+    <>
+      <label className="inline-flex items-center gap-1 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={showTree}
+          onChange={(e) => setShowTree(e.target.checked)}
+        />
+        <span>spec tree</span>
+      </label>
+      <Lens zoom={1} filenamePrefix="ring-of-beads">
+        <div style={{ display: "flex", gap: 16, padding: 10 }}>
+          <DraggableRenderer
+            draggable={draggable}
+            initialState={initialState}
+            width={WIDTH}
+            height={HEIGHT}
+            onDragStatus={setDragStatus}
+          />
+          <div
+            style={{ width: 370, height: 500, zoom: 0.7, overflow: "hidden" }}
+          >
+            {showTree && draggingStatus && (
+              <DragSpecTreeView
+                spec={draggingStatus.result.tracedSpec}
+                activePath={draggingStatus.result.activePath}
+                colorMap={null}
+                svgWidth={WIDTH}
+                svgHeight={HEIGHT}
+                thumbArea={2000}
+              />
+            )}
+          </div>
+        </div>
+      </Lens>
+    </>
+  );
+}
+
 export function RingOfBeadsSection() {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
-  const [versionIdx, setVersionIdx] = useState(0);
+  const [cleanOverlay, setCleanOverlay] = useState(false);
+  const [versionIdx, setVersionIdx] = useState(2);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        setShowDebugOverlay((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
   const draggable = useMemo(
     () => makeDraggable(versions[versionIdx].stage),
     [versionIdx],
@@ -31,6 +99,15 @@ export function RingOfBeadsSection() {
             className="accent-fuchsia-500"
           />
           <span className="text-fuchsia-600 font-medium">debug overlay</span>
+        </label>
+        <label className="inline-flex items-center gap-1 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={cleanOverlay}
+            onChange={(e) => setCleanOverlay(e.target.checked)}
+            className="accent-emerald-500"
+          />
+          <span className="text-emerald-600 font-medium">clean overlay</span>
         </label>
         <select
           value={versionIdx}
@@ -52,7 +129,13 @@ export function RingOfBeadsSection() {
         zoom={3}
         filenamePrefix="ring-of-beads"
         demoSettings={{ showDebugOverlay }}
+        hackSettings={{
+          overlayFullOpacity: cleanOverlay || undefined,
+          overlayHideDistances: cleanOverlay || undefined,
+        }}
       />
+      <div style={{ height: 200 }} />
+      <RingOfBeadsWithTree versionIdx={versionIdx} />
     </Section>
   );
 }
