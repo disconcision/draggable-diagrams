@@ -105,6 +105,13 @@ export function RingOfBeadsSection() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLElement &&
+        (e.target.isContentEditable ||
+          e.target.tagName === "INPUT" ||
+          e.target.tagName === "TEXTAREA")
+      )
+        return;
       if (e.code === "Space") {
         e.preventDefault();
         setShowDebugOverlay((v) => !v);
