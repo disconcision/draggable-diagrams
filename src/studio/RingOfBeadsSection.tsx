@@ -7,6 +7,7 @@ import {
 } from "../DragSpecTreeView";
 import { Vec2, type Vec2able } from "../lib";
 import { StudioDraggable } from "./StudioDraggable";
+import { StudioHackContext } from "./StudioHackContext";
 import { Lens, Section } from "./StudioPage";
 
 const versions: {
@@ -181,37 +182,39 @@ export function RingOfBeadsSection() {
         />
         <span className="text-violet-600 font-medium">simulate drag</span>
       </label>
-      <RingOfBeadsWithTree
-        versionIdx={0}
-        thumbArea={21000}
-        simulateDrag={simulateDrag}
-        filenamePrefix="ring-of-beads-v0"
-      />
-      <div style={{ height: 200 }} />
-      <RingOfBeadsWithTree
-        versionIdx={1}
-        thumbArea={13000}
-        simulateDrag={simulateDrag}
-        filenamePrefix="ring-of-beads-v1"
-      />
-      <div style={{ height: 200 }} />
-      {[Vec2(0), Vec2(0, -80)].map((dragOffset) => (
-        <>
-          <RingOfBeadsWithTree
-            versionIdx={2}
-            thumbArea={7000}
-            dragOffset={dragOffset}
-            nodeProps={{
-              "with-floating/when-far/bg/": {
-                width: 150,
-              },
-            }}
-            simulateDrag={simulateDrag}
-            filenamePrefix="ring-of-beads-v2"
-          />
-          <div style={{ height: 200 }} />
-        </>
-      ))}
+      <StudioHackContext.Provider value={{ tightFixed: true }}>
+        <RingOfBeadsWithTree
+          versionIdx={0}
+          thumbArea={25000}
+          simulateDrag={simulateDrag}
+          filenamePrefix="ring-of-beads-v0"
+        />
+        <div style={{ height: 200 }} />
+        <RingOfBeadsWithTree
+          versionIdx={1}
+          thumbArea={18000}
+          simulateDrag={simulateDrag}
+          filenamePrefix="ring-of-beads-v1"
+        />
+        <div style={{ height: 200 }} />
+        {[Vec2(0), Vec2(0, -80)].map((dragOffset) => (
+          <>
+            <RingOfBeadsWithTree
+              versionIdx={2}
+              thumbArea={9000}
+              dragOffset={dragOffset}
+              nodeProps={{
+                "with-floating/when-far/bg/": {
+                  width: 150,
+                },
+              }}
+              simulateDrag={simulateDrag}
+              filenamePrefix="ring-of-beads-v2"
+            />
+            <div style={{ height: 200 }} />
+          </>
+        ))}
+      </StudioHackContext.Provider>
     </Section>
   );
 }

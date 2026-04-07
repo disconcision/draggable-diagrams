@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import { DragSpecData } from "./DragSpec";
 import { RenderedState, getTraceInfo } from "./DragSpecTraceInfo";
+import { StudioHackContext } from "./studio/StudioHackContext";
 import { LayeredSvgx, drawLayered } from "./svgx/layers";
 import { Transition } from "./transition";
 import { assert, assertNever } from "./utils/assert";
@@ -80,6 +81,7 @@ function SpecNode<T extends object>({
   path: string;
 }) {
   const { activePath, colorMap } = useTreeViewContext();
+  const { tightFixed } = useContext(StudioHackContext);
 
   /** Compute active/color/childPath/traceInfo for a node from its narrowed spec. */
   const info = <S extends DragSpecData<T>>(s: S) => {
@@ -94,6 +96,14 @@ function SpecNode<T extends object>({
 
   if (spec.type === "fixed") {
     const { active, color, traceInfo } = info(spec);
+    if (tightFixed && traceInfo) {
+      return (
+        <OutputThumbnail
+          outputPreview={traceInfo.outputPreview}
+          active={active}
+        />
+      );
+    }
     return (
       <Box label="fixed" active={active} color={color} path={path}>
         {traceInfo && (
@@ -433,7 +443,13 @@ function StateThumbnails({
   );
 }
 
-function OutputThumbnail({ outputPreview }: { outputPreview: LayeredSvgx }) {
+function OutputThumbnail({
+  outputPreview,
+  active,
+}: {
+  outputPreview: LayeredSvgx;
+  active?: boolean;
+}) {
   const { svgWidth, svgHeight, thumbArea } = useTreeViewContext();
   if (svgWidth === 0 || svgHeight === 0) return null;
   const aspect = svgWidth / svgHeight;
@@ -450,8 +466,19 @@ function OutputThumbnail({ outputPreview }: { outputPreview: LayeredSvgx }) {
           borderRadius: 3,
           background: "white",
           transition: "width 150ms ease, height 150ms ease",
+          ...(active
+            ? { outline: `2px solid ${ACTIVE_BORDER}`, outlineOffset: -1 }
+            : {}),
         }}
       >
+        {active && (
+          <rect
+            width={svgWidth}
+            height={svgHeight}
+            fill={ACTIVE_BORDER}
+            opacity={0.15}
+          />
+        )}
         {drawLayered(outputPreview)}
       </svg>
     </div>
@@ -474,6 +501,7 @@ function Box({
   children?: React.ReactNode;
 }) {
   const { nodeProps } = useTreeViewContext();
+  const { tightFixed } = useContext(StudioHackContext);
   const myProps = path !== undefined ? nodeProps?.[path] : undefined;
 
   const bg = color
@@ -505,7 +533,7 @@ function Box({
           color: active && !color ? "rgb(161, 98, 7)" : "rgb(100, 116, 139)",
           fontWeight: active ? 600 : 400,
           marginBottom: children ? 3 : 0,
-          fontSize: 10,
+          fontSize: tightFixed ? 15 : 10,
         }}
       >
         {label}
