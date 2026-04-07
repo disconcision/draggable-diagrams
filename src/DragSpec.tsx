@@ -1,4 +1,9 @@
-import type { DragBehavior, DragInitContext, DragResult } from "./DragBehavior";
+import type {
+  DragBehavior,
+  DragFrame,
+  DragInitContext,
+  DragResult,
+} from "./DragBehavior";
 import { PathIn, ValueAtPath, getAtPath } from "./paths";
 import type { SvgxProps } from "./svgx";
 import {
@@ -39,6 +44,11 @@ export type DragSpecData<T extends object> = {
       state: T;
       paramPaths: PathIn<T, number>[];
       options: VaryOptions<T>;
+    }
+  | {
+      type: "change-frame";
+      inner: DragSpecData<T>;
+      f: Reader<Partial<DragFrame>, DragFrame>;
     }
   | {
       type: "change-result";
@@ -205,6 +215,12 @@ export interface DragSpecMethods<T extends object> {
   withBranchTransition(transition: TransitionLike): DragSpec<T>;
 
   /**
+   * Advanced: Transform the frame (input) before it reaches the inner
+   * behavior. Use this, e.g., to remap the pointer position.
+   */
+  changeFrame(f: Reader<Partial<DragFrame>, DragFrame>): DragSpec<T>;
+
+  /**
    * Advanced: Transform the behavior's entire result on each frame.
    * This is the most general wrapper — you can change any field of
    * the DragResult (preview, drop state, gap, etc.).
@@ -303,6 +319,9 @@ const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
       inner: this,
       transition: resolveTransitionLike(transition),
     });
+  },
+  changeFrame(f) {
+    return attachMethods({ type: "change-frame", inner: this, f });
   },
   changeResult(f) {
     return attachMethods({ type: "change-result", inner: this, f });

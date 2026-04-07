@@ -123,6 +123,8 @@ export function dragSpecToBehavior<T extends object>(
       return duringBehavior(spec, ctx);
     case "vary":
       return varyBehavior(spec, ctx);
+    case "change-frame":
+      return changeFrameBehavior(spec, ctx);
     case "change-result":
       return changeResultBehavior(spec, ctx);
     case "change-gap":
@@ -547,6 +549,22 @@ function changeResultBehaviorBase<T extends object>(
       activePath: `${spec.type}/${result.activePath}`,
       tracedSpec: { ...spec, inner: result.tracedSpec },
       ...changed,
+    };
+  };
+}
+
+function changeFrameBehavior<T extends object>(
+  spec: DragSpecData<T> & { type: "change-frame" },
+  ctx: DragInitContext<T>,
+): DragBehavior<T> {
+  const subBehavior = dragSpecToBehavior(spec.inner, ctx);
+  return (frame) => {
+    const changed = readerToValue(spec.f, frame);
+    const result = subBehavior({ ...frame, ...changed });
+    return {
+      ...result,
+      activePath: `change-frame/${result.activePath}`,
+      tracedSpec: { ...spec, inner: result.tracedSpec },
     };
   };
 }
