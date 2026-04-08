@@ -225,7 +225,7 @@ export interface DragSpecMethods<T extends object> {
    * This is the most general wrapper — you can change any field of
    * the DragResult (preview, drop state, gap, etc.).
    */
-  changeResult(f: (result: DragResult<T>) => DragResult<T>): DragSpec<T>;
+  changeResult(f: Reader<Partial<DragResult<T>>, DragResult<T>>): DragSpec<T>;
 
   /**
    * Advanced: Change the behavior's reported "gap" measurement via
