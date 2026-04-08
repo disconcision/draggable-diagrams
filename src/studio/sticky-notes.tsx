@@ -2,15 +2,16 @@ import { Draggable } from "../draggable";
 import { param } from "../DragSpec";
 import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
+import { shantellSans } from "./shantell-sans";
 
 const NOTE_W = 180;
 const NOTE_H = 180;
 
 const COLORS = {
-  yellow: "#F8E2A4",
-  green: "#9FC88D",
-  orange: "#E9A57C",
-  blue: "#A0C0F4",
+  yellow: "rgb(252, 225, 156)",
+  green: "rgb(152, 208, 138)",
+  orange: "rgb(250, 164, 117)",
+  blue: "rgb(155, 196, 253)",
 };
 
 type StickyNote = {
@@ -33,7 +34,7 @@ export const initialState: State = {
       id: "note-1",
       x: 24.50033207750538,
       y: 155.0012219869991,
-      content: "<div><strong>DnD is hard, and often avoided</strong></div>",
+      content: "<div><strong>DnD is hard and often avoided</strong></div>",
       color: "yellow",
     },
     {
@@ -224,7 +225,8 @@ export const draggable: Draggable<State> = ({
               height: NOTE_H,
               padding: 8,
               fontSize: 22,
-              fontFamily: "system-ui, sans-serif",
+              fontWeight: 600,
+              fontFamily: `${shantellSans}, system-ui, sans-serif`,
               color: "#374151",
               overflow: "hidden",
               boxSizing: "border-box",
@@ -260,7 +262,7 @@ export const draggable: Draggable<State> = ({
             setState((prev) => ({ ...prev, showLinks: !prev.showLinks }))
           }
         />
-        links
+        chaining
       </label>
     </foreignObject>
   </g>
