@@ -85,24 +85,28 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
             ],
           });
 
-        const barStates = _.range(NUM_TRACKS).map((t) =>
+        const statesChangeRoom = _.range(NUM_TRACKS).map((t) =>
           produce<State>(state, (draft) => {
             draft.meetings[i].room = t;
           }),
         );
+        const onDragChangeRoom = () =>
+          d.between(statesChangeRoom).withSnapRadius(10, { transition: true });
 
         return (
-          <g id={`meeting-${i}`} dragologyZIndex={isDraggedBar ? 1 : 0}>
+          // TODO: this "use i as z-index" thing probably shouldn't
+          // be necessary; we should change how stacking paths work
+          // at some point.
+          <g id={`meeting-${i}`} dragologyZIndex={isDraggedBar ? 10 : i}>
             {/* Bar — drag to change track */}
             <rect
+              id={`bar-${i}`}
               transform={translate(iv.start, y - BAR_H / 2)}
               width={iv.end - iv.start}
               height={BAR_H}
               rx={3}
               fill={color}
-              dragologyOnDrag={() =>
-                d.between(barStates).withSnapRadius(10, { transition: true })
-              }
+              dragologyOnDrag={onDragChangeRoom}
             />
 
             {/* Left dot */}
@@ -111,7 +115,6 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               transform={translate(iv.start + DOT_R, y)}
               r={DOT_R}
               fill={color}
-              dragologyZIndex={2}
               dragologyOnDrag={() => endpointDrag("start")}
             />
 
@@ -121,7 +124,6 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               transform={translate(iv.end - DOT_R, y)}
               r={DOT_R}
               fill={color}
-              dragologyZIndex={2}
               dragologyOnDrag={() => endpointDrag("end")}
             />
 
@@ -132,9 +134,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
               fill={color}
               stroke="white"
               strokeWidth={2}
-              dragologyOnDrag={() =>
-                d.between(barStates).withSnapRadius(10, { transition: 40 })
-              }
+              dragologyOnDrag={onDragChangeRoom}
             />
           </g>
         );
@@ -146,7 +146,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         const b = nodePos(state.meetings[ib]);
         const sameTrack = state.meetings[ia].room === state.meetings[ib].room;
         return (
-          <g>
+          <g id={`edge-${ia}-${ib}`} dragologyZIndex={-1}>
             <line
               x1={a.x}
               y1={a.y}

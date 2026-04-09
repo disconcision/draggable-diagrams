@@ -16,6 +16,17 @@ export class DistanceMinimizer {
   private readonly numConstraints: number;
   private scales: number[] | undefined;
 
+  /**
+   * For "vary vis": All parameter sets explored during the last call
+   * to `minimize()`.
+   */
+  exploredValues: number[][] = [];
+  /**
+   * For "vary vis": Positions corresponding to each explored
+   * parameter set.
+   */
+  exploredPositions: Vec2[] = [];
+
   constructor(initialParams: number[], numConstraints: number) {
     this.curParams = initialParams.slice();
     this.numConstraints = numConstraints;
@@ -85,13 +96,20 @@ export class DistanceMinimizer {
 
     const constraints = options?.constraints;
 
+    this.exploredValues = [];
+    this.exploredPositions = [];
+
     FindMinimum(
       (_n, _m, sxArr, con) => {
         const scaledParams: number[] = [];
         for (let i = 0; i < n; i++) scaledParams[i] = sxArr[i];
         const params = fromScaled(scaledParams);
 
-        const obj = paramsToPoint(params).dist2(target);
+        this.exploredValues.push(params.slice());
+
+        const point = paramsToPoint(params);
+        this.exploredPositions.push(point);
+        const obj = point.dist2(target);
 
         if (constraints) {
           const gs = constraints(params);

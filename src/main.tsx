@@ -23,6 +23,26 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <HashRouter>
       <ScrollToTop />
+      {typeof __VITE_REACT_PROD__ !== "undefined" && (
+        <div
+          style={{
+            position: "fixed",
+            top: 4,
+            left: 4,
+            zIndex: 9999,
+            background: "red",
+            color: "white",
+            padding: "2px 6px",
+            borderRadius: 4,
+            fontSize: 11,
+            fontWeight: 700,
+            pointerEvents: "none",
+            opacity: 0.8,
+          }}
+        >
+          REACT PROD
+        </div>
+      )}
       <Routes>
         {autoRoute("/", FiguresPage)}
         {autoRoute("/study", StudyPage)}

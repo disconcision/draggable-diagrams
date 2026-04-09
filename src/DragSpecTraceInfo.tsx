@@ -10,13 +10,24 @@ export type RenderedState = { layered: LayeredSvgx; position: Vec2 };
  * shape.
  */
 export type DragSpecTraceInfoByType = {
-  fixed: { renderedStates: RenderedState[] };
-  "with-floating": { outputPreview: LayeredSvgx; elementPos: Vec2 };
+  fixed: { outputPreview: LayeredSvgx; position: Vec2 | null };
+  "with-floating": {
+    outputPreview: LayeredSvgx;
+    /**
+     * Where the element is floated FROM. Will be null if the element
+     * is not found (is floating from memory).
+     */
+    elementPos: Vec2 | null;
+  };
   closest: { bestIndex: number };
   "when-far": { inForeground: boolean };
   "on-drop": Record<string, never>;
   during: { outputPreview: LayeredSvgx };
-  vary: { renderedStates: RenderedState[]; currentParams: number[] };
+  vary: {
+    renderedStates: RenderedState[];
+    currentParams: number[];
+    exploredPositions?: Vec2[];
+  };
   "change-result": Record<string, never>;
   "change-gap": Record<string, never>;
   "with-snap-radius": {
@@ -50,6 +61,7 @@ export type DragSpecTraceInfoByType = {
     tracedInner: DragSpecData<any>;
   };
   "with-init-context": Record<string, never>;
+  custom: Record<string, never>;
 };
 
 /** Get typed trace info from a spec node, or undefined if not annotated. */

@@ -1,5 +1,11 @@
-import React, { cloneElement, Fragment } from "react";
-import { FindElementResult, Svgx, updateElement, updatePropsDownTree } from ".";
+import { cloneElement, Fragment } from "react";
+import {
+  FindElementResult,
+  Svgx,
+  SvgxProps,
+  updateElement,
+  updatePropsDownTree,
+} from ".";
 import { ErrorWithJSX } from "../ErrorBoundary";
 import { assert } from "../utils/assert";
 import { objectKeys } from "../utils/js";
@@ -197,7 +203,7 @@ export function drawLayered(layered: LayeredSvgx): Svgx {
               );
 
               // Strip 'dragologyXYZ' props
-              const newProps: React.SVGProps<SVGElement> = {};
+              const newProps: SvgxProps = {};
               for (const propName of objectKeys(el.props)) {
                 if (propName.startsWith("dragology")) {
                   // For debugging, uncomment this and get dragology props as data props
@@ -339,7 +345,7 @@ export function layeredShiftZIndices(
 
 export function layeredSetAttributes(
   layered: LayeredSvgx,
-  attrs: Partial<React.SVGProps<SVGElement>>,
+  attrs: Partial<SvgxProps>,
 ): LayeredSvgx {
   const newById = new Map<string, Layer>();
   for (const [key, layer] of layered.byId.entries()) {

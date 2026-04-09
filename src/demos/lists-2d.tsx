@@ -174,6 +174,11 @@ export default demo(
     </div>
   ),
   {
-    tags: ["spec.onDrop", "d.closest", "spec.withFloating", "spec.whenFar"],
+    tags: [
+      "spec.onDrop",
+      "d.closest",
+      "spec.withFloating [while missing]",
+      "spec.whenFar",
+    ],
   },
 );

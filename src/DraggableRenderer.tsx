@@ -23,17 +23,13 @@ import {
   getOnDragCallbackOnElement,
   makeDraggableProps,
 } from "./draggable";
-import { Vec2 } from "./math/vec2";
+import { Vec2, type Vec2able } from "./math/vec2";
 import {
   renderDraggableInert,
   renderDraggableInertUnlayered,
 } from "./renderDraggable";
-import {
-  Svgx,
-  findElement,
-  shouldRecurseIntoChildren,
-  updatePropsDownTree,
-} from "./svgx";
+import { Svgx, findElement, updatePropsDownTree } from "./svgx";
+import { boundsCenter, getLocalBounds } from "./svgx/bounds";
 import { LayeredSvgx, drawLayered, layerSvg } from "./svgx/layers";
 import { lerpLayered } from "./svgx/lerp";
 import { assignPaths, findByPath, getPath } from "./svgx/path";
@@ -139,6 +135,7 @@ export interface DraggableRendererBaseProps<T extends object> {
   onDragState?: (state: T) => void;
   onDragStatus?: (dragStatus: DragStatus<T>) => void;
   showDebugOverlay?: boolean;
+  showVaryVisualizer?: boolean;
   /**
    * Minimum pointer movement (in px) before a pointerdown becomes a drag.
    * Below this threshold the gesture is treated as a click — the state
@@ -146,6 +143,12 @@ export interface DraggableRendererBaseProps<T extends object> {
    * Set to 0 to start drags immediately (old behavior). Default: 2.
    */
   dragThreshold?: number;
+  /**
+   * Simulate a drag on the element with this ID. The pointer is faked
+   * at the element's center (plus optional offset). The draggable
+   * won't be interactive.
+   */
+  simulateDrag?: { id: string; offset?: Vec2able };
 }
 
 export type DraggableRendererProps<T extends object> =
@@ -203,7 +206,9 @@ function DraggableRendererControlled<T extends object>({
   onDragState,
   onDragStatus,
   showDebugOverlay,
+  showVaryVisualizer,
   dragThreshold = 2,
+  simulateDrag,
 }: DraggableRendererBaseProps<T> & { state: T }) {
   const catchToRenderError = useCatchToRenderError();
 
@@ -249,6 +254,8 @@ function DraggableRendererControlled<T extends object>({
   }, [status, onDragState]);
 
   const pointerRef = useRef<Vec2 | undefined>(undefined);
+  const pointerOverrideRef = useRef<Vec2 | undefined>(undefined);
+  const getPointer = () => pointerOverrideRef.current ?? pointerRef.current;
   const onDropStateRef = useRef(onDropState);
   onDropStateRef.current = onDropState;
   const onDragStateRef = useRef(onDragState);
@@ -279,7 +286,7 @@ function DraggableRendererControlled<T extends object>({
     catchToRenderError(() => {
       const result = advanceFrame(
         statusRef.current,
-        pointerRef.current,
+        getPointer(),
         performance.now(),
       );
       if (result) {
@@ -287,6 +294,48 @@ function DraggableRendererControlled<T extends object>({
       }
     }),
   );
+
+  // Simulated drag: initialize a drag on the target element (assumed
+  // constant). THIS IS IMPLEMENTED AS A HACK FOR DEVELOPMENT --
+  // maybe there should be a beefier version of it someday.
+  if (simulateDrag && status.type === "idle" && !status.pendingDrag) {
+    const simId = simulateDrag.id;
+    const simOffset = simulateDrag.offset
+      ? Vec2(simulateDrag.offset)
+      : Vec2(0, 0);
+    const content = renderDraggableInertUnlayered(
+      draggable,
+      state,
+      simId,
+      true,
+    );
+    const found = findElement(content, (el) => el.props.id === simId);
+    if (found) {
+      const localBounds = getLocalBounds(found.element);
+      if (!localBounds.empty) {
+        const center = boundsCenter(localBounds);
+        const pointer = localToGlobal(found.accumulatedTransform, center).add(
+          simOffset,
+        );
+        pointerOverrideRef.current = pointer;
+
+        const dragSpec = getOnDragCallbackOnElement<T>(found.element)?.();
+        const draggedPath = getPath(found.element);
+        if (dragSpec && draggedPath) {
+          const behaviorCtx: DragInitContext<T> = {
+            draggable,
+            draggedPath,
+            draggedId: simId,
+            anchorPos: center,
+            startState: state,
+            debug: { varyVisualizer: false },
+          };
+          const frame: DragFrame = { pointer };
+          setStatus(initDrag(dragSpec, behaviorCtx, state, frame, null));
+        }
+      }
+    }
+  }
 
   // Cursor style
   useEffect(() => {
@@ -372,6 +421,7 @@ function DraggableRendererControlled<T extends object>({
       setStatus,
       onDropState,
       dragThreshold,
+      showVaryVisualizer: showVaryVisualizer ?? false,
     }),
     [
       catchToRenderError,
@@ -380,6 +430,7 @@ function DraggableRendererControlled<T extends object>({
       onDropState,
       setStatus,
       setPointerFromEvent,
+      showVaryVisualizer,
     ],
   );
 
@@ -389,7 +440,12 @@ function DraggableRendererControlled<T extends object>({
       width={width}
       height={height}
       xmlns="http://www.w3.org/2000/svg"
-      style={{ overflow: "visible", userSelect: "none", touchAction: "none" }}
+      style={{
+        overflow: "visible",
+        userSelect: "none",
+        touchAction: "none",
+        ...(simulateDrag ? { pointerEvents: "none" } : {}),
+      }}
     >
       {status.type === "idle" ? (
         <DrawIdleMode status={status} ctx={renderCtx} />
@@ -397,10 +453,21 @@ function DraggableRendererControlled<T extends object>({
         <DrawDraggingMode
           status={status}
           showDebugOverlay={showDebugOverlay}
-          pointer={pointerRef.current}
+          pointer={getPointer()}
         />
       ) : (
         assertNever(status)
+      )}
+      {simulateDrag && pointerOverrideRef.current && (
+        <circle
+          cx={pointerOverrideRef.current.x}
+          cy={pointerOverrideRef.current.y}
+          r={4}
+          fill="red"
+          stroke="white"
+          strokeWidth={1.5}
+          opacity={0.8}
+        />
       )}
     </svg>
   );
@@ -522,7 +589,8 @@ function resolveChainNows<T extends object>(
 
   // We construct a spring origin to emulate what was rendered here
   // before. That means: no references to the new `result`!
-  const newSpringOrigin = makeSpringOrigin(true, () =>
+  const chainTransition = result.chainNow.transition;
+  const newSpringOrigin = makeSpringOrigin(chainTransition, () =>
     runSpring(status.springOrigin, status.result.preview),
   );
 
@@ -530,7 +598,6 @@ function resolveChainNows<T extends object>(
   assert(!!newDraggedPath, "Chained element must have a path");
 
   const anchorPos = status.behaviorCtx.anchorPos;
-  const newPointerStart = localToGlobal(found.accumulatedTransform, anchorPos);
 
   return initDrag(
     newDragSpec,
@@ -539,7 +606,6 @@ function resolveChainNows<T extends object>(
       draggedPath: newDraggedPath,
       draggedId: newDraggedId,
       anchorPos,
-      pointerStart: newPointerStart,
       startState: newState,
     },
     newState,
@@ -568,10 +634,18 @@ function initDrag<T extends object>(
     springOrigin,
   };
 
-  // If the result chains immediately (e.g. switchToStateAndFollow),
-  // process it now so the first rendered frame is the chained drag,
-  // avoiding a single-frame flash of the intermediate state.
-  return resolveChainNows(status, frame, result);
+  // This code used to check for chaining, via:
+  //
+  // return resolveChainNows(status, frame, result);
+  //
+  // That was (maybe?) important because `switchToStateAndFollow`
+  // used chaining, and we wanted the switch to occur without delay.
+  // But now switchToStateAndFollow does its own thing. And we want
+  // to support "chain on every frame" for things like
+  // chain-of-links, which suggests that you only chain once per
+  // frame. So:
+
+  return status;
 }
 
 // # Render context
@@ -583,6 +657,7 @@ type RenderContext<T extends object> = {
   setStatus: (ds: DragStatus<T>) => void;
   onDropState?: (state: T) => void;
   dragThreshold: number;
+  showVaryVisualizer: boolean;
 };
 
 /**
@@ -593,24 +668,11 @@ function ancestorOrSelfHasClickHandler(
   root: Svgx,
   targetPath: string,
 ): boolean {
-  const nodePath = getPath(root);
-
-  // Not on the path to the target — skip this subtree
-  if (nodePath && !targetPath.startsWith(nodePath)) return false;
-
-  if (root.props.onClick || root.props.onDoubleClick) return true;
-
-  // Reached the target — no need to go deeper
-  if (nodePath === targetPath) return false;
-
-  if (!shouldRecurseIntoChildren(root)) return false;
-  const children = React.Children.toArray(root.props.children);
-  for (const child of children) {
-    if (React.isValidElement(child)) {
-      if (ancestorOrSelfHasClickHandler(child as Svgx, targetPath)) return true;
-    }
-  }
-  return false;
+  const found = findByPath(targetPath, root);
+  if (!found) return false;
+  return [...found.ancestors, found.element].some(
+    (el) => el.props.onClick || el.props.onDoubleClick,
+  );
 }
 
 function postProcessForInteraction<T extends object>(
@@ -655,8 +717,10 @@ function postProcessForInteraction<T extends object>(
               draggedPath,
               draggedId,
               anchorPos,
-              pointerStart: pointer,
               startState: state,
+              debug: {
+                varyVisualizer: ctx.showVaryVisualizer,
+              },
             };
 
             const frame: DragFrame = { pointer };

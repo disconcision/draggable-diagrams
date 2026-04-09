@@ -4,6 +4,7 @@ import { demo } from "../demo";
 import { DemoDraggable } from "../demo/ui";
 import { Draggable } from "../draggable";
 import { DragSpec, DragSpecBuilder, inOrder, param } from "../DragSpec";
+import { Vec2 } from "../math/vec2";
 import { translate } from "../svgx/helpers";
 import { makeId } from "../utils";
 
@@ -341,19 +342,23 @@ function blockHeader(pathD: string, w: number, label: string, s: BlockStyle) {
 }
 
 function tbPreview(label: string, s: BlockStyle, hw = 28, fs = 9) {
+  const w = hw * 2;
+  const h = 24;
   return (
     <g>
       <rect
-        x={-hw}
-        y={-12}
-        width={hw * 2}
-        height={24}
+        x={0}
+        y={0}
+        width={w}
+        height={h}
         rx={6}
         fill={s.bg}
         stroke={s.stroke}
         strokeWidth={1.5}
       />
       <text
+        x={w / 2}
+        y={h / 2}
         textAnchor="middle"
         dominantBaseline="central"
         fontSize={fs}
@@ -547,7 +552,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
       <g
         id={`n-${childId}`}
         key={childId}
-        transform={translate(pos.x, pos.y)}
+        transform={translate(pos)}
         dragologyZIndex={draggedId === `n-${childId}` ? 10 : 1}
         dragologyOnDrag={() => {
           const base = detach(state, childId);
@@ -813,7 +818,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
       <g
         id={`n-${nodeId}`}
         key={nodeId}
-        transform={translate(node.x, node.y)}
+        transform={translate(node)}
         dragologyZIndex={isDragged ? 10 : 0}
         dragologyOnDrag={() => {
           const base = detach(state, nodeId);
@@ -890,15 +895,15 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         <g
           id={`tb-${t.label}`}
           key={t.label}
-          transform={translate(t.x, TOOLBAR_H / 2 + 7)}
+          transform={translate(
+            Vec2(t.x, TOOLBAR_H / 2 + 7).add(
+              t.makeExpr().type !== "state" ? Vec2(-t.hw, -12) : Vec2(0),
+            ),
+          )}
           dragologyOnDrag={() => {
             const nid = makeId();
             const ns = produce(state, (draft) => {
-              draft.nodes[nid] = {
-                expr: t.makeExpr(),
-                x: t.x,
-                y: TOOLBAR_H / 2 + 7,
-              };
+              draft.nodes[nid] = { expr: t.makeExpr(), x: 0, y: 0 };
             });
             return d.switchToStateAndFollow(
               ns,
@@ -969,7 +974,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
           PREVIEW
         </text>
         {(["A", "B", "C"] as const).map((l) => (
-          <g key={l} transform={translate(PV_DOTS[l].x, PV_DOTS[l].y)}>
+          <g key={l} transform={translate(PV_DOTS[l])}>
             <circle r={PV_DOT_R} fill={STATE_FILL[l]} opacity={0.25} />
             <text
               textAnchor="middle"
@@ -985,10 +990,7 @@ export const draggable: Draggable<State> = ({ state, d, draggedId }) => {
         ))}
         <circle
           id="preview-dot"
-          transform={translate(
-            PV_DOTS[state.previewDot].x,
-            PV_DOTS[state.previewDot].y,
-          )}
+          transform={translate(PV_DOTS[state.previewDot])}
           r={PV_DOT_R}
           fill={STATE_FILL[state.previewDot]}
           stroke="white"

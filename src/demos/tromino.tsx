@@ -20,7 +20,7 @@ type State = {
 };
 
 const initialState: State = {
-  missingSquare: Vec2(0, 0),
+  missingSquare: Vec2(0),
 };
 
 type Config = {
@@ -177,7 +177,7 @@ function drawState(state: State, boardLevel: number, cellSize: number) {
             missingSquare:
               !missingLeft && !missingTop
                 ? state.missingSquare.sub(Vec2(halfCount, halfCount))
-                : Vec2(0, 0),
+                : Vec2(0),
           },
           boardLevel - 1,
           cellSize,

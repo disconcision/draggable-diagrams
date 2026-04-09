@@ -1,6 +1,11 @@
-import { SVGProps } from "react";
-import type { DragInitContext, DragResult } from "./DragBehavior";
+import type {
+  DragBehavior,
+  DragFrame,
+  DragInitContext,
+  DragResult,
+} from "./DragBehavior";
 import { PathIn, ValueAtPath, getAtPath } from "./paths";
+import type { SvgxProps } from "./svgx";
 import {
   Transition,
   TransitionLike,
@@ -18,7 +23,7 @@ export type DragSpecData<T extends object> = {
   | {
       type: "with-floating";
       inner: DragSpecData<T>;
-      ghost: SVGProps<SVGElement> | undefined;
+      ghost: SvgxProps | undefined;
       tether: ((dist: number) => number) | undefined;
     }
   | { type: "closest"; specs: DragSpecData<T>[]; stickiness: number }
@@ -39,6 +44,11 @@ export type DragSpecData<T extends object> = {
       state: T;
       paramPaths: PathIn<T, number>[];
       options: VaryOptions<T>;
+    }
+  | {
+      type: "change-frame";
+      inner: DragSpecData<T>;
+      f: Reader<Partial<DragFrame>, DragFrame>;
     }
   | {
       type: "change-result";
@@ -107,6 +117,10 @@ export type DragSpecData<T extends object> = {
       inner: DragSpecData<T>;
       f: Reader<Partial<DragInitContext<T>>, DragInitContext<T>>;
     }
+  | {
+      type: "custom";
+      fn: (ctx: DragInitContext<T>) => DragBehavior<T>;
+    }
 );
 
 export type WhenFarOptions =
@@ -114,7 +128,7 @@ export type WhenFarOptions =
   | { gap?: never; gapIn?: number; gapOut?: number };
 
 export type FloatingOptions = {
-  ghost?: SVGProps<SVGElement> | true;
+  ghost?: SvgxProps | true;
   tether?: (dist: number) => number;
 };
 
@@ -130,6 +144,7 @@ export type FloatingOptions = {
 export type Chaining<T extends object> = {
   draggedId?: string;
   followSpec?: DragSpec<T>;
+  transition: Transition | false;
 };
 
 export type BetweenInterpolation = "delaunay" | "natural-neighbor";
@@ -176,17 +191,20 @@ export interface DragSpecMethods<T extends object> {
   ): DragSpec<T>;
 
   /**
-   * Set a transition to be used when dropping an element. By default
-   * this is 200ms cubic-out.
+   * Set a transition to be used when dropping an element. You don't
+   * need to call this to get a drop transition – by default you get
+   * a 200ms cubic-out. This is for customization.
    */
-  withDropTransition(transition?: TransitionLike): DragSpec<T>;
+  withDropTransition(transition: TransitionLike): DragSpec<T>;
 
   /**
    * Set a transition to be used when switching between branches of a
    * behavior. "Branches" isn't yet a very well-established concept,
    * but this includes, e.g., switching between behaviors in a
    * `closest`, or switching between the "foreground" and
-   * "background" in a `whenFar`.
+   * "background" in a `whenFar`. You don't need to call this to get
+   * a branch transition – by default you get a 200ms cubic-out. This
+   * is for customization.
    *
    * NOTE: There is currently no way to say, e.g., "do transition X
    * when switching between branches of a `closest` but do transition
@@ -197,11 +215,17 @@ export interface DragSpecMethods<T extends object> {
   withBranchTransition(transition: TransitionLike): DragSpec<T>;
 
   /**
+   * Advanced: Transform the frame (input) before it reaches the inner
+   * behavior. Use this, e.g., to remap the pointer position.
+   */
+  changeFrame(f: Reader<Partial<DragFrame>, DragFrame>): DragSpec<T>;
+
+  /**
    * Advanced: Transform the behavior's entire result on each frame.
    * This is the most general wrapper — you can change any field of
    * the DragResult (preview, drop state, gap, etc.).
    */
-  changeResult(f: (result: DragResult<T>) => DragResult<T>): DragSpec<T>;
+  changeResult(f: Reader<Partial<DragResult<T>>, DragResult<T>>): DragSpec<T>;
 
   /**
    * Advanced: Change the behavior's reported "gap" measurement via
@@ -226,7 +250,11 @@ export interface DragSpecMethods<T extends object> {
    * element). Options can optionally be provided to fine-tune the
    * behavior of the chaining.
    */
-  withChaining(chaining?: Chaining<T>): DragSpec<T>;
+  withChaining(opts?: {
+    draggedId?: string;
+    followSpec?: DragSpec<T>;
+    transition?: TransitionLike;
+  }): DragSpec<T>;
 
   /**
    * Transform the state on every frame, rendering it as a preview.
@@ -274,11 +302,11 @@ const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
       type: "with-snap-radius",
       inner: this,
       radius,
-      transition: resolveTransitionLike(transition) ?? false,
+      transition: resolveTransitionLike(transition),
       chain,
     });
   },
-  withDropTransition(transition = true) {
+  withDropTransition(transition) {
     return attachMethods({
       type: "with-drop-transition",
       inner: this,
@@ -289,8 +317,11 @@ const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
     return attachMethods({
       type: "with-branch-transition",
       inner: this,
-      transition: resolveTransitionLike(transition) ?? false,
+      transition: resolveTransitionLike(transition),
     });
+  },
+  changeFrame(f) {
+    return attachMethods({ type: "change-frame", inner: this, f });
   },
   changeResult(f) {
     return attachMethods({ type: "change-result", inner: this, f });
@@ -306,8 +337,13 @@ const dragSpecMethods: DragSpecMethods<any> & ThisType<DragSpec<any>> = {
       tether,
     });
   },
-  withChaining(chaining = {}) {
-    return attachMethods({ type: "with-chaining", inner: this, chaining });
+  withChaining({ transition: transitionLike = true, ...rest } = {}) {
+    const transition = resolveTransitionLike(transitionLike);
+    return attachMethods({
+      type: "with-chaining",
+      inner: this,
+      chaining: { ...rest, transition },
+    });
   },
   during(fn) {
     return attachMethods({ type: "during", inner: this, duringFn: fn });
@@ -437,6 +473,13 @@ export class DragSpecBuilder<T extends object> {
       >[],
       options: (options ?? {}) as VaryOptions<T>,
     });
+  }
+
+  /**
+   * Escape hatch: define a drag behavior from scratch.
+   */
+  custom(fn: (ctx: DragInitContext<T>) => DragBehavior<T>): DragSpec<T> {
+    return attachMethods({ type: "custom", fn });
   }
 
   /**

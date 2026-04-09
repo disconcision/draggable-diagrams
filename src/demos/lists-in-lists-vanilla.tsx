@@ -238,7 +238,7 @@ type DragInfo = {
   offsetY: number;
 };
 
-const CanvasOfListsNestedVanilla = () => {
+const ListsInListsVanilla = () => {
   const [state, setState] = useState<State>(initialState);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -499,7 +499,7 @@ const CanvasOfListsNestedVanilla = () => {
   return (
     <div>
       <DemoNotes>
-        From-scratch React reimplementation of canvas-of-lists-nested,{" "}
+        From-scratch React reimplementation of lists-in-lists,{" "}
         <b>without using Dragology</b>.
       </DemoNotes>
       <svg
@@ -558,7 +558,7 @@ const CanvasOfListsNestedVanilla = () => {
   );
 };
 
-export default demo(CanvasOfListsNestedVanilla, {
+export default demo(ListsInListsVanilla, {
   tags: ["vanilla"],
   hideByDefault: true,
 });

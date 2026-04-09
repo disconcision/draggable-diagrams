@@ -18,7 +18,6 @@ import { DistanceMinimizer } from "./math/optimization";
 import { Vec2 } from "./math/vec2";
 import { getAtPath, setAtPath } from "./paths";
 import {
-  extractFloatContext,
   renderDraggableInert,
   renderDraggableInertUnlayered,
 } from "./renderDraggable";
@@ -36,12 +35,13 @@ import {
   layeredShiftZIndices,
   LayeredSvgx,
   layeredTransform,
+  layerSvg,
 } from "./svgx/layers";
 import { lerpLayeredWeighted } from "./svgx/lerp";
 import { findByPath } from "./svgx/path";
 import { localToGlobal } from "./svgx/transform";
 import { Transition } from "./transition";
-import { assert, assertNever } from "./utils/assert";
+import { assert, assertDefined, assertNever } from "./utils/assert";
 import {
   ManyReader,
   manyReaderToArray,
@@ -94,8 +94,10 @@ export type DragInitContext<T extends object> = {
   draggedPath: string;
   draggedId: string | null;
   anchorPos: Vec2;
-  pointerStart: Vec2;
   startState: T;
+  debug: {
+    varyVisualizer: boolean;
+  };
 };
 
 /**
@@ -121,6 +123,8 @@ export function dragSpecToBehavior<T extends object>(
       return duringBehavior(spec, ctx);
     case "vary":
       return varyBehavior(spec, ctx);
+    case "change-frame":
+      return changeFrameBehavior(spec, ctx);
     case "change-result":
       return changeResultBehavior(spec, ctx);
     case "change-gap":
@@ -145,6 +149,8 @@ export function dragSpecToBehavior<T extends object>(
       return reactToBehavior(spec, ctx);
     case "with-init-context":
       return withInitContextBehavior(spec, ctx);
+    case "custom":
+      return customBehavior(spec, ctx);
     default:
       assertNever(spec);
   }
@@ -159,10 +165,11 @@ function fixedBehavior<T extends object>(
   const preview = renderStateReadOnly(ctx, spec.state);
   const elementPos = getElementPosition(ctx, preview);
   const tracedSpec = setTraceInfo(spec, {
-    renderedStates: [{ layered: preview, position: elementPos }],
+    outputPreview: preview,
+    position: elementPos,
   });
   return (frame) => {
-    const gap = frame.pointer.dist(elementPos);
+    const gap = elementPos ? frame.pointer.dist(elementPos) : Infinity;
     return {
       preview,
       dropState: spec.state,
@@ -184,29 +191,22 @@ function withFloatingBehavior<T extends object>(
   );
   const innerBehavior = dragSpecToBehavior(spec.inner, ctx);
 
-  // Cache the latest float element for frames where the inner result
-  // doesn't contain the dragged element.
-  let cachedFloatLayered: LayeredSvgx | null = null;
-  let cachedFloatPos: Vec2 | null = null;
-  // The element position on the first frame (used to keep the float
-  // anchored to the cursor regardless of inner-result interpolation).
-  let startFloatPos: Vec2 | null = null;
+  // Cache the float element (pre-translated to the origin) for frames
+  // where the inner result doesn't contain the dragged element.
+  let cachedFloatAnchored: LayeredSvgx | null = null;
 
   return (frame) => {
     const innerResult = innerBehavior(frame);
     const layered = innerResult.preview;
-    // On a layer, the transform prop IS the accumulated transform.
     const draggedLayer = layered.byId.get(draggedId);
-    const elementPos = draggedLayer
-      ? localToGlobal(draggedLayer.element.props.transform, ctx.anchorPos)
-      : Vec2(Infinity, Infinity);
 
-    // Extract the float element from the inner result, or fall back to cache.
-    let floatLayered: LayeredSvgx;
-    let floatPos: Vec2;
+    let elementPos: Vec2 | null = null;
+    let floatAnchored: LayeredSvgx;
     let backdrop: LayeredSvgx;
     if (!draggedLayer) {
-      if (cachedFloatLayered === null) {
+      if (cachedFloatAnchored === null) {
+        // TODO: I feel like this shouldn't be necessary
+
         // The dragged element isn't in the inner result on the first
         // frame (e.g. switchToStateAndFollow created it in a new state
         // that the inner spec doesn't know about). Fall back to
@@ -218,26 +218,31 @@ function withFloatingBehavior<T extends object>(
           false,
         );
         const { extracted } = layeredExtract(startLayered, draggedId);
-        cachedFloatLayered = extracted;
         const startDraggedLayer = startLayered.byId.get(draggedId);
-        cachedFloatPos = startDraggedLayer
+        const floatPos = startDraggedLayer
           ? localToGlobal(
               startDraggedLayer.element.props.transform,
               ctx.anchorPos,
             )
-          : Vec2(0, 0);
-        startFloatPos = ctx.pointerStart;
+          : Vec2(0);
+        cachedFloatAnchored = layeredTransform(
+          extracted,
+          translate(floatPos.mul(-1)),
+        );
       }
-      floatLayered = cachedFloatLayered;
-      floatPos = cachedFloatPos!;
+      floatAnchored = cachedFloatAnchored;
       backdrop = layered;
     } else {
+      elementPos = localToGlobal(
+        draggedLayer.element.props.transform,
+        ctx.anchorPos,
+      );
       const { remaining, extracted } = layeredExtract(layered, draggedId);
-      floatLayered = extracted;
-      floatPos = elementPos;
-      cachedFloatLayered = extracted;
-      cachedFloatPos = floatPos;
-      if (startFloatPos === null) startFloatPos = ctx.pointerStart;
+      floatAnchored = layeredTransform(
+        extracted,
+        translate(elementPos.mul(-1)),
+      );
+      cachedFloatAnchored = floatAnchored;
 
       if (spec.ghost !== undefined) {
         backdrop = layeredMerge(
@@ -252,26 +257,17 @@ function withFloatingBehavior<T extends object>(
       }
     }
 
-    // Compute float translation. With tether, we limit how far the
-    // float can deviate from the inner spec's element position.
-    let floatDelta = frame.pointer.sub(ctx.pointerStart);
-    if (spec.tether) {
+    let target = frame.pointer;
+    if (elementPos && spec.tether) {
       const v = frame.pointer.sub(elementPos);
       const dist = v.len();
       if (dist > 1e-6) {
         const newDist = spec.tether(dist);
-        const adjusted = elementPos.add(v.mul(newDist / dist));
-        floatDelta = adjusted.sub(ctx.pointerStart);
+        target = elementPos.add(v.mul(newDist / dist));
       }
     }
 
-    // Correct for the element being at its inner-result position
-    // rather than the start-of-drag position.
-    const posCorrection = startFloatPos!.sub(floatPos);
-    const floatPositioned = layeredTransform(
-      floatLayered,
-      translate(floatDelta.add(posCorrection)),
-    );
+    const floatPositioned = layeredTransform(floatAnchored, translate(target));
     const preview = layeredMerge(
       backdrop,
       pipe(
@@ -355,7 +351,7 @@ function whenFarBehavior<T extends object>(
       const bgResult = backdropBehavior(frame);
       return {
         ...bgResult,
-        activePath: `bg/${bgResult.activePath}`,
+        activePath: `when-far/bg/${bgResult.activePath}`,
         tracedSpec: setTraceInfo(
           {
             ...spec,
@@ -368,7 +364,7 @@ function whenFarBehavior<T extends object>(
     }
     return {
       ...foregroundResult,
-      activePath: `fg/${foregroundResult.activePath}`,
+      activePath: `when-far/fg/${foregroundResult.activePath}`,
       tracedSpec: setTraceInfo(
         { ...spec, foreground: foregroundResult.tracedSpec },
         { inForeground: true },
@@ -398,7 +394,7 @@ function duringBehavior<T extends object>(
     const result = subBehavior(frame);
     const transformedState = spec.duringFn(result.dropState);
     const preview = renderStateReadOnly(ctx, transformedState);
-    const elementPos = getElementPosition(ctx, preview);
+    const elementPos = getElementPosition(ctx, preview) ?? Infinity;
     return {
       ...result,
       preview,
@@ -435,7 +431,7 @@ function varyBehavior<T extends object>(
       true,
     );
     const found = findByPath(ctx.draggedPath, content);
-    if (!found) return Vec2(Infinity, Infinity);
+    if (!found) return Vec2(Infinity, Infinity); // only used for optimization, not exposed
     return localToGlobal(found.accumulatedTransform, ctx.anchorPos);
   };
 
@@ -472,23 +468,68 @@ function varyBehavior<T extends object>(
         manyReaderToArray(constraintWithPin, stateFromParams(params))
     : undefined;
 
+  const VARY_VIS_DURATION = 0.05; // seconds per explored value
+  const VARY_VIS_FRACTION = 0.3; // how early in optimizer exploration to take samples from
+  let varyVisCounter = 0;
+  let varyVisLastSwitch = performance.now() / 1000;
+  let varyVisSampledParams: number[] | null = null;
+
   return (frame) => {
-    const resultParams = minimizer.minimize(frame.pointer, getElementPos, {
+    minimizer.minimize(frame.pointer, getElementPos, {
       constraints: constraintsFn,
     });
 
+    let resultParams = minimizer.params;
+    let activePathSuffix = "";
+    if (ctx.debug.varyVisualizer && minimizer.exploredValues.length > 0) {
+      const now = performance.now() / 1000;
+      if (now - varyVisLastSwitch >= VARY_VIS_DURATION) {
+        varyVisCounter++;
+        varyVisLastSwitch = now;
+        const sampleIdx = Math.floor(
+          Math.random() * minimizer.exploredValues.length * VARY_VIS_FRACTION,
+        );
+        varyVisSampledParams = minimizer.exploredValues[sampleIdx];
+      }
+      resultParams =
+        varyVisSampledParams ?? minimizer.exploredValues[0] ?? minimizer.params;
+      // activePathSuffix = `/${varyVisCounter}`;
+    }
+
     const newState = stateFromParams(resultParams);
-    const preview = renderStateReadOnly(ctx, newState);
-    const achievedPos = getElementPosition(ctx, preview);
+    let preview = renderStateReadOnly(ctx, newState);
+    const achievedPos = getElementPositionOrThrow(ctx, preview);
     const gap = achievedPos.dist(frame.pointer);
+
+    if (ctx.debug.varyVisualizer) {
+      const ghosted = minimizer.exploredValues.map((params) =>
+        renderStateReadOnly(ctx, stateFromParams(params)),
+      );
+      preview = layeredMerge(
+        preview,
+        layerSvg(
+          <g id="vary-cloud" dragologyZIndex="/-100" dragologyOpaque={true}>
+            {ghosted.map((g, i) => (
+              <g key={`explored-${i}`} opacity={0.15}>
+                {drawLayered(g)}
+              </g>
+            ))}
+          </g>,
+        ),
+      );
+    }
+
     return {
       preview,
       dropState: newState,
       gap,
-      activePath: "vary",
+      activePath: `vary${activePathSuffix}`,
       tracedSpec: setTraceInfo(spec, {
         renderedStates: [{ layered: preview, position: achievedPos }],
         currentParams: resultParams.slice(),
+        exploredPositions: ctx.debug.varyVisualizer
+          ? minimizer.exploredPositions.slice()
+          : undefined,
       }),
     };
   };
@@ -508,6 +549,22 @@ function changeResultBehaviorBase<T extends object>(
       activePath: `${spec.type}/${result.activePath}`,
       tracedSpec: { ...spec, inner: result.tracedSpec },
       ...changed,
+    };
+  };
+}
+
+function changeFrameBehavior<T extends object>(
+  spec: DragSpecData<T> & { type: "change-frame" },
+  ctx: DragInitContext<T>,
+): DragBehavior<T> {
+  const subBehavior = dragSpecToBehavior(spec.inner, ctx);
+  return (frame) => {
+    const changed = readerToValue(spec.f, frame);
+    const result = subBehavior({ ...frame, ...changed });
+    return {
+      ...result,
+      activePath: `change-frame/${result.activePath}`,
+      tracedSpec: { ...spec, inner: result.tracedSpec },
     };
   };
 }
@@ -548,9 +605,9 @@ function withSnapRadiusBehavior<T extends object>(
   };
   return (frame) => {
     const result = subBehavior(frame);
-    const elementPos = getElementPosition(ctx, result.preview);
+    const elementPos = getElementPositionOrThrow(ctx, result.preview);
     const dropRendered = getDropRendered(result.dropState);
-    const dropElementPos = getElementPosition(ctx, dropRendered);
+    const dropElementPos = getElementPositionOrThrow(ctx, dropRendered);
     let preview = result.preview;
     const snapped = dropElementPos.dist2(elementPos) <= radiusSq;
     if (snapped) {
@@ -567,7 +624,8 @@ function withSnapRadiusBehavior<T extends object>(
       preview,
       activePath,
       activePathTransition: spec.transition || undefined,
-      chainNow: spec.chain && snapped ? {} : undefined,
+      chainNow:
+        spec.chain && snapped ? { transition: spec.transition } : undefined,
       tracedSpec: setTraceInfo(
         { ...spec, inner: result.tracedSpec },
         { snapped, outputPreview: preview },
@@ -843,7 +901,11 @@ function betweenFixedBehavior<T extends object>(
     assert(s.type === "fixed");
     const state = s.state;
     const layered = renderStateReadOnly(ctx, state);
-    return { state, layered, position: getElementPosition(ctx, layered) };
+    return {
+      state,
+      layered,
+      position: getElementPositionOrThrow(ctx, layered),
+    };
   });
   const delaunay = betweenMakeDelaunay(renderedStates, ctx);
 
@@ -860,7 +922,7 @@ function betweenDynamicBehavior<T extends object>(
   return (frame) => {
     const subResults = subBehaviors.map((b) => b(frame));
     const renderedStates = subResults.map((result) => {
-      const position = getElementPosition(ctx, result.preview);
+      const position = getElementPositionOrThrow(ctx, result.preview);
       return { state: result.dropState, layered: result.preview, position };
     });
     const tracedSpec = {
@@ -876,15 +938,6 @@ function switchToStateAndFollowBehavior<T extends object>(
   spec: DragSpecData<T> & { type: "switch-to-state-and-follow" },
   ctx: DragInitContext<T>,
 ): DragBehavior<T> {
-  const floatCtx = spec.draggedId
-    ? extractFloatContext(
-        ctx.draggable,
-        spec.state,
-        spec.draggedId,
-        ctx.anchorPos,
-      )
-    : null;
-
   let followSpec = spec.followSpec;
   if (!followSpec && spec.draggedId) {
     // TODO: this is kinda questionable and/or redundant
@@ -914,7 +967,6 @@ function switchToStateAndFollowBehavior<T extends object>(
     startState: spec.state,
     draggedId: spec.draggedId,
     draggedPath: spec.draggedId + "/",
-    pointerStart: floatCtx?.pointerStart ?? ctx.pointerStart,
   });
   return (frame) => {
     const innerResult = subBehavior(frame);
@@ -955,7 +1007,7 @@ function dropTargetBehavior<T extends object>(
       gap,
       activePath: "drop-target",
       tracedSpec: setTraceInfo(spec, {
-        renderedStates: [{ layered: preview, position: Vec2(0, 0) }],
+        renderedStates: [{ layered: preview, position: Vec2(0) }],
         inside,
         globalBounds,
       }),
@@ -1056,6 +1108,13 @@ function withInitContextBehavior<T extends object>(
   };
 }
 
+function customBehavior<T extends object>(
+  spec: DragSpecData<T> & { type: "custom" },
+  ctx: DragInitContext<T>,
+): DragBehavior<T> {
+  return spec.fn(ctx);
+}
+
 // # Shared helpers
 
 function renderStateReadOnly<T extends object>(
@@ -1070,8 +1129,15 @@ function renderStateReadOnly<T extends object>(
 function getElementPosition<T extends object>(
   ctx: DragInitContext<T>,
   layered: LayeredSvgx,
-): Vec2 {
+): Vec2 | null {
   const found = findByPathInLayered(ctx.draggedPath, layered);
-  if (!found) return Vec2(Infinity, Infinity);
+  if (!found) return null;
   return localToGlobal(found.accumulatedTransform, ctx.anchorPos);
+}
+
+function getElementPositionOrThrow<T extends object>(
+  ctx: DragInitContext<T>,
+  layered: LayeredSvgx,
+): Vec2 {
+  return assertDefined(getElementPosition(ctx, layered));
 }

@@ -7,7 +7,7 @@ import {
   DemoSettingsBar,
   DemoSettingsProvider,
 } from "../demo/ui";
-import { listOfListsSimple } from "../studio/list-of-lists-simple";
+import { lists2dSimple } from "../studio/lists-2d-simple";
 
 const REPO = "https://github.com/declarative-dragging/declarative-dragging.github.io/blob/main";
 
@@ -30,8 +30,8 @@ function Figure1Teaser() {
       </Caption>
       <div className="bg-white rounded-lg p-5 shadow-sm">
         <DemoDraggable
-          draggable={listOfListsSimple.draggable}
-          initialState={listOfListsSimple.initialState}
+          draggable={lists2dSimple.draggable}
+          initialState={lists2dSimple.initialState}
           width={240}
           height={190}
         />
@@ -64,43 +64,43 @@ function Figure2Gallery() {
           Colored beads on a ring can be dragged into different orders.
           Demonstrates <Op>closest</Op> and <Op>withFloating</Op>.
         </GalleryEntry>
-        <GalleryEntry id="interval-graph" label="B. Alex's Scheduler">
+        <GalleryEntry id="scheduler" label="B. Alex's Scheduler">
           Meetings on tracks can be dragged between rooms (discrete,
           using <Op>between</Op>) and resized by dragging endpoints (continuous,
           using <Op>vary</Op> with constraints). A synchronized interval-graph
           representation makes the mathematics tangible.
         </GalleryEntry>
-        <GalleryEntry id="canvas-of-lists-nested" label="C. Lists in Lists">
+        <GalleryEntry id="lists-in-lists" label="C. Lists in Lists">
           Tiles sorted into nested lists on a freely-positioned canvas. Combines
           structured snapping (<Op>closest</Op> with <Op>withFloating</Op>) and
           free-form positioning (<Op>vary</Op>), joined
           with <Op>whenFar</Op>.
         </GalleryEntry>
-        <GalleryEntry id="tessellation" label="D. Tactile Tessellations">
+        <GalleryEntry id="tactile-tessellations" label="D. Tactile Tessellations">
           Shapes snap together into tilings. Free positioning with edge-to-edge
           snapping, plus a toolbar for creating shapes
           (<Op>switchToStateAndFollow</Op>) and a trash bin for removing them
           (<Op>dropTarget</Op>).
         </GalleryEntry>
-        <GalleryEntry id="nool-tree" label="E. Animate Algebra">
+        <GalleryEntry id="animate-algebra-tree" label="E. Animate Algebra">
           Algebraic expressions in tree form. Dragging a node rewrites the
           expression according to algebraic laws (commutativity, associativity).
           Uses <Op>between</Op> for linear tracks
           and <Op>withSnapRadius</Op> with chaining to string rewrites together
           in a single drag.
         </GalleryEntry>
-        <GalleryEntry id="order-preserving" label="F. Twisted Trees">
+        <GalleryEntry id="twisted-trees" label="F. Twisted Trees">
           An order-preserving function between trees. Any node can be dragged to
           any position; other nodes are pulled along by the ordering constraint.
           Uses <Op>between</Op> with all targets in a single interpolation,
           allowing free-form 2D motion with fluid feedforward.
         </GalleryEntry>
-        <GalleryEntry id="node-wires" label="G. Nodes and Noodles">
+        <GalleryEntry id="nodes-and-noodles" label="G. Nodes and Noodles">
           A toy node-based programming interface. Nodes can be moved on a canvas
           and wires created by dragging from ports. Uses <Op>onDrop</Op> to
           remove wires that end up with no attached endpoints.
         </GalleryEntry>
-        <GalleryEntry id="spec-workshop" label="H. Drag-Spec Designer">
+        <GalleryEntry id="drag-spec-designer" label="H. Drag-Spec Designer">
           A programming environment for assembling Dragology drag-specs, built
           with Dragology. Blocks representing operators and states can be dragged
           into ports to compose a drag spec, which runs live in a preview.

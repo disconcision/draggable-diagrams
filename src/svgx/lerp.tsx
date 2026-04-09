@@ -3,7 +3,7 @@ import { rgb } from "d3-color";
 import * as d3Interpolate from "d3-interpolate";
 import { interpolatePath } from "d3-interpolate-path";
 import React, { cloneElement } from "react";
-import { shouldRecurseIntoChildren, Svgx } from ".";
+import { shouldRecurseIntoChildren, Svgx, SvgxProps } from ".";
 import { ErrorWithJSX } from "../ErrorBoundary";
 import { lerp } from "../math/vec2";
 import { objectKeys } from "../utils/js";
@@ -33,7 +33,7 @@ const COLOR_PROPS = new Set([
 // - TODO: Someday this should be configurable!
 const interpolateColor = d3Interpolate.interpolateLab;
 
-const NO_LERP_PROPS = new Set(["pointerEvents"]);
+const NO_LERP_PROPS = new Set(["pointerEvents", "cursor"]);
 
 const DEFAULT_VALUE_FOR_KEY: { [key: string]: any } = {
   opacity: 1,
@@ -158,6 +158,16 @@ function lerpValue(key: string, valA: any, valB: any, t: number): any {
 
     const colorInterp = interpolateColor(valA, valB);
     return colorInterp(t);
+  } else if (
+    (key === "filter" || key === "WebkitFilter") &&
+    typeof valA === "string" &&
+    typeof valB === "string"
+  ) {
+    const result = tryLerpFilter(valA, valB, t);
+    if (result) return result;
+    throw new Error(
+      `Cannot lerp prop "${key}": unrecognized filter values (${valA} vs ${valB})`,
+    );
   } else if (typeof valA === "string" && typeof valB === "string") {
     // Try to parse both as numbers
     const numA = parseFloat(valA);
@@ -169,11 +179,13 @@ function lerpValue(key: string, valA: any, valB: any, t: number): any {
     }
 
     // Non-numeric strings - can't interpolate
+    // TODO: should we just take B?
     throw new Error(
       `Cannot lerp prop "${key}": different non-numeric values (${valA} vs ${valB})`,
     );
   } else {
     // Different non-numeric values
+    // TODO: should we just take B?
     throw new Error(
       `Cannot lerp prop "${key}": different non-numeric values (${valA} vs ${valB})`,
     );
@@ -220,8 +232,8 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
   const transformB = propsB.transform || "";
   const lerpedTransform = lerpTransformString(transformA, transformB, t);
 
-  // Lerp numeric props (x, y, width, height, etc.)
-  const lerpedNumericProps: any = {};
+  // Lerp props
+  const lerpedProps: SvgxProps = {};
   const allPropKeys = new Set([...objectKeys(propsA), ...objectKeys(propsB)]);
 
   for (const key of allPropKeys) {
@@ -230,7 +242,10 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
     if (key.startsWith("data-")) continue;
     if (key.startsWith("dragology")) continue;
     if (/^on[A-Z]/.test(key)) continue;
-    if (NO_LERP_PROPS.has(key)) continue;
+    if (NO_LERP_PROPS.has(key)) {
+      lerpedProps[key] = propsB[key] as any; // too hard to type
+      continue;
+    }
 
     const valA = propsA[key];
     const valB = propsB[key];
@@ -250,6 +265,11 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
       ]);
 
       for (const styleKey of allStyleKeys) {
+        if (NO_LERP_PROPS.has(styleKey)) {
+          lerpedStyle[styleKey] = styleB[styleKey];
+          continue;
+        }
+
         lerpedStyle[styleKey] = lerpValue(
           styleKey,
           styleA[styleKey],
@@ -258,9 +278,9 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
         );
       }
 
-      lerpedNumericProps[key] = lerpedStyle;
+      lerpedProps[key] = lerpedStyle;
     } else {
-      lerpedNumericProps[key] = lerpValue(key, valA, valB, t);
+      lerpedProps[key] = lerpValue(key, valA, valB, t);
     }
   }
 
@@ -297,10 +317,62 @@ export function lerpSvgx(a: Svgx, b: Svgx, t: number): Svgx {
   }
 
   return React.cloneElement(a, {
-    ...lerpedNumericProps,
+    ...lerpedProps,
     ...(lerpedTransform ? { transform: lerpedTransform } : {}),
     children: lerpedChildren.length === 0 ? undefined : lerpedChildren,
   });
+}
+
+// # CSS filter interpolation
+
+type DropShadow = {
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+};
+
+const DROP_SHADOW_RE =
+  /^drop-shadow\(\s*([\d.+-]+)(?:px)?\s+([\d.+-]+)(?:px)?\s+([\d.+-]+)(?:px)?\s+rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)\s*\)$/;
+
+function parseDropShadow(s: string): DropShadow | null {
+  const m = s.match(DROP_SHADOW_RE);
+  if (!m) return null;
+  return {
+    offsetX: parseFloat(m[1]),
+    offsetY: parseFloat(m[2]),
+    blur: parseFloat(m[3]),
+    r: parseFloat(m[4]),
+    g: parseFloat(m[5]),
+    b: parseFloat(m[6]),
+    a: parseFloat(m[7]),
+  };
+}
+
+function serializeDropShadow(ds: DropShadow): string {
+  return `drop-shadow(${ds.offsetX}px ${ds.offsetY}px ${ds.blur}px rgba(${ds.r},${ds.g},${ds.b},${ds.a}))`;
+}
+
+function lerpDropShadow(a: DropShadow, b: DropShadow, t: number): string {
+  return serializeDropShadow({
+    offsetX: lerp(a.offsetX, b.offsetX, t),
+    offsetY: lerp(a.offsetY, b.offsetY, t),
+    blur: lerp(a.blur, b.blur, t),
+    r: lerp(a.r, b.r, t),
+    g: lerp(a.g, b.g, t),
+    b: lerp(a.b, b.b, t),
+    a: lerp(a.a, b.a, t),
+  });
+}
+
+function tryLerpFilter(a: string, b: string, t: number): string | null {
+  const dsA = parseDropShadow(a);
+  const dsB = parseDropShadow(b);
+  if (dsA && dsB) return lerpDropShadow(dsA, dsB, t);
+  return null;
 }
 
 // # Emerge animation support

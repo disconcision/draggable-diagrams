@@ -211,7 +211,7 @@ export default demo(
       "setState",
       "d.between",
       "d.closest",
-      "spec.withFloating",
+      "spec.withFloating [while missing]",
       "spec.whenFar",
     ],
   },

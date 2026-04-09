@@ -4,7 +4,8 @@ import { combineTransforms } from "./transform";
 // SVGX is our slang for "messing around with SVG represented as
 // React elements, generally provided by an author as JSX".
 
-export type Svgx = React.ReactElement<React.SVGProps<SVGElement>>;
+export type SvgxProps = React.SVGProps<SVGElement>;
+export type Svgx = React.ReactElement<SvgxProps>;
 
 /**
  * Determines if we should recurse into an element's children when
@@ -12,7 +13,11 @@ export type Svgx = React.ReactElement<React.SVGProps<SVGElement>>;
  * processed or layered.
  */
 export function shouldRecurseIntoChildren(element: Svgx): boolean {
-  return element.type !== "foreignObject" && element.type !== "defs";
+  return (
+    element.type !== "foreignObject" &&
+    element.type !== "defs" &&
+    !element.props.dragologyOpaque
+  );
 }
 
 /**
@@ -27,7 +32,7 @@ export function shouldRecurseIntoChildren(element: Svgx): boolean {
 export function updateElement(
   element: Svgx,
   childFn?: (el: Svgx, idx: number) => Svgx | null,
-  newProps?: React.SVGProps<SVGElement>,
+  newProps?: SvgxProps,
 ): Svgx {
   const { children } = element.props;
 
@@ -66,12 +71,15 @@ export function updateElement(
 export type FindElementResult = {
   element: Svgx;
   accumulatedTransform: string;
+  /** Does not include element itself */
+  ancestors: Svgx[];
 };
 
 export function findElement(
   element: Svgx,
   predicate: (el: Svgx) => boolean,
   accumulatedTransform: string = "",
+  ancestors: Svgx[] = [],
 ): FindElementResult | null {
   const elementTransform = (element.props as any).transform || "";
   const newAccumulatedTransform = combineTransforms(
@@ -80,8 +88,14 @@ export function findElement(
   );
 
   if (predicate(element)) {
-    return { element, accumulatedTransform: newAccumulatedTransform };
+    return {
+      element,
+      accumulatedTransform: newAccumulatedTransform,
+      ancestors,
+    };
   }
+
+  const childAncestors = [...ancestors, element];
 
   if (shouldRecurseIntoChildren(element)) {
     const children = React.Children.toArray(element.props.children);
@@ -91,6 +105,7 @@ export function findElement(
           child as Svgx,
           predicate,
           newAccumulatedTransform,
+          childAncestors,
         );
         if (found) return found;
       }
@@ -102,7 +117,7 @@ export function findElement(
 
 export function updatePropsDownTree(
   element: Svgx,
-  mapFn: (el: Svgx) => React.SVGProps<SVGElement> | undefined,
+  mapFn: (el: Svgx) => SvgxProps | undefined,
 ): Svgx {
   return updateElement(
     element,

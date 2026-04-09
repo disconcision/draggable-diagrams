@@ -1282,7 +1282,7 @@ export default demo(
       "d.between",
       "keyboard",
       "d.closest",
-      "spec.withFloating",
+      "spec.withFloating [while missing]",
       "spec.whenFar",
     ],
   },

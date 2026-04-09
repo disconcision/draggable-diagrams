@@ -1,16 +1,17 @@
-import { ReactNode } from "react";
+import qrcode from "qrcode-generator";
+import { ReactNode, useMemo } from "react";
 import { useTitle } from "../useTitle";
-import { CanvasOfListsNestedSection } from "./CanvasOfListsNestedSection";
-import { IntervalGraphSection } from "./IntervalGraphSection";
-import { NodeWiresSection } from "./NodeWiresSection";
-import { NoolTreeSection } from "./NoolTreeSection";
-import { OrderPreservingSection } from "./OrderPreservingSection";
-import qrA from "./qr_A.png";
+import { AnimateAlgebraSection } from "./AnimateAlgebraSection";
+import { DragSpecDesignerSection } from "./DragSpecDesignerSection";
+import { ListsInListsSection } from "./ListsInListsSection";
+import { NodesAndNoodlesSection } from "./NodesAndNoodlesSection";
 import { RingOfBeadsSection } from "./RingOfBeadsSection";
-import { SpecWorkshopSection } from "./SpecWorkshopSection";
+import { SchedulerSection } from "./SchedulerSection";
+import { StickyNotesSection } from "./StickyNotesSection";
 import { StudySection } from "./StudySection";
+import { TactileTessellationsSection } from "./TactileTessellationsSection";
 import { TeaserSection } from "./TeaserSection";
-import { TessellationSection } from "./TessellationSection";
+import { TwistedTreesSection } from "./TwistedTreesSection";
 
 export function Section({
   title,
@@ -29,51 +30,76 @@ export function Section({
   );
 }
 
-const QR_SIZE = 23 * 2;
+const QR_DISPLAY_CELL_SIZE = 3;
+const QR_MARGIN = 1;
 
 export function Lens({
   zoom,
   children,
+  cursorScale,
+  filenamePrefix,
+  belowLeftQr,
 }: {
   zoom: number;
   children: ReactNode;
+  cursorScale?: number;
+  filenamePrefix?: string;
+  belowLeftQr?: ReactNode;
 }) {
+  const effectiveCursorScale = cursorScale ?? zoom;
+  const { qrSrc, moduleCount } = useMemo(() => {
+    const qr = qrcode(0, "L");
+    qr.addData(
+      JSON.stringify({ cursorScale: effectiveCursorScale, filenamePrefix }),
+    );
+    qr.make();
+    return {
+      qrSrc: qr.createDataURL(1, QR_MARGIN),
+      moduleCount: qr.getModuleCount(),
+    };
+  }, [effectiveCursorScale, filenamePrefix]);
+  const qrPixels = (moduleCount + QR_MARGIN * 2) * QR_DISPLAY_CELL_SIZE;
+  const qrImg = (style: React.CSSProperties) => (
+    <img
+      src={qrSrc}
+      style={{
+        position: "absolute",
+        width: qrPixels,
+        height: qrPixels,
+        pointerEvents: "none",
+        imageRendering: "pixelated",
+        ...style,
+      }}
+    />
+  );
+
   return (
     <div
       style={{
-        zoom,
-        paddingLeft: QR_SIZE,
-        paddingRight: QR_SIZE,
+        position: "relative",
+        display: "inline-block",
         width: "fit-content",
+        paddingLeft: qrPixels,
+        paddingRight: qrPixels,
       }}
     >
-      <div style={{ position: "relative", outline: "1px solid #ccc" }}>
-        {children}
-        <img
-          src={qrA}
+      {qrImg({ top: 0, left: 0 })}
+      {belowLeftQr && (
+        <div
           style={{
             position: "absolute",
-            top: 0,
-            left: -QR_SIZE,
-            width: QR_SIZE,
-            height: QR_SIZE,
-            pointerEvents: "none",
-            imageRendering: "pixelated",
+            top: qrPixels,
+            left: 0,
+            width: qrPixels,
+            display: "flex",
+            justifyContent: "center",
           }}
-        />
-        <img
-          src={qrA}
-          style={{
-            position: "absolute",
-            bottom: 0,
-            right: -QR_SIZE,
-            width: QR_SIZE,
-            height: QR_SIZE,
-            pointerEvents: "none",
-            imageRendering: "pixelated",
-          }}
-        />
-      </div>
+        >
+          {belowLeftQr}
+        </div>
+      )}
+      <div style={{ zoom, outline: "1px solid #ccc" }}>{children}</div>
+      {qrImg({ bottom: 0, right: 0 })}
     </div>
   );
 }
@@ -90,21 +116,23 @@ export const StudioPage = () => {
       <Divider />
       <RingOfBeadsSection />
       <Divider />
-      <IntervalGraphSection />
+      <SchedulerSection />
       <Divider />
-      <CanvasOfListsNestedSection />
+      <ListsInListsSection />
       <Divider />
-      <NodeWiresSection />
+      <NodesAndNoodlesSection />
       <Divider />
-      <TessellationSection />
+      <TactileTessellationsSection />
       <Divider />
-      <SpecWorkshopSection />
+      <DragSpecDesignerSection />
       <Divider />
-      <NoolTreeSection />
+      <AnimateAlgebraSection />
       <Divider />
-      <OrderPreservingSection />
+      <TwistedTreesSection />
       <Divider />
       <StudySection />
+      <Divider />
+      <StickyNotesSection />
     </div>
   );
 };
